@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/Libraries/">
+    <Project Path="src/Libraries/LuuKyCanTin.Application/LuuKyCanTin.Application.csproj" />
+    <Project Path="src/Libraries/LuuKyCanTin.Domain/LuuKyCanTin.Domain.csproj" />
+    <Project Path="src/Libraries/LuuKyCanTin.Infrastructure/LuuKyCanTin.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Presentation/">
+    <Project Path="src/Presentation/LuuKyCanTin.WinForms/LuuKyCanTin.WinForms.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/LuuKyCanTin.Application.UnitTests/LuuKyCanTin.Application.UnitTests.csproj" />
+    <Project Path="tests/LuuKyCanTin.Domain.UnitTests/LuuKyCanTin.Domain.UnitTests.csproj" />
+  </Folder>
+</Solution>
