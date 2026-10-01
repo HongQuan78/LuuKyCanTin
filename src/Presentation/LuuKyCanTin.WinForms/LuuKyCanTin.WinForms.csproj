@@ -24,6 +24,8 @@
 
   <ItemGroup>
     <None Update="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Each developer's own .env (gitignored) is copied next to the exe, where the app looks for it. -->
+    <None Include=".env" CopyToOutputDirectory="PreserveNewest" Condition="Exists('.env')" />
   </ItemGroup>
 
 </Project>

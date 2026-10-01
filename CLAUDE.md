@@ -19,7 +19,14 @@ dotnet test tests/LuuKyCanTin.Domain.UnitTests
 dotnet test --filter "FullyQualifiedName~SoDuLuuKyTests"          # single class
 dotnet test --filter "FullyQualifiedName~SoDuLuuKyTests.MethodName" # single test
 dotnet run --project src/Presentation/LuuKyCanTin.WinForms
+
+# Migrations (dotnet-ef is a local tool: run `dotnet tool restore` once)
+dotnet ef migrations add <Name> --project src/Libraries/LuuKyCanTin.Infrastructure --output-dir Persistence/Migrations
+dotnet run --project src/Presentation/LuuKyCanTin.WinForms -- --migrate                 # admin only; workstations never migrate
+dotnet run --project src/Presentation/LuuKyCanTin.WinForms -- --migrate --seed-demo --environment Development
 ```
+
+The connection string lives in a gitignored `.env` (`ConnectionStrings__LuuKyCanTin=...`), never in `appsettings.json`. Copy `src/Presentation/LuuKyCanTin.WinForms/.env.example` to `.env` in the same folder. At startup the app refuses to run if the database's last applied migration is not the build's last migration. Run `--migrate` after you add one. Every enum column needs `HasEnumCheck(...)`, and every enum must be declared `: byte`. Tests enforce both.
 
 Tests use xUnit, NSubstitute and Shouldly. Don't use FluentAssertions, because it now has a commercial license. The planned integration tests run against SQL Server LocalDB.
 

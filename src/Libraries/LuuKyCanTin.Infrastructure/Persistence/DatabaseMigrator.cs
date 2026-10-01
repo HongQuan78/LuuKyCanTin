@@ -1,0 +1,14 @@
+using LuuKyCanTin.Application.HeThong;
+using Microsoft.EntityFrameworkCore;
+
+namespace LuuKyCanTin.Infrastructure.Persistence;
+
+internal sealed class DatabaseMigrator(AppDbContext db) : IDatabaseMigrator
+{
+    public async Task<IReadOnlyList<string>> MigrateAsync(CancellationToken cancellationToken = default)
+    {
+        var pending = (await db.Database.GetPendingMigrationsAsync(cancellationToken)).ToList();
+        await db.Database.MigrateAsync(cancellationToken);
+        return pending;
+    }
+}
