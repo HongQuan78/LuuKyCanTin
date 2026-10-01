@@ -2,7 +2,7 @@
 story: "1.5"
 epic: 1
 title: "Spike: QuestPDF printing with Vietnamese fonts"
-status: in-review
+status: review
 type: spike
 size: M (time-boxed, 2 days suggested)
 backlogItems: [SP-01]

@@ -2,7 +2,7 @@
 story: "1.6"
 epic: 1
 title: "Spike: Velopack updates from a LAN shared folder"
-status: in-review
+status: review
 type: spike
 size: M (time-boxed, 1.5 days suggested)
 backlogItems: [SP-02]
