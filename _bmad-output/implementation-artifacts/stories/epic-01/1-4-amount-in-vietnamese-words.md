@@ -2,7 +2,7 @@
 story: "1.4"
 epic: 1
 title: Amount in Vietnamese words
-status: ready-for-dev
+status: review
 size: S
 backlogItems: [LK-T03]
 frsCovered: [FR25]
@@ -12,7 +12,7 @@ dependsOn: ["1.1"]
 
 # Story 1.4: Amount in Vietnamese words
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -41,9 +41,9 @@ So that receipts and reports match the legal paper forms and cannot be misread.
 
 ## Tasks / Subtasks
 
-- [ ] **T1. Write the table test first** (AC: 2, 3, 4)
-  - [ ] `tests/LuuKyCanTin.Domain.UnitTests/Common/SoTienBangChuTests.cs` with `[Theory]` + `[InlineData]` for every AC 2 case, plus the extra cases below. Shouldly: `result.ShouldBe(expected)`.
-  - [ ] Extra cases worth pinning (so the dev confirms the reading rules with the PO if one looks wrong):
+- [x] **T1. Write the table test first** (AC: 2, 3, 4)
+  - [x] `tests/LuuKyCanTin.Domain.UnitTests/Common/SoTienBangChuTests.cs` with `[Theory]` + `[InlineData]` for every AC 2 case, plus the extra cases below. Shouldly: `result.ShouldBe(expected)`.
+  - [x] Extra cases worth pinning (so the dev confirms the reading rules with the PO if one looks wrong):
 
     | Input | Expected |
     |---|---|
@@ -71,21 +71,21 @@ So that receipts and reports match the legal paper forms and cannot be misread.
     | 1,000,000,000,000 | Một nghìn tỷ đồng |
     | 999,999,999,999,999,999 | Chín trăm chín mươi chín triệu … tỷ (max `decimal(18,0)`, no exception) |
 
-  - [ ] Linh style: 101 → "Một trăm linh một đồng"; 1,000,005 → "Một triệu không trăm linh năm đồng".
-  - [ ] Negative input throws `ArgumentOutOfRangeException`. A fractional `decimal` (e.g. 10.5m) also throws `ArgumentOutOfRangeException`, because money is integer đồng.
-- [ ] **T2. Implement `SoTienBangChu`** (AC: 1, 3)
-  - [ ] Location: `src/Libraries/LuuKyCanTin.Domain/Common/SoTienBangChu.cs` (the tech stack doc puts it in `Common/`).
-  - [ ] Public API (keep it small): `public static string Doc(decimal soTien, KieuDocLe kieu = KieuDocLe.Le)`. Money is `decimal` everywhere in the model (`decimal(18,0)`), so accept `decimal`, not `long`, to save every caller a cast.
-  - [ ] `public enum KieuDocLe : byte { Le = 1, Linh = 2 }` in Domain `Common/`. Wiring it to `appsettings.json` happens later, when the print frame needs it (Epic 4). This story only has to make it one parameter.
-  - [ ] Algorithm, by 3-digit groups from the right, with units `"" / nghìn / triệu / tỷ` repeating after `tỷ` (nghìn tỷ, triệu tỷ, tỷ tỷ):
+  - [x] Linh style: 101 → "Một trăm linh một đồng"; 1,000,005 → "Một triệu không trăm linh năm đồng".
+  - [x] Negative input throws `ArgumentOutOfRangeException`. A fractional `decimal` (e.g. 10.5m) also throws `ArgumentOutOfRangeException`, because money is integer đồng.
+- [x] **T2. Implement `SoTienBangChu`** (AC: 1, 3)
+  - [x] Location: `src/Libraries/LuuKyCanTin.Domain/Common/SoTienBangChu.cs` (the tech stack doc puts it in `Common/`).
+  - [x] Public API (keep it small): `public static string Doc(decimal soTien, KieuDocLe kieu = KieuDocLe.Le)`. Money is `decimal` everywhere in the model (`decimal(18,0)`), so accept `decimal`, not `long`, to save every caller a cast.
+  - [x] `public enum KieuDocLe : byte { Le = 1, Linh = 2 }` in Domain `Common/`. Wiring it to `appsettings.json` happens later, when the print frame needs it (Epic 4). This story only has to make it one parameter.
+  - [x] Algorithm, by 3-digit groups from the right, with units `"" / nghìn / triệu / tỷ` repeating after `tỷ` (nghìn tỷ, triệu tỷ, tỷ tỷ):
     - Skip a group equal to 000, unless the whole number is 0.
     - The **most significant** group reads without leading zeros (21 → "hai mươi mốt"). **Every other non-zero group** always reads its hundreds, using "không trăm" when the hundreds digit is 0.
     - Tens: 0 with a non-zero unit after a read hundreds digit gives `lẻ`/`linh` + unit; 1 gives `mười`; 2–9 give digit + `mươi`.
     - Units: 1 after tens ≥ 2 gives `mốt` (but `một` after `mười` and after `lẻ`); 5 after tens ≥ 1 gives `lăm` (but `năm` after `lẻ` and standalone); 4 after tens ≥ 2 gives `bốn` (see the open question); 0 gives nothing.
     - Join with single spaces, capitalize the first letter, and append " đồng".
-  - [ ] No `CultureInfo`-dependent casing surprises. Capitalize with `char.ToUpperInvariant` on the first character (all first letters are plain Latin or `Đ`/`Ă`-style precomposed characters, which `ToUpperInvariant` handles).
-- [ ] **T3. Verify** (AC: 1)
-  - [ ] `dotnet test --filter "FullyQualifiedName~SoTienBangChuTests"` passes. The Story 1.1 architecture test still shows Domain with no references.
+  - [x] No `CultureInfo`-dependent casing surprises. Capitalize with `char.ToUpperInvariant` on the first character (all first letters are plain Latin or `Đ`/`Ă`-style precomposed characters, which `ToUpperInvariant` handles).
+- [x] **T3. Verify** (AC: 1)
+  - [x] `dotnet test --filter "FullyQualifiedName~SoTienBangChuTests"` passes. The Story 1.1 architecture test still shows Domain with no references.
 
 ## Dev Notes
 
@@ -129,14 +129,30 @@ So that receipts and reports match the legal paper forms and cannot be misread.
 
 ### Agent Model Used
 
+Claude Opus 5.5 (claude-opus-5-5[1m])
+
 ### Debug Log References
+
+- Red: test project failed to compile (`SoTienBangChu`, `KieuDocLe` missing). Green: 42/42 Domain tests. Full suite: 212 passed.
+- Integration tests first failed with a SQL timeout because the WSL VM had stopped. They passed after `docker compose up -d`. This had nothing to do with the story.
 
 ### Completion Notes List
 
+- `SoTienBangChu.Doc(decimal, KieuDocLe = Le)` reads by 3-digit groups (triệu / nghìn / units) and recurses on the `tỷ` quotient, so 10^12 reads "Một nghìn tỷ". It takes the remainder first and then divides exactly, so very large decimals never round.
+- Test inputs are `long` and `decimal` literals, not parsed strings, because `decimal.Parse` under vi-VN reads "10.5" as 105.
+- Negative and fractional amounts throw `ArgumentOutOfRangeException`. A trailing-zero scale (10.00m) is accepted.
+- Max `decimal(18,0)` reads every group and is pinned. A test checks that its length fits `nvarchar(300)`.
+- Open PO question still pending: 24 reads "hai mươi bốn" by default, not "tư". "nghìn" is kept.
+
 ### File List
+
+- `src/Libraries/LuuKyCanTin.Domain/Common/SoTienBangChu.cs` (new)
+- `src/Libraries/LuuKyCanTin.Domain/Common/KieuDocLe.cs` (new)
+- `tests/LuuKyCanTin.Domain.UnitTests/Common/SoTienBangChuTests.cs` (new)
 
 ## Change Log
 
 | Date | Change |
 |---|---|
 | 2026-10-01 | Story file created from Epic 1 |
+| 2026-10-01 | Implemented `SoTienBangChu` and `KieuDocLe` with the table tests; status set to review |
