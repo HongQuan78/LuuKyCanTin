@@ -1,16 +1,73 @@
+using LuuKyCanTin.Application;
+using LuuKyCanTin.Infrastructure;
+using LuuKyCanTin.WinForms.Common;
+using LuuKyCanTin.WinForms.Shell;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Serilog;
+using WinFormsApp = System.Windows.Forms.Application;
+
 namespace LuuKyCanTin.WinForms;
 
-static class Program
+internal static class Program
 {
-    /// <summary>
-    ///  The main entry point for the application.
-    /// </summary>
     [STAThread]
-    static void Main()
+    private static void Main(string[] args)
     {
-        // To customize application configuration such as set high DPI settings or default font,
-        // see https://aka.ms/applicationconfiguration.
+        GlobalExceptionHandler.Install();
         ApplicationConfiguration.Initialize();
-        Application.Run(new Form1());
-    }    
+
+        try
+        {
+            var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings
+            {
+                Args = args,
+                // Started from a desktop shortcut the working directory is arbitrary; config lives next to the exe.
+                ContentRootPath = AppContext.BaseDirectory,
+            });
+
+            Log.Logger = CreateLogger(builder.Configuration);
+            builder.Services.AddSerilog();
+
+            builder.Services.Configure<AppOptions>(builder.Configuration.GetSection(AppOptions.SectionName));
+            builder.Services.AddApplication();
+            builder.Services.AddInfrastructure(builder.Configuration);
+            builder.Services.AddTransient<MainForm>();
+
+            using var host = builder.Build();
+
+            Log.Information("LuuKyCanTin starting");
+            var mainForm = host.Services.GetRequiredService<MainForm>();
+            // The presenter stays alive through its subscription to the form's events.
+            ActivatorUtilities.CreateInstance<MainPresenter>(host.Services, mainForm);
+            WinFormsApp.Run(mainForm);
+        }
+        catch (Exception ex)
+        {
+            Log.Fatal(ex, "LuuKyCanTin failed to start");
+            throw;
+        }
+        finally
+        {
+            Log.CloseAndFlush();
+        }
+    }
+
+    private static Serilog.ILogger CreateLogger(IConfiguration configuration)
+    {
+        // %ProgramData% is resolved here; Serilog does not expand environment variables in paths.
+        var logDirectory = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "LuuKyCanTin", "logs");
+        Directory.CreateDirectory(logDirectory);
+
+        return new LoggerConfiguration()
+            .ReadFrom.Configuration(configuration)
+            .Enrich.FromLogContext()
+            .WriteTo.File(
+                Path.Combine(logDirectory, "log-.txt"),
+                rollingInterval: RollingInterval.Day,
+                retainedFileCountLimit: 30)
+            .CreateLogger();
+    }
 }

@@ -1,11 +1,11 @@
-﻿namespace LuuKyCanTin.WinForms;
+namespace LuuKyCanTin.WinForms.Shell;
 
-partial class Form1
+partial class MainForm
 {
     /// <summary>
     ///  Required designer variable.
     /// </summary>
-    private System.ComponentModel.IContainer components = null;
+    private System.ComponentModel.IContainer components = null!;
 
     /// <summary>
     ///  Clean up any resources being used.
@@ -30,8 +30,10 @@ partial class Form1
     {
         components = new System.ComponentModel.Container();
         AutoScaleMode = AutoScaleMode.Font;
-        ClientSize = new Size(800, 450);
-        Text = "Form1";
+        ClientSize = new Size(1024, 640);
+        StartPosition = FormStartPosition.CenterScreen;
+        WindowState = FormWindowState.Maximized;
+        Text = "Lưu ký – Căn tin";
     }
 
     #endregion

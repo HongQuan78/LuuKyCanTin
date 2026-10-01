@@ -11,5 +11,7 @@
   <Folder Name="/tests/">
     <Project Path="tests/LuuKyCanTin.Application.UnitTests/LuuKyCanTin.Application.UnitTests.csproj" />
     <Project Path="tests/LuuKyCanTin.Domain.UnitTests/LuuKyCanTin.Domain.UnitTests.csproj" />
+    <Project Path="tests/LuuKyCanTin.IntegrationTests/LuuKyCanTin.IntegrationTests.csproj" />
+    <Project Path="tests/LuuKyCanTin.WinForms.UnitTests/LuuKyCanTin.WinForms.UnitTests.csproj" />
   </Folder>
 </Solution>

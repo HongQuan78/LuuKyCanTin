@@ -7,8 +7,8 @@
 
   <ItemGroup>
     <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="Microsoft.Data.SqlClient" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
-    <PackageReference Include="NSubstitute" />
     <PackageReference Include="Shouldly" />
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.runner.visualstudio" />
@@ -20,6 +20,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Libraries\LuuKyCanTin.Application\LuuKyCanTin.Application.csproj" />
+    <ProjectReference Include="..\..\src\Libraries\LuuKyCanTin.Domain\LuuKyCanTin.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Libraries\LuuKyCanTin.Infrastructure\LuuKyCanTin.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
