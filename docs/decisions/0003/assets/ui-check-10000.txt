@@ -1,0 +1,15 @@
+=== SP-03 --ui-check: keystroke → grid filled (WinForms, debounce 300 ms) ===
+Run at   : 2026-10-02 04:45:06
+Machine  : KIENTRANT (12 logical CPUs)
+SQL      : 17.0.4025.3 | Express Edition (64-bit) | SQL_Latin1_General_CP1_CI_AS | db Vietnamese_CI_AI
+Rows     : 10.000
+EF model warm-up at form load: 624 ms (paid once, before the user types)
+
+| scenario | started | cancelled | completed | failed | rows in grid | last keystroke → grid | first row |
+|---|---|---|---|---|---|---|---|
+| 'nguyen van a' every 60 ms | 12 | 11 | 1 | 0 | 6 | 800 ms | Nguyễn Văn A |
+| 'dt000123' every 40 ms | 8 | 7 | 1 | 0 | 1 | 411 ms | Phan Văn Kiên |
+| 'Nguyễn Văn A' every 80 ms | 12 | 11 | 1 | 0 | 6 | 324 ms | Nguyễn Văn A |
+| '%100' every 60 ms | 4 | 3 | 1 | 0 | 0 | 372 ms |  |
+
+Total grid binds during the run: 4
