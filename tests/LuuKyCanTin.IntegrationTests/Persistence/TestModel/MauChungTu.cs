@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace LuuKyCanTin.IntegrationTests.Persistence.TestModel;
 
-// A test-only entity that exercises every shared convention, since the real model has no tables yet.
+// A test-only voucher that exercises every shared convention and the audit log, since the real model has no vouchers yet.
 public enum MauTrangThai : byte
 {
     Nhap = 1,
@@ -14,7 +14,7 @@ public enum MauTrangThai : byte
     DaHuy = 3,
 }
 
-public sealed class MauChungTu : AuditableEntity
+public sealed class MauChungTu : AuditableEntity, IAuditable, ICoTrangThaiHuy
 {
     public int Id { get; set; }
     public decimal SoTien { get; set; }
@@ -23,6 +23,11 @@ public sealed class MauChungTu : AuditableEntity
     public string NoiDung { get; set; } = "";
     public MauTrangThai TrangThai { get; set; }
     public MauTrangThai? TrangThaiTruoc { get; set; }
+
+    [KhongGhiNhatKy]
+    public string? MaBiMat { get; set; }
+
+    public bool DaHuy => TrangThai == MauTrangThai.DaHuy;
 }
 
 public sealed class MauChungTuConfiguration : AuditableEntityConfiguration<MauChungTu>

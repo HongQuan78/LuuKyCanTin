@@ -1,0 +1,5 @@
+P:System.DateTime.Now;Use IClock.Now
+P:System.DateTime.Today;Use IClock.Today
+P:System.DateTime.UtcNow;Use IClock.Now (the database stores local time)
+P:System.DateTimeOffset.Now;Use IClock.Now
+P:System.DateTimeOffset.UtcNow;Use IClock.Now (the database stores local time)

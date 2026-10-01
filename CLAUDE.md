@@ -54,7 +54,8 @@ WinForms (Presentation) ─► Application ─► Domain
 - A balance never goes negative. Money is stored as integer đồng, with no decimals or floats.
 - Vouchers share one state machine: Draft → Posted → Cancelled (with a reason). Snapshot names and categories at posting time so a reprint matches the original.
 - Document numbers come from `INumberingService` (`DemSoChungTu` + UPDLOCK), counted per type and per year.
-- All date logic goes through `IClock`. Never use `DateTime.Now` directly.
+- All date logic goes through `IClock`. Never use `DateTime.Now` directly. `src/BannedSymbols.txt` (BannedApiAnalyzers, RS0030) fails the build otherwise; `SystemClock` is the only exception.
+- Voucher entities implement `IAuditable` (and `ICoTrangThaiHuy` so a cancellation logs as `Huy`); mark secrets `[KhongGhiNhatKy]`. Write vouchers through `SaveChanges`, never `ExecuteUpdate`/raw SQL, or the audit log misses them. Log non-voucher events (sign-in, print, approve) through `IGhiNhatKy`.
 - Services never depend on WinForms (no `MessageBox`). Services re-check permissions before writing, because hidden UI elements don't count as authorization.
 - Forms never hold a `DbContext`. Each operation creates a fresh DI scope.
 - The `SaveChanges` interceptor writes the audit log (`NhatKyThaoTac`) automatically for every voucher table. The log is append-only.

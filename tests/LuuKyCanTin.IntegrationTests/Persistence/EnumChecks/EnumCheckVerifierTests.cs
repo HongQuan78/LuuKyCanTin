@@ -75,4 +75,40 @@ public class EnumCheckVerifierTests
 
         EnumCheckVerifier.FindProblems([TrangThai], checks).ShouldHaveSingleItem().ShouldContain("DaHuy=3");
     }
+
+    private static readonly EnumColumn TrangThaiTheoTen = TrangThai with { StoredAsName = true };
+
+    [Theory]
+    [InlineData("([TrangThai]='Nhap' OR [TrangThai]='DaGhiSo' OR [TrangThai]='DaHuy')")]
+    [InlineData("([TrangThai]=N'Nhap' OR [TrangThai]=N'DaGhiSo' OR [TrangThai]=N'DaHuy')")]
+    [InlineData("([TrangThai] IN ('Nhap', 'DaGhiSo', 'DaHuy'))")]
+    public void NameStoredColumn_MatchingConstraint_HasNoProblems(string definition)
+    {
+        EnumCheckVerifier.FindProblems([TrangThaiTheoTen], [Check(definition)]).ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void NameStoredColumn_NameMissingFromConstraint_IsReported()
+    {
+        var problems = EnumCheckVerifier.FindProblems([TrangThaiTheoTen], [Check("([TrangThai]='Nhap' OR [TrangThai]='DaGhiSo')")]);
+
+        problems.ShouldHaveSingleItem().ShouldContain("enum value DaHuy is not allowed by the CHECK constraint");
+    }
+
+    [Fact]
+    public void NameStoredColumn_ExtraNameInConstraint_IsReported()
+    {
+        var problems = EnumCheckVerifier.FindProblems(
+            [TrangThaiTheoTen], [Check("([TrangThai]='Nhap' OR [TrangThai]='DaGhiSo' OR [TrangThai]='DaHuy' OR [TrangThai]='Moi')")]);
+
+        problems.ShouldHaveSingleItem().ShouldContain("CHECK allows 'Moi', which MauTrangThai does not define");
+    }
+
+    [Fact]
+    public void NameStoredColumn_NumericConstraint_IsReported()
+    {
+        // A tinyint-style CHECK on a text column means the conversion and the constraint disagree.
+        EnumCheckVerifier.FindProblems([TrangThaiTheoTen], [Check("([TrangThai]=(1) OR [TrangThai]=(2) OR [TrangThai]=(3))")])
+            .ShouldNotBeEmpty();
+    }
 }

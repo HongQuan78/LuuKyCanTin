@@ -1,8 +1,12 @@
+using LuuKyCanTin.Application.Abstractions;
 using LuuKyCanTin.Application.HeThong;
 using LuuKyCanTin.Infrastructure;
+using LuuKyCanTin.Infrastructure.HeThong;
 using LuuKyCanTin.Infrastructure.Persistence;
+using LuuKyCanTin.Infrastructure.Persistence.Interceptors;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
@@ -46,6 +50,9 @@ public class InfrastructureRegistrationTests
     [InlineData(typeof(ISchemaVersionChecker))]
     [InlineData(typeof(IDatabaseMigrator))]
     [InlineData(typeof(IDemoDataSeeder))]
+    [InlineData(typeof(IGhiNhatKy))]
+    [InlineData(typeof(IClock))]
+    [InlineData(typeof(ICurrentUser))]
     public void AddInfrastructure_RegistersDatabaseServices(Type service)
     {
         using var provider = BuildProvider(ConnectionString);
@@ -53,6 +60,34 @@ public class InfrastructureRegistrationTests
 
         scope.ServiceProvider.GetService(service).ShouldNotBeNull();
     }
+
+    [Fact]
+    public void AddInfrastructure_SharesOneSignedInUserAcrossScopes()
+    {
+        using var provider = BuildProvider(ConnectionString);
+        using var scope = provider.CreateScope();
+
+        scope.ServiceProvider.GetRequiredService<ICurrentUser>()
+            .ShouldBeSameAs(provider.GetRequiredService<CurrentUserSession>());
+    }
+
+    [Fact]
+    public void AddInfrastructure_GivesEachDbContextItsOwnAuditInterceptor()
+    {
+        using var provider = BuildProvider(ConnectionString);
+        using var scope1 = provider.CreateScope();
+        using var scope2 = provider.CreateScope();
+
+        var interceptor1 = InterceptorOf(scope1.ServiceProvider.GetRequiredService<AppDbContext>());
+        var interceptor2 = InterceptorOf(scope2.ServiceProvider.GetRequiredService<AppDbContext>());
+
+        interceptor1.ShouldNotBeNull();
+        interceptor1.ShouldNotBeSameAs(interceptor2);
+    }
+
+    private static AuditInterceptor? InterceptorOf(DbContext db) => db.GetService<IDbContextOptions>()
+        .Extensions.OfType<CoreOptionsExtension>().Single()
+        .Interceptors?.OfType<AuditInterceptor>().SingleOrDefault();
 
     [Theory]
     [InlineData(null)]

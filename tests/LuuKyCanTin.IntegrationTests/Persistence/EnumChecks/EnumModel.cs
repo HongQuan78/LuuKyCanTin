@@ -14,6 +14,9 @@ public static class EnumModel
         .SelectMany(e => e.GetProperties())
         .Where(p => (Nullable.GetUnderlyingType(p.ClrType) ?? p.ClrType).IsEnum);
 
+    /// <summary>True for an enum converted to its name (<c>HasConversion&lt;string&gt;()</c>) rather than stored as a number.</summary>
+    public static bool IsStoredAsName(IProperty property) => property.GetProviderClrType() == typeof(string);
+
     public static List<EnumColumn> EnumColumnsOf(DbContext db) => EnumPropertiesOf(db)
         .Select(p =>
         {
@@ -23,7 +26,8 @@ public static class EnumModel
                 entity.GetSchema() ?? DefaultSchema,
                 table.Name,
                 p.GetColumnName(table)!,
-                Nullable.GetUnderlyingType(p.ClrType) ?? p.ClrType);
+                Nullable.GetUnderlyingType(p.ClrType) ?? p.ClrType,
+                IsStoredAsName(p));
         })
         .ToList();
 }

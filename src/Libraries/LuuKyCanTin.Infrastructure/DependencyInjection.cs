@@ -1,5 +1,9 @@
+using LuuKyCanTin.Application.Abstractions;
 using LuuKyCanTin.Application.HeThong;
+using LuuKyCanTin.Infrastructure.Common;
+using LuuKyCanTin.Infrastructure.HeThong;
 using LuuKyCanTin.Infrastructure.Persistence;
+using LuuKyCanTin.Infrastructure.Persistence.Interceptors;
 using LuuKyCanTin.Infrastructure.Persistence.Seed.Demo;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -19,7 +23,17 @@ public static class DependencyInjection
                 $"Missing connection string 'ConnectionStrings:{ConnectionStringName}'. Set ConnectionStrings__{ConnectionStringName} "
                 + "in the .env file next to the exe (see .env.example) or as an environment variable.");
 
-        services.AddDbContext<AppDbContext>(options => options.UseSqlServer(connectionString));
+        services.AddSingleton<IClock, SystemClock>();
+        services.AddSingleton<CurrentUserSession>();
+        services.AddSingleton<ICurrentUser>(sp => sp.GetRequiredService<CurrentUserSession>());
+        services.AddSingleton<NhatKyFactory>();
+
+        // No EnableRetryOnFailure: a retrying strategy rejects the transactions posting operations open themselves.
+        services.AddScoped<AuditInterceptor>();
+        services.AddDbContext<AppDbContext>((sp, options) => options
+            .UseSqlServer(connectionString)
+            .AddInterceptors(sp.GetRequiredService<AuditInterceptor>()));
+        services.AddScoped<IGhiNhatKy, GhiNhatKy>();
         services.AddScoped<ISchemaVersionChecker, SchemaVersionChecker>();
         services.AddScoped<IDatabaseMigrator, DatabaseMigrator>();
         services.AddScoped<IDemoDataSeeder, DemoDataSeeder>();

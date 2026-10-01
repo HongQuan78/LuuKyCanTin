@@ -1,3 +1,4 @@
+using LuuKyCanTin.Domain.HeThong;
 using Microsoft.EntityFrameworkCore;
 
 namespace LuuKyCanTin.Infrastructure.Persistence;
@@ -5,6 +6,8 @@ namespace LuuKyCanTin.Infrastructure.Persistence;
 public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
 {
     public const string Collation = "Vietnamese_CI_AI";
+
+    public DbSet<NhatKyThaoTac> NhatKyThaoTac => Set<NhatKyThaoTac>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
