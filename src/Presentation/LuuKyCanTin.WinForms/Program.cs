@@ -2,6 +2,7 @@ using System.Text;
 using LuuKyCanTin.Application;
 using LuuKyCanTin.Application.HeThong;
 using LuuKyCanTin.Infrastructure;
+using LuuKyCanTin.Infrastructure.Common;
 using LuuKyCanTin.WinForms.Common;
 using LuuKyCanTin.WinForms.HeThong;
 using LuuKyCanTin.WinForms.Shell;

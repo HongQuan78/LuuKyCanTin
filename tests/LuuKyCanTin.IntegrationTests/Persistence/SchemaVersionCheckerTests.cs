@@ -7,13 +7,13 @@ using Shouldly;
 
 namespace LuuKyCanTin.IntegrationTests.Persistence;
 
-[Collection(LocalDbCollection.Name)]
-public class SchemaVersionCheckerTests(LocalDbFixture fixture)
+[Collection(SqlServerCollection.Name)]
+public class SchemaVersionCheckerTests(SqlServerFixture fixture)
 {
     private static Task<SchemaVersionCheckResult> CheckAsync(AppDbContext db) =>
         new SchemaVersionChecker(db, NullLogger<SchemaVersionChecker>.Instance).CheckAsync();
 
-    [LocalDbFact]
+    [SqlServerFact]
     public async Task FullyMigratedDatabase_Matches()
     {
         await using var db = fixture.Database.CreateDbContext();
@@ -24,7 +24,7 @@ public class SchemaVersionCheckerTests(LocalDbFixture fixture)
         result.Actual.ShouldBe(db.Database.GetMigrations().Last());
     }
 
-    [LocalDbFact]
+    [SqlServerFact]
     public async Task DatabaseThatDoesNotExist_IsMismatchWithNoActualVersion()
     {
         await using var database = new TestDatabase();
@@ -36,7 +36,7 @@ public class SchemaVersionCheckerTests(LocalDbFixture fixture)
         result.Actual.ShouldBeNull();
     }
 
-    [LocalDbFact]
+    [SqlServerFact]
     public async Task EmptyDatabaseWithoutHistoryTable_IsMismatchWithNoActualVersion()
     {
         await using var database = new TestDatabase();
@@ -49,7 +49,7 @@ public class SchemaVersionCheckerTests(LocalDbFixture fixture)
         result.Actual.ShouldBeNull();
     }
 
-    [LocalDbFact]
+    [SqlServerFact]
     public async Task DatabaseMigratedByANewerBuild_IsMismatch()
     {
         await using var database = new TestDatabase();

@@ -28,7 +28,9 @@ dotnet run --project src/Presentation/LuuKyCanTin.WinForms -- --migrate --seed-d
 
 The connection string lives in a gitignored `.env` (`ConnectionStrings__LuuKyCanTin=...`), never in `appsettings.json`. Copy `src/Presentation/LuuKyCanTin.WinForms/.env.example` to `.env` in the same folder. At startup the app refuses to run if the database's last applied migration is not the build's last migration. Run `--migrate` after you add one. Every enum column needs `HasEnumCheck(...)`, and every enum must be declared `: byte`. Tests enforce both.
 
-Tests use xUnit, NSubstitute and Shouldly. Don't use FluentAssertions, because it now has a commercial license. The planned integration tests run against SQL Server LocalDB.
+Tests use xUnit, NSubstitute and Shouldly. Don't use FluentAssertions, because it now has a commercial license.
+
+Integration tests (`[SqlServerFact]`) create throw-away databases on the server named by `LUUKYCANTIN_TEST_SQLSERVER` (environment or the root `.env`). Without it they use LocalDB, which is what CI does, and if neither exists they are skipped locally. For a local server, copy `.env.example` to `.env`, set the password, then run `docker compose up -d` (SQL Server 2022 in Docker; here Docker runs inside WSL Ubuntu: `wsl -d Ubuntu -- docker compose up -d`). Keep `127.0.0.1` in connection strings, because the WSL relay accepts but never answers SQL over `::1`. WSL stops its VM when idle, which also stops the container, so keep a WSL terminal open while testing.
 
 ## Architecture
 

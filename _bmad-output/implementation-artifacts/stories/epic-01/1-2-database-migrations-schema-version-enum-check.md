@@ -135,7 +135,11 @@ Claude Opus 5.5 (claude-opus-5-5[1m])
 
 ### Completion Notes List
 
-- **⚠ LocalDB tests not run locally.** This machine has no SQL Server LocalDB, so the 9 new `[LocalDbFact]` tests (migration/collation, schema-checker against a real DB, enum ↔ CHECK and its self-test) were skipped here. They run on CI, where `CI` is set and a missing LocalDB fails the build. Confirm on the first CI run.
+- **Test SQL Server in Docker (follow-up).** The first CI run (`2398cb9`) failed at the Test step. Locally there was no LocalDB, so `docker-compose.yml` now runs SQL Server 2022. `[LocalDbFact]`/`LocalDbFixture` became `[SqlServerFact]`/`SqlServerFixture`, and the server comes from `LUUKYCANTIN_TEST_SQLSERVER` (environment or the root `.env`, see `.env.example`), falling back to LocalDB as CI uses. `DotEnvFile` moved to `Infrastructure/Common` so the tests reuse it. Against the container all 73 integration tests pass, none skipped, across 3 runs, and no test database is left behind.
+- **Bugs found by running against a real server:**
+  1. `Migrate_DatabaseCreatedByAdmin_ChangesItsCollation` failed with "database could not be exclusively locked". The test's earlier `SELECT` left a pooled connection open as a second session, and `ALTER DATABASE COLLATE` needs exclusive access. `TestDatabase`'s raw helpers now use unpooled connections. This is most likely the CI failure, but that can't be confirmed until CI reruns. **Production implication:** `--migrate` on an admin-created empty database fails the same way if anyone (SSMS, a workstation) is connected to it. Close other sessions first.
+  2. The two model-only `[Fact]`s inside the DB collection failed whenever the shared fixture couldn't start. They moved to `EnumModelTests`, outside the collection.
+- **Local Docker gotchas (WSL):** use `127.0.0.1`, not `localhost`. The WSL relay accepts TCP on `::1` but never answers SQL pre-login, so connections time out. Also, WSL stops its VM, and the container with it, when no WSL process is running.
 - **Decision: no FK from `NguoiTaoId`/`NguoiSuaId` to `NguoiDung`.** This follows the Dev Notes recommendation: one FK per table buys nothing over the audit log (`NhatKyThaoTac`, the authoritative user) and risks multiple-cascade-path errors. It's recorded on `AuditableEntityConfiguration<T>`.
 - **Enums → tinyint without a converter.** EF maps an enum to its underlying type, so Domain enums must be declared `: byte`. `EveryEnumColumn_IsTinyint` enforces this on the model (no DB needed). `HasEnumCheck(e => e.Prop)` (nullable and non-nullable overloads) emits `CK_<Table>_<Column>` = `[Col] IN (…)` from `Enum.GetValues`.
 - **AC 4 test design.** EF check constraints are table-level, so `sys.check_constraints.parent_column_id` is 0 and the "join to sys.columns" from T7 wouldn't find them. The verifier reads every constraint of the table instead and parses the values scoped to `[Col]`. It accepts both the normalized `([Col]=(1) OR …)` form and `IN (…)`. When several constraints mention the column, the allowed set is their intersection. The pure logic is tested in `EnumCheckVerifierTests`. `SelfTest_DetectsEachKindOfMismatchInADeployedDatabase` runs it against constraints SQL Server actually stored.
@@ -173,10 +177,14 @@ Claude Opus 5.5 (claude-opus-5-5[1m])
 - `src/Presentation/LuuKyCanTin.WinForms/Program.cs` (modified)
 - `src/Presentation/LuuKyCanTin.WinForms/appsettings.json` (modified)
 - `src/Presentation/LuuKyCanTin.WinForms/Common/ParentConsole.cs` (new)
-- `src/Presentation/LuuKyCanTin.WinForms/Common/DotEnvFile.cs` (new)
+- `src/Libraries/LuuKyCanTin.Infrastructure/Common/DotEnvFile.cs` (new)
 - `src/Presentation/LuuKyCanTin.WinForms/.env.example` (new)
 - `src/Presentation/LuuKyCanTin.WinForms/LuuKyCanTin.WinForms.csproj` (modified: copy `.env` to output)
-- `tests/LuuKyCanTin.WinForms.UnitTests/Common/DotEnvFileTests.cs` (new)
+- `tests/LuuKyCanTin.IntegrationTests/Common/DotEnvFileTests.cs` (new)
+- `docker-compose.yml`, `.env.example` (new, repository root)
+- `tests/LuuKyCanTin.IntegrationTests/Common/SqlServerFactAttribute.cs`, `SqlServerFixture.cs` (renamed from `LocalDbFactAttribute.cs`, `LocalDbFixture.cs`)
+- `tests/LuuKyCanTin.IntegrationTests/Persistence/SqlServerSmokeTests.cs` (renamed from `LocalDbSmokeTests.cs`)
+- `tests/LuuKyCanTin.IntegrationTests/Persistence/EnumChecks/EnumModel.cs`, `EnumModelTests.cs` (new)
 - `src/Presentation/LuuKyCanTin.WinForms/HeThong/AdminCommandLine.cs` (new)
 - `src/Presentation/LuuKyCanTin.WinForms/HeThong/AdminCommandRunner.cs` (new)
 - `src/Presentation/LuuKyCanTin.WinForms/HeThong/SchemaVersionGate.cs` (new)

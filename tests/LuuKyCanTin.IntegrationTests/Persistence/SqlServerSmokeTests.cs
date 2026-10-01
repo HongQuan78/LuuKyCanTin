@@ -4,12 +4,12 @@ using Shouldly;
 
 namespace LuuKyCanTin.IntegrationTests.Persistence;
 
-public class LocalDbSmokeTests
+public class SqlServerSmokeTests
 {
-    [LocalDbFact]
-    public async Task LocalDb_AcceptsConnectionAndQuery()
+    [SqlServerFact]
+    public async Task Server_AcceptsConnectionAndQuery()
     {
-        await using var connection = new SqlConnection(LocalDbFactAttribute.ConnectionString);
+        await using var connection = new SqlConnection(SqlServerFactAttribute.ConnectionString);
         await connection.OpenAsync();
         await using var command = new SqlCommand("SELECT 1", connection);
 

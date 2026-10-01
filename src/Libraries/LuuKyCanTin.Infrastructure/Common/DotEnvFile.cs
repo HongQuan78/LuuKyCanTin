@@ -1,11 +1,11 @@
-namespace LuuKyCanTin.WinForms.Common;
+namespace LuuKyCanTin.Infrastructure.Common;
 
 /// <summary>
 /// Loads machine-specific secrets such as the connection string from a <c>.env</c> file kept out of source control.
 /// Keys use the environment-variable form (<c>ConnectionStrings__LuuKyCanTin</c>), so the host's
 /// environment-variable provider picks them up.
 /// </summary>
-internal static class DotEnvFile
+public static class DotEnvFile
 {
     public const string FileName = ".env";
 

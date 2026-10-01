@@ -1,7 +1,7 @@
-using LuuKyCanTin.WinForms.Common;
+using LuuKyCanTin.Infrastructure.Common;
 using Shouldly;
 
-namespace LuuKyCanTin.WinForms.UnitTests.Common;
+namespace LuuKyCanTin.IntegrationTests.Common;
 
 public class DotEnvFileTests
 {
