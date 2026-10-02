@@ -31,7 +31,7 @@ Source of the stories: `_bmad-output/planning-artifacts/epics/epic-NN-*.md`. Eac
 
 | Story | File | Size | Depends on | Status |
 |---|---|---|---|---|
-| 2.1 Staff register | [2-1-staff-register.md](epic-02/2-1-staff-register.md) | S | 1.2, 1.3 | ready-for-dev |
+| 2.1 Staff register | [2-1-staff-register.md](epic-02/2-1-staff-register.md) | S | 1.2, 1.3 | review |
 | 2.2 Secure sign-in, password policy and lockout | [2-2-secure-sign-in-password-policy-lockout.md](epic-02/2-2-secure-sign-in-password-policy-lockout.md) | M | 1.8, 2.1 | ready-for-dev |
 | 2.3 Roles and permission catalogue | [2-3-roles-permission-catalogue.md](epic-02/2-3-roles-permission-catalogue.md) | M | 2.2 | ready-for-dev |
 | 2.4 User accounts linked to staff and role assignment | [2-4-user-accounts-role-assignment.md](epic-02/2-4-user-accounts-role-assignment.md) | M | 2.1, 2.3 | ready-for-dev |

@@ -7,9 +7,12 @@ public partial class MainForm : Form, IMainView
     public MainForm()
     {
         InitializeComponent();
+        mnuCanBo.Click += (_, _) => DanhMucCanBoClicked?.Invoke(this, EventArgs.Empty);
     }
 
     public event EventHandler? Loaded;
+
+    public event EventHandler? DanhMucCanBoClicked;
 
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public string TieuDe

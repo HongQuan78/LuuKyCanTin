@@ -62,6 +62,16 @@ public class InfrastructureRegistrationTests
     }
 
     [Fact]
+    public void AddInfrastructure_ExposesTheScopesDbContextAsTheUnitOfWork()
+    {
+        using var provider = BuildProvider(ConnectionString);
+        using var scope = provider.CreateScope();
+
+        scope.ServiceProvider.GetRequiredService<IAppDbContext>()
+            .ShouldBeSameAs(scope.ServiceProvider.GetRequiredService<AppDbContext>());
+    }
+
+    [Fact]
     public void AddInfrastructure_SharesOneSignedInUserAcrossScopes()
     {
         using var provider = BuildProvider(ConnectionString);

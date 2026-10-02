@@ -24,6 +24,7 @@ public class ProjectReferenceRulesTests
     [InlineData("QuestPDF")]
     [InlineData("ClosedXML")]
     [InlineData("Microsoft.EntityFrameworkCore.SqlServer")]
+    [InlineData("Microsoft.EntityFrameworkCore.Sqlite")]
     public void Application_WithForbiddenPackage_IsReported(string package)
     {
         var xml = Csproj(DomainReference + $"""<PackageReference Include="{package}" />""");
@@ -50,10 +51,12 @@ public class ProjectReferenceRulesTests
             .ShouldContain(v => v.Contains(ProjectReferenceRules.Infrastructure));
     }
 
-    [Fact]
-    public void Application_WithAllowedPackage_Passes()
+    [Theory]
+    [InlineData("FluentValidation")]
+    [InlineData("Microsoft.EntityFrameworkCore")]
+    public void Application_WithAllowedPackage_Passes(string package)
     {
-        var xml = Csproj(DomainReference + """<PackageReference Include="FluentValidation" />""");
+        var xml = Csproj(DomainReference + $"""<PackageReference Include="{package}" />""");
 
         ProjectReferenceRules.Check(ProjectReferenceRules.Application, xml).ShouldBeEmpty();
     }

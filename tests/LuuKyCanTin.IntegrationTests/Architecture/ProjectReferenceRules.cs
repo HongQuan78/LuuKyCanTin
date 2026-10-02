@@ -12,11 +12,12 @@ internal static class ProjectReferenceRules
     public const string Infrastructure = "LuuKyCanTin.Infrastructure";
     public const string WinForms = "LuuKyCanTin.WinForms";
 
-    // Kept as one list so that admitting Microsoft.EntityFrameworkCore (core, no provider) is a one-line change.
+    // EF Core itself is allowed so IAppDbContext can expose DbSets; every provider package stays forbidden.
     public static readonly IReadOnlySet<string> ApplicationAllowedPackages = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
         "FluentValidation",
         "FluentValidation.DependencyInjectionExtensions",
+        "Microsoft.EntityFrameworkCore",
         "Microsoft.Extensions.DependencyInjection.Abstractions",
     };
 

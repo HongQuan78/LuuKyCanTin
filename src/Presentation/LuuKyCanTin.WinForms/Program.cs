@@ -71,6 +71,7 @@ internal static class Program
         builder.Services.AddApplication();
         builder.Services.AddInfrastructure(builder.Configuration);
         builder.Services.AddTransient<MainForm>();
+        builder.Services.AddSingleton<IDieuHuong, DieuHuong>();
 
         return builder.Build();
     }

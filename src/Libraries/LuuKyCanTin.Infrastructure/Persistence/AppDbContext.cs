@@ -1,13 +1,45 @@
+using LuuKyCanTin.Application.Abstractions;
+using LuuKyCanTin.Application.Common;
+using LuuKyCanTin.Domain.DanhMuc;
 using LuuKyCanTin.Domain.HeThong;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
 namespace LuuKyCanTin.Infrastructure.Persistence;
 
-public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
+public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options), IAppDbContext
 {
     public const string Collation = "Vietnamese_CI_AI";
 
+    /// <summary>
+    /// For name columns searched by typing without diacritics. Vietnamese_CI_AI ignores only tone marks: it treats
+    /// ă, â, ê, ô, ơ, ư and đ as separate letters, so "van" would never find "Văn". This one folds them all.
+    /// </summary>
+    public const string CollationTimKiem = "Latin1_General_100_CI_AI";
+
+    // SQL Server's "Cannot insert duplicate key": 2601 for a unique index, 2627 for a unique constraint.
+    private static readonly HashSet<int> LoiTrungKhoa = [2601, 2627];
+
     public DbSet<NhatKyThaoTac> NhatKyThaoTac => Set<NhatKyThaoTac>();
+
+    public DbSet<CanBo> CanBo => Set<CanBo>();
+
+    // Application sees only its own exception types; Infrastructure code calling the context directly keeps EF's.
+    async Task<int> IAppDbContext.SaveChangesAsync(CancellationToken ct)
+    {
+        try
+        {
+            return await SaveChangesAsync(ct);
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            throw new XungDotDuLieuException(ex);
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is SqlException sql && LoiTrungKhoa.Contains(sql.Number))
+        {
+            throw new TrungGiaTriDuyNhatException(ex);
+        }
+    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

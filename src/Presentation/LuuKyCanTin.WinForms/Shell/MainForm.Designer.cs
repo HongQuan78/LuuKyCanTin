@@ -29,12 +29,48 @@ partial class MainForm
     private void InitializeComponent()
     {
         components = new System.ComponentModel.Container();
+        menuStrip = new MenuStrip();
+        mnuDanhMuc = new ToolStripMenuItem();
+        mnuCanBo = new ToolStripMenuItem();
+        menuStrip.SuspendLayout();
+        SuspendLayout();
+        //
+        // menuStrip
+        //
+        menuStrip.Items.AddRange(new ToolStripItem[] { mnuDanhMuc });
+        menuStrip.Location = new Point(0, 0);
+        menuStrip.Name = "menuStrip";
+        menuStrip.TabIndex = 0;
+        //
+        // mnuDanhMuc
+        //
+        mnuDanhMuc.DropDownItems.AddRange(new ToolStripItem[] { mnuCanBo });
+        mnuDanhMuc.Name = "mnuDanhMuc";
+        mnuDanhMuc.Text = "&Danh mục";
+        //
+        // mnuCanBo
+        //
+        mnuCanBo.Name = "mnuCanBo";
+        mnuCanBo.Text = "&Cán bộ";
+        //
+        // MainForm
+        //
         AutoScaleMode = AutoScaleMode.Font;
         ClientSize = new Size(1024, 640);
+        Controls.Add(menuStrip);
+        MainMenuStrip = menuStrip;
         StartPosition = FormStartPosition.CenterScreen;
         WindowState = FormWindowState.Maximized;
         Text = "Lưu ký – Căn tin";
+        menuStrip.ResumeLayout(false);
+        menuStrip.PerformLayout();
+        ResumeLayout(false);
+        PerformLayout();
     }
 
     #endregion
+
+    private MenuStrip menuStrip;
+    private ToolStripMenuItem mnuDanhMuc;
+    private ToolStripMenuItem mnuCanBo;
 }
