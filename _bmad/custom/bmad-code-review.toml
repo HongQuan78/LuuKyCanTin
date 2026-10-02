@@ -1,0 +1,7 @@
+# Team override for bmad-code-review. See docs/conventions/.
+
+[workflow]
+persistent_facts = [
+  "file:{project-root}/docs/conventions/naming-conventions.md",
+  "Flag naming-convention violations only in added files and added lines; never flag existing names.",
+]

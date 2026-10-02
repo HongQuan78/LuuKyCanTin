@@ -1,0 +1,20 @@
+# Team override for bmad-build-auto. See docs/conventions/.
+
+[workflow]
+persistent_facts = [
+  "file:{project-root}/docs/conventions/naming-conventions.md",
+  "file:{project-root}/docs/conventions/story-dependency-gate.md",
+]
+
+activation_steps_append = [
+  "Story dependency gate: when the work is a story under _bmad-output/implementation-artifacts/stories/, apply docs/conventions/story-dependency-gate.md before step 01. If any dependency is not 'review' or 'done', write a 'blocked' terminal result that lists each blocking dependency with its status, change no other file, and HALT. An unattended run can never override the gate.",
+]
+
+implementation_handoff = """
+Launch a subagent with no prior conversation context, with this prompt:
+
+> Read {spec_file} fully and implement it — the spec is the sole source of truth. Load every file listed in its frontmatter `context:` before you start.
+> Every new file, type, method, property, field and variable must follow {project-root}/docs/conventions/naming-conventions.md. Do not rename existing code.
+>
+> When done, report what you changed, how you verified it, and anything left incomplete or risky.
+"""
