@@ -1,4 +1,7 @@
+using LuuKyCanTin.Domain.Common;
+using LuuKyCanTin.Domain.DanhMuc;
 using LuuKyCanTin.Domain.HeThong;
+using LuuKyCanTin.Domain.LuuKy;
 using LuuKyCanTin.Infrastructure.Persistence;
 using LuuKyCanTin.IntegrationTests.Persistence.TestModel;
 using Microsoft.EntityFrameworkCore;
@@ -45,6 +48,13 @@ public class EnumModelTests
             new EnumColumn(EnumModel.DefaultSchema, "MauChungTu", "TrangThai", typeof(MauTrangThai)),
             new EnumColumn(EnumModel.DefaultSchema, "MauChungTu", "TrangThaiTruoc", typeof(MauTrangThai)),
             new EnumColumn(EnumModel.DefaultSchema, "NhatKyThaoTac", "HanhDong", typeof(HanhDong), StoredAsName: true),
+            new EnumColumn(EnumModel.DefaultSchema, "DoiTuong", "LoaiDoiTuong", typeof(LoaiDoiTuong)),
+            new EnumColumn(EnumModel.DefaultSchema, "DoiTuong", "TrangThai", typeof(TrangThaiDoiTuong)),
+            new EnumColumn(EnumModel.DefaultSchema, "ChungTuLuuKy", "LoaiPhieu", typeof(LoaiPhieu)),
+            new EnumColumn(EnumModel.DefaultSchema, "ChungTuLuuKy", "NghiepVu", typeof(NghiepVu)),
+            new EnumColumn(EnumModel.DefaultSchema, "ChungTuLuuKy", "HinhThuc", typeof(HinhThuc)),
+            new EnumColumn(EnumModel.DefaultSchema, "ChungTuLuuKy", "TrangThai", typeof(TrangThaiChungTu)),
+            new EnumColumn(EnumModel.DefaultSchema, "ChungTuLuuKy", "LoaiDoiTuong", typeof(LoaiDoiTuong)),
         ], ignoreOrder: true);
     }
 }

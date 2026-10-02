@@ -6,9 +6,15 @@ namespace LuuKyCanTin.Infrastructure.HeThong;
 
 internal sealed class GhiNhatKy(AppDbContext db, NhatKyFactory nhatKyFactory) : IGhiNhatKy
 {
-    public async Task GhiAsync(HanhDong hanhDong, string? tenBang, long? banGhiId, object? duLieu = null, CancellationToken ct = default)
+    public Task GhiAsync(HanhDong hanhDong, string? tenBang, long? banGhiId, object? duLieuMoi = null, CancellationToken ct = default) =>
+        ThemVaLuuAsync(nhatKyFactory.Tao(hanhDong, tenBang, banGhiId, duLieuCu: null, duLieuMoi: duLieuMoi), ct);
+
+    public Task GhiAsync(HanhDong hanhDong, string? tenBang, long? banGhiId, object? duLieuCu, object? duLieuMoi, CancellationToken ct = default) =>
+        ThemVaLuuAsync(nhatKyFactory.Tao(hanhDong, tenBang, banGhiId, duLieuCu, duLieuMoi), ct);
+
+    private async Task ThemVaLuuAsync(NhatKyThaoTac nhatKy, CancellationToken ct)
     {
-        db.NhatKyThaoTac.Add(nhatKyFactory.Tao(hanhDong, tenBang, banGhiId, duLieuCu: null, duLieuMoi: duLieu));
+        db.NhatKyThaoTac.Add(nhatKy);
         await db.SaveChangesAsync(ct);
     }
 }

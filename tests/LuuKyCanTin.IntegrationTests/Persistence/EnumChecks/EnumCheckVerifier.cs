@@ -59,6 +59,14 @@ public static class EnumCheckVerifier
         if (!Regex.IsMatch(definition, name))
             return null;
 
+        // Only a constraint that talks about this column alone defines its allowed set. A business check that
+        // merely mentions the column (e.g. [TrangThai] = 1 OR [NgayRa] IS NOT NULL) is not an enum check.
+        var otherColumn = Regex.Matches(definition, @"\[([^\]]+)\]")
+            .Select(m => m.Groups[1].Value)
+            .Any(c => !string.Equals(c, column, StringComparison.OrdinalIgnoreCase));
+        if (otherColumn)
+            return null;
+
         const string value = @"\(\s*-?\d+\s*\)|-?\d+|N?'[^']*'";
         var values = Regex.Matches(definition, name + @"\s*=\s*(" + value + ")")
             .Select(m => m.Groups[1].Value)

@@ -12,16 +12,16 @@ Source of the stories: `_bmad-output/planning-artifacts/epics/epic-NN-*.md`. Eac
 | 1.2 Database migrations, schema-version check, enum ↔ CHECK test | [1-2-database-migrations-schema-version-enum-check.md](epic-01/1-2-database-migrations-schema-version-enum-check.md) | M | 1.1 | review |
 | 1.3 IClock and automatic audit-log interceptor | [1-3-iclock-audit-log-interceptor.md](epic-01/1-3-iclock-audit-log-interceptor.md) | M | 1.2 | review |
 | 1.4 Amount in Vietnamese words | [1-4-amount-in-vietnamese-words.md](epic-01/1-4-amount-in-vietnamese-words.md) | S | 1.1 | review |
-| 1.5 Spike: QuestPDF printing with Vietnamese fonts | [1-5-spike-questpdf-vietnamese-printing.md](epic-01/1-5-spike-questpdf-vietnamese-printing.md) | M (spike) | 1.1 | ready-for-dev |
-| 1.6 Spike: Velopack updates from a LAN shared folder | [1-6-spike-velopack-lan-updates.md](epic-01/1-6-spike-velopack-lan-updates.md) | M (spike) | 1.1 | ready-for-dev |
-| 1.7 Spike: Vietnamese diacritic-insensitive incremental search | [1-7-spike-vietnamese-incremental-search.md](epic-01/1-7-spike-vietnamese-incremental-search.md) | S (spike) | 1.2 | ready-for-dev |
-| 1.8 Walking skeleton: sign in, register a detainee, post and print one receipt | [1-8-walking-skeleton-first-printed-receipt.md](epic-01/1-8-walking-skeleton-first-printed-receipt.md) | L | 1.2, 1.3, 1.4, 1.5 | ready-for-dev |
+| 1.5 Spike: QuestPDF printing with Vietnamese fonts | [1-5-spike-questpdf-vietnamese-printing.md](epic-01/1-5-spike-questpdf-vietnamese-printing.md) | M (spike) | 1.1 | done |
+| 1.6 Spike: Velopack updates from a LAN shared folder | [1-6-spike-velopack-lan-updates.md](epic-01/1-6-spike-velopack-lan-updates.md) | M (spike) | 1.1 | done |
+| 1.7 Spike: Vietnamese diacritic-insensitive incremental search | [1-7-spike-vietnamese-incremental-search.md](epic-01/1-7-spike-vietnamese-incremental-search.md) | S (spike) | 1.2 | done |
+| 1.8 Walking skeleton: sign in, register a detainee, post and print one receipt | [1-8-walking-skeleton-first-printed-receipt.md](epic-01/1-8-walking-skeleton-first-printed-receipt.md) | L | 1.2, 1.3, 1.4, 1.5 | done |
 
 **Suggested order:** 1.1, then 1.2, 1.4, 1.5 and 1.6 in parallel, then 1.3 and 1.7, then 1.8.
 
 **Decisions to settle before 1.8:**
 
-1. Can Application reference `Microsoft.EntityFrameworkCore` (core, no provider)? See 1.1 Dev Notes.
+1. Can Application reference `Microsoft.EntityFrameworkCore` (core, no provider)? — **Settled: yes** (Epic 2.1 and the merge; the architecture test allows EF Core core and still forbids every provider). See 1.1 Dev Notes and the 1.8 T0 note.
 2. Document number format `BNT-2026-00001` (epics.md Open Question 1).
 3. 24 → "hai mươi bốn" or "hai mươi tư" (1.4, non-blocking).
 
@@ -32,8 +32,8 @@ Source of the stories: `_bmad-output/planning-artifacts/epics/epic-NN-*.md`. Eac
 | Story | File | Size | Depends on | Status |
 |---|---|---|---|---|
 | 2.1 Staff register | [2-1-staff-register.md](epic-02/2-1-staff-register.md) | S | 1.2, 1.3 | review |
-| 2.2 Secure sign-in, password policy and lockout | [2-2-secure-sign-in-password-policy-lockout.md](epic-02/2-2-secure-sign-in-password-policy-lockout.md) | M | 1.8, 2.1 | ready-for-dev |
-| 2.3 Roles and permission catalogue | [2-3-roles-permission-catalogue.md](epic-02/2-3-roles-permission-catalogue.md) | M | 2.2 | ready-for-dev |
+| 2.2 Secure sign-in, password policy and lockout | [2-2-secure-sign-in-password-policy-lockout.md](epic-02/2-2-secure-sign-in-password-policy-lockout.md) | M | 1.8, 2.1 | review |
+| 2.3 Roles and permission catalogue | [2-3-roles-permission-catalogue.md](epic-02/2-3-roles-permission-catalogue.md) | M | 2.2 | review |
 | 2.4 User accounts linked to staff and role assignment | [2-4-user-accounts-role-assignment.md](epic-02/2-4-user-accounts-role-assignment.md) | M | 2.1, 2.3 | ready-for-dev |
 | 2.5 Permission-driven shell and service-level authorization | [2-5-permission-driven-shell-service-authorization.md](epic-02/2-5-permission-driven-shell-service-authorization.md) | M | 2.3, 2.4 | ready-for-dev |
 | 2.6 Segregation-of-duties policy | [2-6-segregation-of-duties-policy.md](epic-02/2-6-segregation-of-duties-policy.md) | S | 2.5 | ready-for-dev |

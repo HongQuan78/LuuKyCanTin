@@ -1,0 +1,122 @@
+=== SP-03 — Vietnamese diacritic-insensitive incremental search (Story 1.7) ===
+Run at      : 2026-10-02 04:39:54
+Machine     : KIENTRANT (12 logical CPUs)
+Processor   : 11th Gen Intel(R) Core(TM) i5-11400H @ 2.70GHz
+OS          : Microsoft Windows 10.0.26200
+Rows        : 10.000
+
+--- Environment ---
+Table rows  : 10.000
+SQL Server  : 17.0.4025.3 | Express Edition (64-bit) | SQL_Latin1_General_CP1_CI_AS | db Vietnamese_CI_AI
+Indexes     : IX_HoTen, IX_HoTenKhongDau, PK_DoiTuongSpike, UQ_DoiTuongSpike_MaSo
+
+--- AC1: collation behaviour under Vietnamese_CI_AI (database default) ---
+folds to ASCII : ễ=e, ệ=e, á=a, à=a, ã=a, ả=a, ạ=a
+[PASS] tone marks fold (ễ ệ á à ã ả ạ = e/a) — _AI ignores tone marks
+distinct letter: ă≠a, â≠a, đ≠d, ê≠e, ô≠o, ơ≠o, ư≠u
+[PASS] letters ă â đ ê ô ơ ư stay distinct from ASCII — Vietnamese alphabet: separate letters, not D+accent; option (a) required for them
+[PASS] accented terms, any case: 'Nguyễn Văn A%' = 'NGUYỄN VĂN A%' — 6 rows each
+[PASS] collation alone: ASCII 'nguyen van a%' does NOT match HoTen — 0 rows (vs 6 accented) — 'Văn' uses ă, a distinct letter; AC1 needs option (a)
+[PASS] exact accented namesakes — 5/5 'Nguyễn Văn A'
+[PASS] tone marks fold in LIKE too: '%tuyet%' = '%Tuyết%' — 222 rows
+[PASS] option (a): 'nguyen van a%' on HoTenKhongDau = 'Nguyễn Văn A%' on HoTen — 6 rows, same ids
+[PASS] option (a): 'do duc dat' on HoTenKhongDau matches 'Đỗ Đức Đạt' — namesakes 5/5; folded 5
+[PASS] NFD (Word paste): raw NFD does NOT match NFC data; NFC-normalized term does — raw NFD exact 0; normalized exact 5; normalized prefix 6 rows
+[PASS] double/leading/trailing spaces: NormalizeForSearch trims and collapses — raw double-space 0; normalize+trim 5
+[PASS] digraph contractions ng/nh/ch/th/ph/kh/gi/qu/tr — 1-char prefix + % cannot match them ('Nguyễn' LIKE 'n%' = 0, LIKE 'ng%' = 1); table 'n%' = 0, 'ng%' = 1241; names need 2 characters
+[PASS] typed wildcards %, _ are escaped — literal '%' 0, literal '_' 0, unescaped '_' 10000/10000, literal '\[n]' 0
+  table rows at 10.000: 10.000
+
+--- Query patterns (raw SQL, parameterized, TOP 50, warmups 3, iterations 15; logical reads from the actual plan) ---
+| id | term | rows | median ms | p95 ms | logical reads | plan | note |
+|---|---|---|---|---|---|---|---|
+| name-prefix-accented | Nguyễn Văn A% | 6 | 0,4 | 0,6 | 15 | Index Seek [IX_HoTen] + Clustered Index Seek [PK_DoiTuongSpike] | accented prefix seek (collation query) |
+| name-prefix-ascii-collation | nguyen van a% | 0 | 0,3 | 0,5 | 2 | Index Seek [IX_HoTen] + Clustered Index Seek [PK_DoiTuongSpike] | same query, ASCII term: collation fails (0 rows) |
+| name-prefix-broad | nguyen% | 50 | 2,5 | 3,1 | 1268 | Index Seek [IX_HoTen] + Clustered Index Seek [PK_DoiTuongSpike] | broad prefix; 'Nguyễn' folds, 'Văn' does not |
+| name-contains | %nguyen% | 50 | 10,7 | 12,4 | 122 | Index Scan [IX_HoTenKhongDau] | contains |
+| name-contains-van | %van% | 0 | 11,2 | 16,0 | 122 | Index Scan [IX_HoTenKhongDau] | contains 'văn' folded: 0 under collation |
+| name-contains-1char | %an% | 50 | 11,1 | 14,9 | 122 | Index Scan [IX_HoTenKhongDau] | 1-char contains |
+| name-wordstart-tuan | tuan% | 50 | 12,3 | 15,1 | 122 | Index Scan [IX_HoTenKhongDau] | given name or word start |
+| code-prefix | DT000% | 50 | 4,2 | 7,3 | 122 | Index Scan [IX_HoTenKhongDau] | code prefix, nvarchar param (EF default) |
+| code-prefix-narrow | dt000123% | 1 | 3,3 | 5,8 | 122 | Index Scan [IX_HoTenKhongDau] | near-exact code, nvarchar param |
+| code-prefix-narrow-varchar | dt000123% | 1 | 0,3 | 0,4 | 4 | Index Seek [UQ_DoiTuongSpike_MaSo] + Clustered Index Seek [PK_DoiTuongSpike] | near-exact code, varchar param |
+| code-prefix-varchar | DT000% | 50 | 3,5 | 5,4 | 2003 | Index Seek [UQ_DoiTuongSpike_MaSo] + Clustered Index Seek [PK_DoiTuongSpike] | same, varchar param (no conversion) |
+| khongdau-prefix | nguyen van a% | 6 | 0,3 | 0,4 | 2 | Index Seek [IX_HoTenKhongDau] | option (a): prefix seek, ASCII term works |
+| khongdau-prefix-1char | n% | 0 | 0,5 | 0,6 | 19 | Index Seek [IX_HoTenKhongDau] | option (a): 1-char prefix (min-length evidence) |
+| khongdau-contains-nguyen-van | %nguyen van% | 38 | 10,7 | 19,1 | 122 | Index Seek [IX_HoTenKhongDau] | option (a): contains |
+| khongdau-wordstart-tuan | tuan% | 50 | 12,4 | 13,5 | 122 | Index Seek [IX_HoTenKhongDau] | option (a): given name or word start |
+| khongdau-contains-do-duc-dat | %do duc dat% | 5 | 10,2 | 15,5 | 122 | Index Seek [IX_HoTenKhongDau] | option (a): full ASCII name chunk |
+| code-prefix-1char | D% | 50 | 7,5 | 8,9 | 122 | Index Scan [IX_HoTenKhongDau] | 1-char code prefix (min-length evidence) |
+
+--- Index comparison on the searched column (HoTenKhongDau LIKE 'nguyen%') ---
+| index | median ms | p95 ms | logical reads | plan |
+|---|---|---|---|---|
+| IX_HoTenKhongDau (key only) | 3,5 | 4,4 | 126 | Clustered Index Scan [PK_DoiTuongSpike] |
+| IX_HoTenKhongDau INCLUDE (HoTen, MaSo, NamSinh, BuongGiam) | 1,2 | 1,4 | 12 | Index Seek [IX_HoTenKhongDau] |
+(the covering index is left in place for the remaining measurements)
+
+--- EF Core 10 (fresh DbContext per call, AsNoTracking, DTO projection, wall clock) ---
+| id | term | strategy | rows | first ms | median ms | p95 ms |
+|---|---|---|---|---|---|---|
+| ef-auto-name-ascii | nguyen van a | Auto | 6 | 1029,5 | 1,3 | 85,0 |
+| ef-auto-name-accented | Nguyễn Văn A | Auto | 6 | 1,4 | 1,2 | 1,8 |
+| ef-auto-code | dt0001 | Auto | 50 | 16,9 | 10,2 | 14,9 |
+| ef-name-wordstart | tuan | TenKhongDauTuBatKy | 50 | 41,4 | 15,4 | 24,9 |
+| ef-khongdau-prefix | nguyen van | TenKhongDauPrefix | 38 | 1,9 | 1,4 | 4,0 |
+| ef-khongdau-contains | do duc dat | TenKhongDauChua | 5 | 11,1 | 11,3 | 15,4 |
+[PASS] EF Auto: ASCII and accented terms return the same non-empty rows — 'nguyen van a' = 'Nguyễn Văn A' — 6 rows, same ids
+[PASS] EF Auto: a code-like term takes the MaSo prefix path — 'dt0001' — 50 rows, all MaSo start with DT0001
+[PASS] EF TenKhongDauTuBatKy: finds a given name at a word start — 'tuan' — 50 rows all contain 'tuan'
+[PASS] EF TenKhongDauPrefix: prefix stage — 'nguyen van' — 38 rows all start with 'nguyen van'
+[PASS] EF TenKhongDauChua: contains stage finds the five namesakes — 'do duc dat' — 5 rows
+EF code-search SQL (parameter declaration shows the provider type):
+  DECLARE @p int = 50;
+  DECLARE @pattern varchar(30) = 'dt0001%';
+  
+  SELECT TOP(@p) [d].[Id], [d].[MaSo], [d].[HoTen], [d].[NamSinh], [d].[BuongGiam]
+  FROM [dbo].[DoiTuongSpike] AS [d]
+  WHERE [d].[MaSo] LIKE @pattern ESCAPE '\'
+  ORDER BY [d].[HoTen], [d].[MaSo]
+
+per-keystroke scope cost (new DbContext + pooled open + SELECT 1): median 0,9 ms, p95 14,2 ms
+
+--- Cancellation: does the EF token reach SqlCommand? (sys.dm_exec_requests watch) ---
+| probe | request seen | cancelled | request gone | client returned | exception |
+|---|---|---|---|---|---|
+| EF ExecuteSqlRawAsync(WAITFOR 5s) + token | yes, 18 ms | 160 ms after seen | yes, 193 ms | 194 ms | SqlException 0 |
+| EF LINQ cross-join SumAsync(math) + token | yes, 50 ms | 151 ms after seen | yes, 217 ms | 217 ms | OperationCanceledException |
+
+--- Debounce + stale-query cancellation (headless, same IncrementalSearch the form uses) ---
+| scenario | chars | started | cancelled | completed | failed | rows | last keystroke → results |
+|---|---|---|---|---|---|---|---|
+| fast typist · name 'nguyen van a' | 12 | 12 | 11 | 1 | 0 | 6 | 319 ms |
+[PASS] debounce scenario fast typist · name 'nguyen van a' — completed 1, cancelled 11, rows 6, last keystroke → results 319 ms
+| fast typist · code 'dt000123' | 8 | 8 | 7 | 1 | 0 | 1 | 324 ms |
+[PASS] debounce scenario fast typist · code 'dt000123' — completed 1, cancelled 7, rows 1, last keystroke → results 324 ms
+| NFD paste from Word · 'Nguyễn Văn A' | 15 | 15 | 14 | 1 | 0 | 6 | 314 ms |
+[PASS] debounce scenario NFD paste from Word · 'Nguyễn Văn A' — completed 1, cancelled 14, rows 6, last keystroke → results 314 ms
+| wildcard '%100' typed | 4 | 4 | 3 | 1 | 0 | 0 | 340 ms |
+[PASS] debounce scenario wildcard '%100' typed — completed 1, cancelled 3, rows 0, last keystroke → results 340 ms
+
+--- Key findings at 10.000 rows ---
+1. Vietnamese_CI_AI folds tone marks (á = a) but NOT the letters ă â đ ê ô ơ ư: in the
+   Vietnamese alphabet they are separate letters, so 'nguyen van a' never matches
+   'Nguyễn Văn A' through the collation alone. ă/đ names are the common case, not an edge.
+2. The same collation treats ng/nh/ch/th/ph/kh/gi/qu/tr as contractions: a 1-character
+   prefix + wildcard returns 0 for 'Nguyễn'/'Châu'/'Thảo'/'Phạm'/'Khánh'/'Nhung'/'Giang'
+   ('Nguyễn' LIKE 'n%' = 0, LIKE 'ng%' = 1). Names from 2 characters is therefore a
+   CORRECTNESS rule, not only UX. Codes measured fine from 1 character.
+3. NFD text pasted from Word does not match NFC data for ă ('Va'+breve ≠ 'Văn'); the app
+   must normalize the search term to NFC (NormalizeForSearch).
+4. Option (a) — a persisted HoTenKhongDau (diacritics stripped, đ→d, filled on save) with
+   an index — satisfies AC1: the ASCII and accented queries return identical rows and the
+   prefix query keeps an index seek (median 0,3 ms). Recommendation for Story 3.1/3.2.
+5. Codes: MaSo prefix; a near-exact code seeks UQ_DoiTuongSpike_MaSo when the parameter is
+   varchar (median 0,3 ms) and scans when it is nvarchar (EF default, median 3,3 ms).
+   Names: HoTenKhongDau word-start (prefix seek for the first word,
+   OR '% ' form scans at median 12,4 ms); contains scans at median 10,2 ms and is
+   the last fallback.
+6. Delegate the query to EF Core with the CancellationToken; cancellation aborts the SQL
+   command (dm_exec_requests shows the request ending). Debounce 300 ms with
+   cancel-previous keeps a fast typist at one visible query (slowest measured 340 ms).
+

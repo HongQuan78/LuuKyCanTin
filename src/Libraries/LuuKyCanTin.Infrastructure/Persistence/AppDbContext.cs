@@ -2,6 +2,7 @@ using LuuKyCanTin.Application.Abstractions;
 using LuuKyCanTin.Application.Common;
 using LuuKyCanTin.Domain.DanhMuc;
 using LuuKyCanTin.Domain.HeThong;
+using LuuKyCanTin.Domain.LuuKy;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
@@ -22,7 +23,25 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
     public DbSet<NhatKyThaoTac> NhatKyThaoTac => Set<NhatKyThaoTac>();
 
+    public DbSet<NguoiDung> NguoiDung => Set<NguoiDung>();
+
+    public DbSet<ThongTinDonVi> ThongTinDonVi => Set<ThongTinDonVi>();
+
+    public DbSet<DoiTuong> DoiTuong => Set<DoiTuong>();
+
+    public DbSet<ChungTuLuuKy> ChungTuLuuKy => Set<ChungTuLuuKy>();
+
+    public DbSet<DemSoChungTu> DemSoChungTu => Set<DemSoChungTu>();
+
     public DbSet<CanBo> CanBo => Set<CanBo>();
+
+    public DbSet<VaiTro> VaiTro => Set<VaiTro>();
+
+    public DbSet<Quyen> Quyen => Set<Quyen>();
+
+    public DbSet<VaiTroQuyen> VaiTroQuyen => Set<VaiTroQuyen>();
+
+    public DbSet<NguoiDungVaiTro> NguoiDungVaiTro => Set<NguoiDungVaiTro>();
 
     // Application sees only its own exception types; Infrastructure code calling the context directly keeps EF's.
     async Task<int> IAppDbContext.SaveChangesAsync(CancellationToken ct)
@@ -40,6 +59,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             throw new TrungGiaTriDuyNhatException(ex);
         }
     }
+
+    async Task<IAppTransaction> IAppDbContext.BeginTransactionAsync(CancellationToken ct)
+        => new AppTransaction(await Database.BeginTransactionAsync(ct));
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

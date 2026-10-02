@@ -22,4 +22,11 @@
     <ProjectReference Include="..\..\src\Presentation\LuuKyCanTin.WinForms\LuuKyCanTin.WinForms.csproj" />
   </ItemGroup>
 
+  <!-- Same WebView2 WPF/WindowsBase conflict as the WinForms project: the package flows transitively. -->
+  <Target Name="RemoveWebView2WpfReference" BeforeTargets="ResolveAssemblyReferences">
+    <ItemGroup>
+      <Reference Remove="@(Reference)" Condition="'%(Reference.Filename)' == 'Microsoft.Web.WebView2.Wpf'" />
+    </ItemGroup>
+  </Target>
+
 </Project>

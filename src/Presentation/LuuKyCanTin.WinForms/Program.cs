@@ -4,7 +4,9 @@ using LuuKyCanTin.Application.HeThong;
 using LuuKyCanTin.Infrastructure;
 using LuuKyCanTin.Infrastructure.Common;
 using LuuKyCanTin.WinForms.Common;
+using LuuKyCanTin.WinForms.DanhMuc;
 using LuuKyCanTin.WinForms.HeThong;
+using LuuKyCanTin.WinForms.LuuKy;
 using LuuKyCanTin.WinForms.Shell;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -70,7 +72,10 @@ internal static class Program
         builder.Services.Configure<AppOptions>(builder.Configuration.GetSection(AppOptions.SectionName));
         builder.Services.AddApplication();
         builder.Services.AddInfrastructure(builder.Configuration);
-        builder.Services.AddTransient<MainForm>();
+        builder.Services.AddTransient<LoginForm>();
+        builder.Services.AddTransient(sp => new MainForm(sp.GetRequiredService<IServiceScopeFactory>()));
+        builder.Services.AddTransient<ThemDoiTuongForm>();
+        builder.Services.AddTransient<BienNhanThuForm>();
         builder.Services.AddSingleton<IDieuHuong, DieuHuong>();
 
         return builder.Build();
@@ -96,10 +101,10 @@ internal static class Program
         if (!SchemaVersionIsCurrent(host.Services))
             return 1;
 
-        var mainForm = host.Services.GetRequiredService<MainForm>();
-        // The presenter stays alive through its subscription to the form's events.
-        ActivatorUtilities.CreateInstance<MainPresenter>(host.Services, mainForm);
-        WinFormsApp.Run(mainForm);
+        // Sign-in and sign-out loop without restarting: the context swaps login and shell as the user signs out.
+        var context = new ShellApplicationContext(host.Services);
+        context.BatDau();
+        WinFormsApp.Run(context);
         return 0;
     }
 

@@ -1,5 +1,6 @@
 using LuuKyCanTin.Application.Abstractions;
 using LuuKyCanTin.Domain.DanhMuc;
+using LuuKyCanTin.Domain.HeThong;
 using Microsoft.EntityFrameworkCore;
 
 namespace LuuKyCanTin.Application.UnitTests.TestUtilities;
@@ -13,6 +14,22 @@ public sealed class InMemoryAppDbContext() : DbContext(
 {
     public DbSet<CanBo> CanBo => Set<CanBo>();
 
+    public DbSet<VaiTro> VaiTro => Set<VaiTro>();
+
+    public DbSet<Quyen> Quyen => Set<Quyen>();
+
+    public DbSet<VaiTroQuyen> VaiTroQuyen => Set<VaiTroQuyen>();
+
+    public DbSet<NguoiDungVaiTro> NguoiDungVaiTro => Set<NguoiDungVaiTro>();
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        // The join rows need their composite keys, and Quyen ids come from the catalogue, not the database.
+        modelBuilder.Entity<VaiTroQuyen>().HasKey(v => new { v.VaiTroId, v.QuyenId });
+        modelBuilder.Entity<NguoiDungVaiTro>().HasKey(v => new { v.NguoiDungId, v.VaiTroId });
+        modelBuilder.Entity<Quyen>().Property(q => q.Id).ValueGeneratedNever();
+    }
+
     /// <summary>Thrown by the next save instead of saving, to simulate what the real context translates.</summary>
     public Exception? LoiKhiLuu { get; set; }
 
@@ -23,4 +40,7 @@ public sealed class InMemoryAppDbContext() : DbContext(
         SoLanLuu++;
         return LoiKhiLuu is { } loi ? Task.FromException<int>(loi) : SaveChangesAsync(ct);
     }
+
+    Task<IAppTransaction> IAppDbContext.BeginTransactionAsync(CancellationToken ct) =>
+        throw new NotSupportedException("The in-memory test context has no transactions.");
 }
