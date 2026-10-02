@@ -4,7 +4,9 @@ using LuuKyCanTin.Application.HeThong;
 using LuuKyCanTin.Infrastructure;
 using LuuKyCanTin.Infrastructure.Common;
 using LuuKyCanTin.WinForms.Common;
+using LuuKyCanTin.WinForms.DanhMuc;
 using LuuKyCanTin.WinForms.HeThong;
+using LuuKyCanTin.WinForms.LuuKy;
 using LuuKyCanTin.WinForms.Shell;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -70,7 +72,10 @@ internal static class Program
         builder.Services.Configure<AppOptions>(builder.Configuration.GetSection(AppOptions.SectionName));
         builder.Services.AddApplication();
         builder.Services.AddInfrastructure(builder.Configuration);
-        builder.Services.AddTransient<MainForm>();
+        builder.Services.AddTransient<LoginForm>();
+        builder.Services.AddTransient(sp => new MainForm(sp.GetRequiredService<IServiceScopeFactory>()));
+        builder.Services.AddTransient<ThemDoiTuongForm>();
+        builder.Services.AddTransient<BienNhanThuForm>();
 
         return builder.Build();
     }
@@ -94,6 +99,14 @@ internal static class Program
         // Workstations never migrate: they only check, and refuse to run against a different schema.
         if (!SchemaVersionIsCurrent(host.Services))
             return 1;
+
+        // Sign-in first; the shell opens only on success (full login rules are Epic 2).
+        using (var loginForm = host.Services.GetRequiredService<LoginForm>())
+        {
+            ActivatorUtilities.CreateInstance<LoginPresenter>(host.Services, loginForm);
+            if (loginForm.ShowDialog() != DialogResult.OK)
+                return 0;
+        }
 
         var mainForm = host.Services.GetRequiredService<MainForm>();
         // The presenter stays alive through its subscription to the form's events.

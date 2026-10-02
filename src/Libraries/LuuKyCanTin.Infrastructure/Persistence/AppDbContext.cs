@@ -1,13 +1,29 @@
+using LuuKyCanTin.Application.Abstractions;
+using LuuKyCanTin.Domain.DanhMuc;
 using LuuKyCanTin.Domain.HeThong;
+using LuuKyCanTin.Domain.LuuKy;
 using Microsoft.EntityFrameworkCore;
 
 namespace LuuKyCanTin.Infrastructure.Persistence;
 
-public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
+public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options), IAppDbContext
 {
     public const string Collation = "Vietnamese_CI_AI";
 
     public DbSet<NhatKyThaoTac> NhatKyThaoTac => Set<NhatKyThaoTac>();
+
+    public DbSet<NguoiDung> NguoiDung => Set<NguoiDung>();
+
+    public DbSet<ThongTinDonVi> ThongTinDonVi => Set<ThongTinDonVi>();
+
+    public DbSet<DoiTuong> DoiTuong => Set<DoiTuong>();
+
+    public DbSet<ChungTuLuuKy> ChungTuLuuKy => Set<ChungTuLuuKy>();
+
+    public DbSet<DemSoChungTu> DemSoChungTu => Set<DemSoChungTu>();
+
+    async Task<IAppTransaction> IAppDbContext.BeginTransactionAsync(CancellationToken ct)
+        => new AppTransaction(await Database.BeginTransactionAsync(ct));
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

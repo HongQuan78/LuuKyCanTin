@@ -3,7 +3,7 @@ using LuuKyCanTin.Application.Abstractions;
 namespace LuuKyCanTin.Infrastructure.HeThong;
 
 /// <summary>The workstation's sign-in state: one per process, set on sign-in and cleared on sign-out.</summary>
-public sealed class CurrentUserSession : ICurrentUser
+public sealed class CurrentUserSession : ICurrentUserSession
 {
     private sealed record Phien(int NguoiDungId, string TenDangNhap);
 

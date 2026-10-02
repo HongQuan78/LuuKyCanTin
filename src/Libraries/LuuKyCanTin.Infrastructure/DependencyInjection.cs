@@ -1,10 +1,16 @@
 using LuuKyCanTin.Application.Abstractions;
+using LuuKyCanTin.Application.BaoCao;
+using LuuKyCanTin.Application.DanhMuc;
 using LuuKyCanTin.Application.HeThong;
+using LuuKyCanTin.Application.LuuKy;
 using LuuKyCanTin.Infrastructure.Common;
+using LuuKyCanTin.Infrastructure.DanhMuc;
 using LuuKyCanTin.Infrastructure.HeThong;
+using LuuKyCanTin.Infrastructure.LuuKy;
 using LuuKyCanTin.Infrastructure.Persistence;
 using LuuKyCanTin.Infrastructure.Persistence.Interceptors;
 using LuuKyCanTin.Infrastructure.Persistence.Seed.Demo;
+using LuuKyCanTin.Infrastructure.Reports;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -26,7 +32,9 @@ public static class DependencyInjection
         services.AddSingleton<IClock, SystemClock>();
         services.AddSingleton<CurrentUserSession>();
         services.AddSingleton<ICurrentUser>(sp => sp.GetRequiredService<CurrentUserSession>());
+        services.AddSingleton<ICurrentUserSession>(sp => sp.GetRequiredService<CurrentUserSession>());
         services.AddSingleton<NhatKyFactory>();
+        services.AddSingleton<IMatKhauHasher, Pbkdf2MatKhauHasher>();
 
         // No EnableRetryOnFailure: a retrying strategy rejects the transactions posting operations open themselves.
         services.AddScoped<AuditInterceptor>();
@@ -37,6 +45,18 @@ public static class DependencyInjection
         services.AddScoped<ISchemaVersionChecker, SchemaVersionChecker>();
         services.AddScoped<IDatabaseMigrator, DatabaseMigrator>();
         services.AddScoped<IDemoDataSeeder, DemoDataSeeder>();
+
+        services.AddScoped<IAppDbContext>(sp => sp.GetRequiredService<AppDbContext>());
+        services.AddScoped<INguoiDungStore, NguoiDungStore>();
+        services.AddScoped<IThongTinDonViStore, ThongTinDonViStore>();
+        services.AddScoped<IDoiTuongStore, DoiTuongStore>();
+        services.AddScoped<IChungTuLuuKyStore, ChungTuLuuKyStore>();
+        services.AddScoped<INumberingService, DemSoChungTuNumberingService>();
+        services.AddScoped<ISoDuLuuKyWriter, SoDuLuuKyWriter>();
+
+        // One Infrastructure template per report model; IReportRenderer is the only engine touchpoint.
+        services.AddScoped<IReportRenderer, QuestPdfReportRenderer>();
+        services.AddScoped<IReportTemplate<BienNhanThuModel>, BienNhanThuReport>();
 
         return services;
     }
