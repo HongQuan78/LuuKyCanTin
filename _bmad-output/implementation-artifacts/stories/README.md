@@ -26,3 +26,29 @@ Source of the stories: `_bmad-output/planning-artifacts/epics/epic-NN-*.md`. Eac
 3. 24 → "hai mươi bốn" or "hai mươi tư" (1.4, non-blocking).
 
 **Sprint 0 gate:** CI green, spike notes merged, and DEC-02, DEC-05 and DEC-09 decided by the PO.
+
+## Epic 2: Secure access & unit setup (R0.5)
+
+| Story | File | Size | Depends on | Status |
+|---|---|---|---|---|
+| 2.1 Staff register | [2-1-staff-register.md](epic-02/2-1-staff-register.md) | S | 1.2, 1.3 | ready-for-dev |
+| 2.2 Secure sign-in, password policy and lockout | [2-2-secure-sign-in-password-policy-lockout.md](epic-02/2-2-secure-sign-in-password-policy-lockout.md) | M | 1.8, 2.1 | ready-for-dev |
+| 2.3 Roles and permission catalogue | [2-3-roles-permission-catalogue.md](epic-02/2-3-roles-permission-catalogue.md) | M | 2.2 | ready-for-dev |
+| 2.4 User accounts linked to staff and role assignment | [2-4-user-accounts-role-assignment.md](epic-02/2-4-user-accounts-role-assignment.md) | M | 2.1, 2.3 | ready-for-dev |
+| 2.5 Permission-driven shell and service-level authorization | [2-5-permission-driven-shell-service-authorization.md](epic-02/2-5-permission-driven-shell-service-authorization.md) | M | 2.3, 2.4 | ready-for-dev |
+| 2.6 Segregation-of-duties policy | [2-6-segregation-of-duties-policy.md](epic-02/2-6-segregation-of-duties-policy.md) | S | 2.5 | ready-for-dev |
+| 2.7 Session auto-lock | [2-7-session-auto-lock.md](epic-02/2-7-session-auto-lock.md) | S | 2.2 | ready-for-dev |
+| 2.8 Unit information | [2-8-unit-information.md](epic-02/2-8-unit-information.md) | S | 2.5 | ready-for-dev |
+| 2.9 Signatory configuration per print template | [2-9-signatory-configuration.md](epic-02/2-9-signatory-configuration.md) | M | 2.1, 2.8 | ready-for-dev |
+| 2.10 Audit-log viewer | [2-10-audit-log-viewer.md](epic-02/2-10-audit-log-viewer.md) | M | 1.3, 2.5 | ready-for-dev |
+
+**Suggested order:** 2.1 (can start before 1.8 is finished), then 2.2, then 2.3 and 2.7 in parallel, then 2.4, then 2.5, then 2.6, 2.8 and 2.9, then 2.10 last so its diff view meets every audit payload the epic writes.
+
+**Cross-story decisions made in these files (no AC changed except A22):**
+
+1. `IKiemTraQuyen` (the DB-backed permission check) and `KhongCoQuyenException` arrive in 2.3, not 2.5, because 2.4's AC already needs a service-level check. 2.5 adds the UI side, retrofits 2.1, and adds the bypass test.
+2. `HanhDong` keeps its 6 DB-design values. Sign-in, sign-out, lockout and lock/unlock events are `DangNhap` rows, and a refused approval is a `Duyet` row, each with a `SuKien`/`KetQua` payload.
+3. `IGhiNhatKy` gains a `duLieuCu` overload (2.3). Join tables (`VaiTroQuyen`, `NguoiDungVaiTro`) and `CauHinhKyTen` (replaced as a set) are logged explicitly, because the interceptor refuses deleted `IAuditable` rows.
+4. Leadership gets `HT.Xem` so the audit log (2.10) is usable by its intended user (epics.md alignment A22).
+
+**Epic 2 gate:** every seeded role signs in and sees only its own menus (2.5 theory test), the bypass test is green, and the unit header and the signers for all 12 templates are configured.
