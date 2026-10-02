@@ -14,7 +14,7 @@ baseline_commit: 404f0b5a6168ee6163dd894f2870a089d53a6361
 
 # Story 1.8: Walking skeleton: sign in, register a detainee, post and print one receipt
 
-Status: review
+Status: done
 
 ## Story
 

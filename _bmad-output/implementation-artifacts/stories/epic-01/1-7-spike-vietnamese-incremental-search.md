@@ -15,7 +15,7 @@ baseline_commit: 49b2680252cae48c9bfda4c2e59fc9edfac49f87
 
 # Story 1.7: Spike: Vietnamese diacritic-insensitive incremental search
 
-Status: review
+Status: done
 
 ## Story
 

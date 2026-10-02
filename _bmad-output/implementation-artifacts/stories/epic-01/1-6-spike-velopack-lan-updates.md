@@ -2,7 +2,7 @@
 story: "1.6"
 epic: 1
 title: "Spike: Velopack updates from a LAN shared folder"
-status: review
+status: done
 type: spike
 size: M (time-boxed, 1.5 days suggested)
 backlogItems: [SP-02]
@@ -14,7 +14,7 @@ baseline_commit: 03d33e35657493def412b22f50b2b1c44a28419d
 
 # Story 1.6: Spike: Velopack updates from a LAN shared folder
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 
@@ -123,6 +123,7 @@ deepseek-v4-flash
 | 2026-10-01 | Story file created from Epic 1 |
 | 2026-10-02 | SP-02 executed: spike app, vpk 1.2.161 local tool, 0.1.0→0.2.0 delta update verified, failure paths verified, ADR 0002 written (deepseek-v4-flash) |
 | 2026-10-02 | Review fixes applied: trailing `--source` warned instead of silently ignored, guarded marker/startup I/O, `assets.win.json` in ADR folder tree (deepseek-v4-flash) |
+| 2026-10-02 | Status → done after review; the pending manual checks (clean-VM install from a real UNC share, workgroup auth, signing decision) stay recorded above |
 
 ## Review Triage Log
 

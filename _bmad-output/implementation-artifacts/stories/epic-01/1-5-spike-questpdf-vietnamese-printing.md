@@ -2,7 +2,7 @@
 story: "1.5"
 epic: 1
 title: "Spike: QuestPDF printing with Vietnamese fonts"
-status: review
+status: done
 type: spike
 size: M (time-boxed, 2 days suggested)
 backlogItems: [SP-01]
@@ -15,7 +15,7 @@ baseline_commit: 03d33e35657493def412b22f50b2b1c44a28419d
 
 # Story 1.5: Spike: QuestPDF printing with Vietnamese fonts
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 
@@ -149,6 +149,7 @@ deepseek-v4-flash
 | 2026-10-01 | Story file created from Epic 1 |
 | 2026-10-02 | SP-01 executed: spike project, ADR, fonts, WebView2 form, determinism verified (deepseek-v4-flash) |
 | 2026-10-02 | Review fixes applied: ADR API name, per-page PNGs, committed evidence, `--render` usage/exit 2, NavigationCompleted `IsSuccess`, Save-As guard, non-empty determinism assertion, Tinos attribution (deepseek-v4-flash) |
+| 2026-10-02 | Status → done after review; the pending manual checks (clean-VM font check, printer-driver 100 % print, PO licence decision) stay recorded above |
 
 ## Review Triage Log
 
