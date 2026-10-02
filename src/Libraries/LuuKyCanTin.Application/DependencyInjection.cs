@@ -1,3 +1,4 @@
+using FluentValidation;
 using LuuKyCanTin.Application.BaoCao;
 using LuuKyCanTin.Application.DanhMuc;
 using LuuKyCanTin.Application.HeThong;
@@ -10,6 +11,9 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
+        services.AddSingleton<IValidator<LuuCanBoRequest>, LuuCanBoRequestValidator>();
+        services.AddScoped<ICanBoService, CanBoService>();
+
         services.AddScoped<DangNhapService>();
         services.AddScoped<ThemDoiTuongService>();
         services.AddScoped<LayDoiTuongDangQuanLyQuery>();

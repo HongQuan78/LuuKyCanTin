@@ -76,6 +76,7 @@ internal static class Program
         builder.Services.AddTransient(sp => new MainForm(sp.GetRequiredService<IServiceScopeFactory>()));
         builder.Services.AddTransient<ThemDoiTuongForm>();
         builder.Services.AddTransient<BienNhanThuForm>();
+        builder.Services.AddSingleton<IDieuHuong, DieuHuong>();
 
         return builder.Build();
     }

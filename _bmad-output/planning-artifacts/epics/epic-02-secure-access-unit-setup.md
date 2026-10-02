@@ -114,7 +114,7 @@ So that I grant access by role instead of configuring every user by hand.
 - *Cán bộ theo dõi tiền lưu ký*: `LK-T`, `LK-C`, `LK-BC` (all actions except `Duyet`), `DM.Xem`.
 - *Cán bộ căn tin / bán hàng*: `NH`, `BH`, `HH-BC`, `LK-BC.Xem`.
 - *Cán bộ quản giáo*: `LK-BC.Xem` (the purchase-registration permission and the "own detainees only" scope are added in Epic 12).
-- *Chỉ huy phụ trách / Lãnh đạo đơn vị*: `Duyet` on `LK-T` (opening balances, 7.5), `LK-C` (transfers, 5.5) and `NH` (opening stock, 9.6), plus `Xem` on every report module.
+- *Chỉ huy phụ trách / Lãnh đạo đơn vị*: `Duyet` on `LK-T` (opening balances, 7.5), `LK-C` (transfers, 5.5) and `NH` (opening stock, 9.6), plus `Xem` on every report module, plus `HT.Xem` (audit-log viewer, 2.10).
 - *Kế toán đơn vị*: `Xem` on `LK-BC` and `HH-BC` (the period-lock permission `HT.KhoaSo` is granted when Story 6.8 seeds it).
 
 **Given** the administrator opens Roles

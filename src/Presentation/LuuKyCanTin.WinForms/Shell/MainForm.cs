@@ -19,9 +19,12 @@ public partial class MainForm : Form, IMainView
     {
         _scopeFactory = scopeFactory;
         InitializeComponent();
+        mnuCanBo.Click += (_, _) => DanhMucCanBoClicked?.Invoke(this, EventArgs.Empty);
     }
 
     public event EventHandler? Loaded;
+
+    public event EventHandler? DanhMucCanBoClicked;
 
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public string TieuDe

@@ -62,6 +62,11 @@ WinForms (Presentation) ─► Application ─► Domain
 - Domain enum values must match the DB CHECK constraints, and a test enforces this.
 - Use `rowversion` for optimistic concurrency. Write complex reports as SQL (EF `SqlQuery` or Dapper), not as complex LINQ.
 
+## Conventions (mandatory)
+
+- **Naming.** Every new file, type, method, property, field and variable follows `docs/conventions/naming-conventions.md`. Existing code that doesn't conform stays as it is; rename it only in a dedicated refactor story.
+- **Story dependency gate.** Before writing code for a story, apply `docs/conventions/story-dependency-gate.md`. If any story in its `dependsOn` is not `review` or `done` (for example `ready-for-dev`), report the blocking dependencies and stop without changing files, unless the user explicitly overrides the gate.
+
 ## Engineering rules (always apply)
 
 - **SOLID**:

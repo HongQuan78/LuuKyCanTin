@@ -271,6 +271,7 @@ These are the changes made to the backlog draft so it follows story best practic
 | A19 | `PhieuNhapChiTiet.DonGia decimal(18,2)` | Exception to "money is integer đồng" | Kept as in the DB design (supplier unit prices can have decimals); `ThanhTien` rounded to đồng (9.2) |
 | A20 | DB design additions | Columns/tables not in the 29-table design | Backup status table (7.2); `CanTinDaKichHoat` setting (5.1); `NghiepVu` 15 (7.5); `PhieuNhap` opening-stock flag, approval, supplier snapshot, `SoLanIn` (9.2, 9.6); `ChungTuThayTheId` (14.4); `TheKho` 3rd FK + `LoaiBienDong` 5/6 + `DCK` numbering (14.7); goods-receipt "awaiting approval" status (14.12); photo path on `DoiTuong` (13.9); `ChuoiHash` (14.13). The DB design document should be updated as each lands |
 | A21 | GAP-05 DENY script | R1 voucher tables are created after Story 7.3 | Each R1 migration that adds a voucher table extends the DENY DELETE script (9.2, 10.2) |
+| A22 | HT-07 audit log for leadership vs the role table | The feature-list role table gives leadership no `HT` permission, but FR11/HT-07 makes the audit log a leadership tool (Story 2.10's user is a unit leader) | The *Chỉ huy phụ trách / Lãnh đạo đơn vị* role is also granted `HT.Xem` (2.3). Writes stay re-checked by services, so read-only access to the HT screens is harmless |
 
 ### Open Questions for the PO
 

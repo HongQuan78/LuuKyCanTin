@@ -41,12 +41,12 @@ public static class DependencyInjection
         services.AddDbContext<AppDbContext>((sp, options) => options
             .UseSqlServer(connectionString)
             .AddInterceptors(sp.GetRequiredService<AuditInterceptor>()));
+        services.AddScoped<IAppDbContext>(sp => sp.GetRequiredService<AppDbContext>());
         services.AddScoped<IGhiNhatKy, GhiNhatKy>();
         services.AddScoped<ISchemaVersionChecker, SchemaVersionChecker>();
         services.AddScoped<IDatabaseMigrator, DatabaseMigrator>();
         services.AddScoped<IDemoDataSeeder, DemoDataSeeder>();
 
-        services.AddScoped<IAppDbContext>(sp => sp.GetRequiredService<AppDbContext>());
         services.AddScoped<INguoiDungStore, NguoiDungStore>();
         services.AddScoped<IThongTinDonViStore, ThongTinDonViStore>();
         services.AddScoped<IDoiTuongStore, DoiTuongStore>();

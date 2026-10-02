@@ -10,11 +10,15 @@ namespace LuuKyCanTin.WinForms.UnitTests.Shell;
 public class MainPresenterTests
 {
     private readonly IMainView _view = Substitute.For<IMainView>();
+    private readonly IDieuHuong _dieuHuong = Substitute.For<IDieuHuong>();
+
+    private MainPresenter NewPresenter(string tieuDe = "X") =>
+        new(_view, Options.Create(new AppOptions { TieuDe = tieuDe }), _dieuHuong);
 
     [Fact]
     public void Loaded_SetsTitleFromOptions()
     {
-        _ = new MainPresenter(_view, Options.Create(new AppOptions { TieuDe = "Lưu ký – Căn tin" }));
+        NewPresenter("Lưu ký – Căn tin");
 
         _view.Loaded += Raise.Event();
 
@@ -24,8 +28,26 @@ public class MainPresenterTests
     [Fact]
     public void BeforeLoaded_DoesNotTouchView()
     {
-        _ = new MainPresenter(_view, Options.Create(new AppOptions { TieuDe = "X" }));
+        NewPresenter();
 
         _view.DidNotReceive().TieuDe = Arg.Any<string>();
+    }
+
+    [Fact]
+    public void StaffMenu_OpensTheStaffRegister()
+    {
+        NewPresenter();
+
+        _view.DanhMucCanBoClicked += Raise.Event();
+
+        _dieuHuong.Received(1).MoDanhMucCanBo();
+    }
+
+    [Fact]
+    public void Constructing_OpensNothing()
+    {
+        NewPresenter();
+
+        _dieuHuong.ReceivedCalls().ShouldBeEmpty();
     }
 }

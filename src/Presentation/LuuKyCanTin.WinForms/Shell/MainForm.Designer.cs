@@ -8,6 +8,7 @@ partial class MainForm
     private System.ComponentModel.IContainer components = null!;
     private MenuStrip menuStrip = null!;
     private ToolStripMenuItem mnuDanhMuc = null!;
+    private ToolStripMenuItem mnuCanBo = null!;
     private ToolStripMenuItem mnuThemDoiTuong = null!;
     private ToolStripMenuItem mnuLuuKy = null!;
     private ToolStripMenuItem mnuLapBienNhanThu = null!;
@@ -36,16 +37,19 @@ partial class MainForm
         components = new System.ComponentModel.Container();
         menuStrip = new MenuStrip();
         mnuDanhMuc = new ToolStripMenuItem();
+        mnuCanBo = new ToolStripMenuItem();
         mnuThemDoiTuong = new ToolStripMenuItem();
         mnuLuuKy = new ToolStripMenuItem();
         mnuLapBienNhanThu = new ToolStripMenuItem();
         menuStrip.SuspendLayout();
         SuspendLayout();
 
+        mnuCanBo.Name = "mnuCanBo";
+        mnuCanBo.Text = "Cán bộ…";
         mnuThemDoiTuong.Name = "mnuThemDoiTuong";
         mnuThemDoiTuong.Text = "Thêm đối tượng…";
         mnuThemDoiTuong.Click += OnThemDoiTuong;
-        mnuDanhMuc.DropDownItems.AddRange([mnuThemDoiTuong]);
+        mnuDanhMuc.DropDownItems.AddRange([mnuCanBo, mnuThemDoiTuong]);
         mnuDanhMuc.Name = "mnuDanhMuc";
         mnuDanhMuc.Text = "Danh mục";
 

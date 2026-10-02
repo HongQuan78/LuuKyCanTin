@@ -49,7 +49,7 @@ So that the team sees one real business flow working through every layer before 
 ## Tasks / Subtasks
 
 - [x] **T0. Resolve the Application ↔ EF Core decision** (prerequisite, see Story 1.1 Dev Notes)
-  - [x] **Resolved as "no"** (no PO available; Stories 1.2/1.3 already settled Application on EF-free ports and the architecture test forbids EF in Application). Implemented the fallback: `IAppDbContext` exposes only `SaveChangesAsync` + `BeginTransactionAsync` (returning the Application-level `IAppTransaction`); entity access uses narrow ports (`IDoiTuongStore`, `IChungTuLuuKyStore`, `INguoiDungStore`, `IThongTinDonViStore`). The architecture test is unchanged.
+  - [x] **Resolved as "no"** at implementation time (no PO available; Stories 1.2/1.3 already settled Application on EF-free ports and the architecture test forbade EF in Application). Implemented the fallback: `IAppDbContext` exposed only `SaveChangesAsync` + `BeginTransactionAsync` (returning the Application-level `IAppTransaction`); entity access uses narrow ports (`IDoiTuongStore`, `IChungTuLuuKyStore`, `INguoiDungStore`, `IThongTinDonViStore`). **Superseded by the master merge (Epic 2.1): the team's answer is "yes"** — Application references `Microsoft.EntityFrameworkCore` core (no provider), `IAppDbContext` exposes `DbSet`/`Entry`, and the narrow stores plus `BeginTransactionAsync` stay on top of it.
 - [x] **T1. Domain: enums and entities** (AC: 2, 3)
   - [x] Domain `DanhMuc/`: `LoaiDoiTuong : byte { TamGiuTamGiam = 1, PhamNhan = 2 }`, `TrangThaiDoiTuong : byte { DangQuanLy = 1, DaChuyenTrai = 2, DaChapHanhXongAn = 3 }`, and the entity `DoiTuong : AuditableEntity`. `SoDuLuuKy` has a **private setter** with no public mutator. Only the ledger engine changes it, through SQL.
   - [x] Domain `LuuKy/`: `LoaiPhieu : byte { Thu = 1, Chi = 2 }`, `NghiepVu : byte { MangTheoKhiVao = 11, NguoiThanGui = 12, PhieuGuiQua = 13, NhanTuDoiTuongKhac = 14, MuaHang = 21, ChoTien = 22, ChuyenVeNguoiThan = 23, ChuyenTrai = 24, ChapHanhXongAn = 25 }`, `HinhThuc : byte { TienMat = 1, ChuyenKhoan = 2 }`. In `Common/`: `TrangThaiChungTu : byte { Nhap = 1, DaGhiSo = 2, DaHuy = 3 }`.
@@ -252,6 +252,7 @@ deepseek-v4.1-flash (opencode). Implemented directly from this story file.
 | 2026-10-01 | Story file created from Epic 1 |
 | 2026-10-02 | Implemented T0–T9 and the T10 admin/startup checks (deepseek-v4.1-flash); interactive GUI screenshot still pending; status → review |
 | 2026-10-02 | Review fixes applied: presenters surface unexpected errors, submit buttons guard against double posts, the `MaSo` race maps to the friendly message, validator bounds/`IsInEnum` + tests, vi-VN money parsing, PBKDF2 iteration cap, wider balance guard + `PropertySaveBehavior.Ignore` test, demo-seeder guard + test, install.md corrections, enum-verifier test, WebView2 WPF reference removed (warning-free build); T10 marker corrected; UI preview/login-gate deferrals recorded (deepseek-v4.1-flash) |
+| 2026-10-02 | Merged `master` (Epic 2.1 staff register): T0 settled as **yes** — Application references EF Core core (no provider); `IAppDbContext` = CanBo `DbSet`/`Entry`/`SaveChangesAsync` + `BeginTransactionAsync`; DI/Program/MainForm/snapshot union-merged; 350 tests green, snapshot reports no pending model changes |
 
 ## Review Triage Log
 

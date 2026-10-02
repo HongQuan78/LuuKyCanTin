@@ -1,12 +1,24 @@
+using LuuKyCanTin.Application.Common;
+using LuuKyCanTin.Domain.DanhMuc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
+
 namespace LuuKyCanTin.Application.Abstractions;
 
 /// <summary>
-/// The persistence operations Application services need, without an EF reference: save the unit of work and
-/// start the one transaction that groups a posting. Entity access goes through narrow stores per aggregate.
+/// The persistence operations Application services need. Application may reference EF Core (never a provider):
+/// entity access goes through <see cref="DbSet{TEntity}"/> and the save translates provider exceptions into the
+/// Application's own types. <see cref="BeginTransactionAsync"/> groups one posting into a single transaction.
 /// </summary>
 public interface IAppDbContext
 {
-    /// <summary>Writes every pending change. The save interceptor adds the audit rows in the same transaction.</summary>
+    DbSet<CanBo> CanBo { get; }
+
+    EntityEntry<TEntity> Entry<TEntity>(TEntity entity)
+        where TEntity : class;
+
+    /// <exception cref="XungDotDuLieuException">Someone else changed the row after it was loaded.</exception>
+    /// <exception cref="TrungGiaTriDuyNhatException">A unique index rejected the save.</exception>
     Task<int> SaveChangesAsync(CancellationToken ct = default);
 
     Task<IAppTransaction> BeginTransactionAsync(CancellationToken ct = default);

@@ -1,0 +1,12 @@
+# Team override for Amelia (bmad-agent-dev). See docs/conventions/.
+
+[agent]
+persistent_facts = [
+  "file:{project-root}/docs/conventions/naming-conventions.md",
+  "file:{project-root}/docs/conventions/story-dependency-gate.md",
+]
+
+principles = [
+  "New code follows docs/conventions/naming-conventions.md; existing names are renamed only by a refactor story.",
+  "Never develop a story whose dependsOn stories are not yet 'review' or 'done'; report and stop instead.",
+]
