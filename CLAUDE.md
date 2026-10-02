@@ -65,6 +65,7 @@ WinForms (Presentation) ─► Application ─► Domain
 ## Conventions (mandatory)
 
 - **Naming.** Every new file, type, method, property, field and variable follows `docs/conventions/naming-conventions.md`. Existing code that doesn't conform stays as it is; rename it only in a dedicated refactor story.
+- **UI prototypes.** Every WinForms screen must strictly follow the style of the UI prototypes in `_bmad-output/planning-artifacts/ux-designs/ux-TienGuiLuuKy-2026-10-02/`. That means the layout, spacing, controls, colours, fonts, shortcuts and states in `DESIGN.md`, `EXPERIENCE.md` and `mockups/*.html`. Follow `docs/conventions/ui-prototype-conventions.md`. A new layout or a new kind of control is a UX decision, so ask before building it.
 - **Story dependency gate.** Before writing code for a story, apply `docs/conventions/story-dependency-gate.md`. If any story in its `dependsOn` is not `review` or `done` (for example `ready-for-dev`), report the blocking dependencies and stop without changing files, unless the user explicitly overrides the gate.
 
 ## Engineering rules (always apply)

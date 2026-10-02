@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prototype 02 – Danh mục đối tượng</title>
+<style>
+/* =====================================================================
+   PROTOTYPE 02 – DoiTuongForm (list screen) + DoiTuongEditForm (Thêm / Sửa)
+   THE reference for every list screen + edit dialog pair (Cán bộ, Hàng hoá, Tài khoản…).
+   Governing spine sections:
+     DESIGN.md      Layout & Spacing (screen grid), Components (filter-bar, data-grid,
+                    status-text, edit-dialog, input, inline error)
+     EXPERIENCE.md  Component Patterns (List screen, Edit dialog, Search box),
+                    State Patterns (validation, inactive record, read-only by permission)
+   Rendered 1:1 at 96 DPI: 1 CSS px = 1 WinForms px. Segoe UI 10pt ≈ 13px.
+   ===================================================================== */
+
+/* ---- Modern WinForms kit (identical block in every prototype) ------ */
+:root{
+  --accent:#2563EB; --accent-hover:#1D4ED8; --accent-soft:#DBEAFE;
+  --side:#1E293B; --side-hover:#273449; --side-active:#334155; --side-text:#CBD5E1; --side-muted:#7C8BA1;
+  --surface:#F1F5F9; --card:#FFFFFF; --subtle:#F8FAFC;
+  --border:#E2E8F0; --input-border:#CBD5E1;
+  --text:#0F172A; --text-2:#334155; --muted:#64748B;
+  --success:#15803D; --success-soft:#DCFCE7;
+  --danger:#B91C1C;  --danger-soft:#FEE2E2;
+  --warning:#B45309; --warning-soft:#FEF3C7;
+}
+*{box-sizing:border-box}
+body{margin:0;padding:24px 16px 48px;background:#D5DBE3;font:13px/1.35 "Segoe UI",Tahoma,sans-serif;color:var(--text)}
+.g{font-family:"Segoe Fluent Icons","Segoe MDL2 Assets";font-style:normal;font-weight:400;line-height:1}
+.page-note{max-width:1366px;margin:0 auto 10px}
+.page-note h1{font-size:20px;margin:0 0 4px;font-weight:600}
+.page-note p{margin:2px 0;color:#334155}
+.section{max-width:1366px;margin:32px auto 10px;font-size:15px;font-weight:600;color:#1E293B;border-bottom:1px solid #94A3B8;padding-bottom:5px}
+.scroll{overflow-x:auto;max-width:100%}
+.stage{display:flex;gap:28px;flex-wrap:wrap;justify-content:center;align-items:flex-start}
+.anno{max-width:1366px;margin:10px auto 0;font-size:12.5px;color:#334155;background:#FFFBEB;border:1px solid #FCD34D;padding:10px 12px}
+.anno b{font-weight:600}
+.anno ol{margin:4px 0 0 18px;padding:0}
+
+/* window chrome (Windows 11 title bar) */
+.win{background:var(--surface);border:1px solid #94A3B8;box-shadow:0 10px 30px rgba(15,23,42,.25);margin:0 auto;position:relative;overflow:hidden}
+.titlebar{height:31px;background:#fff;display:flex;align-items:center;padding-left:12px;font-size:12px;border-bottom:1px solid var(--border)}
+.titlebar .t{flex:1;white-space:nowrap}
+.titlebar .cap{width:46px;height:31px;display:flex;align-items:center;justify-content:center;font-size:10px}
+
+/* shell */
+.app{display:flex}
+.side{width:220px;background:var(--side);color:var(--side-text);display:flex;flex-direction:column;flex:none}
+.brand{height:56px;display:flex;align-items:center;gap:10px;padding:0 16px;border-bottom:1px solid #2C3A50}
+.logo{width:32px;height:32px;background:var(--accent);color:#fff;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;flex:none}
+.brand b{display:block;color:#fff;font-size:14px;font-weight:600}
+.brand small{display:block;color:var(--side-muted);font-size:11px}
+.nav{flex:1;padding:8px 0;overflow:hidden}
+.nav-h{padding:14px 16px 6px;font-size:11px;color:var(--side-muted);letter-spacing:.04em}
+.nav-i{height:36px;display:flex;align-items:center;gap:12px;padding:0 14px 0 16px;border-left:3px solid transparent;white-space:nowrap}
+.nav-i .g{font-size:16px;width:16px}
+.nav-i .chev{margin-left:auto;font-size:10px;color:var(--side-muted)}
+.nav-i.active{background:var(--side-active);border-left-color:#60A5FA;color:#fff}
+.nav-s{height:32px;display:flex;align-items:center;padding:0 14px 0 47px;white-space:nowrap;font-size:12.5px}
+.nav-s.active{background:var(--side-active);color:#fff;border-left:3px solid #60A5FA;padding-left:44px}
+.nav-s kbd,.nav-i kbd{margin-left:auto;font:11px "Segoe UI";color:var(--side-muted)}
+.me{border-top:1px solid #2C3A50;padding:12px 16px;display:flex;align-items:center;gap:10px}
+.avatar{width:32px;height:32px;background:#475569;color:#fff;font-weight:600;font-size:12px;display:flex;align-items:center;justify-content:center;flex:none}
+.me b{display:block;color:#fff;font-weight:600;font-size:12.5px;white-space:nowrap}
+.me small{display:block;color:var(--side-muted);font-size:11px;white-space:nowrap}
+.me .lockbtn{margin-left:auto;font-size:15px;color:var(--side-text);width:28px;height:28px;display:flex;align-items:center;justify-content:center}
+.main{flex:1;display:flex;flex-direction:column;min-width:0}
+.header{height:56px;background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:16px;flex:none}
+.header h2{margin:0;font-size:18px;font-weight:600;white-space:nowrap}
+.crumb{color:var(--muted);font-size:12px;white-space:nowrap}
+.qsearch{margin-left:auto;width:320px;height:32px;border:1px solid var(--input-border);background:var(--subtle);display:flex;align-items:center;gap:8px;padding:0 10px;color:var(--muted)}
+.qsearch kbd{margin-left:auto;font:11px "Segoe UI";border:1px solid var(--input-border);background:#fff;padding:1px 5px;color:var(--muted)}
+.content{flex:1;background:var(--surface);padding:20px;position:relative;overflow:hidden}
+.statusbar{height:26px;background:#fff;border-top:1px solid var(--border);display:flex;align-items:center;font-size:12px;color:var(--text-2);flex:none;white-space:nowrap}
+.statusbar span{padding:0 12px;border-right:1px solid var(--border);display:flex;align-items:center;gap:6px}
+.statusbar .sp{flex:1;border:0}
+.dot{width:8px;height:8px;display:inline-block;background:var(--success)}
+.dot.bad{background:var(--danger)} .dot.warn{background:var(--warning)}
+.statusbar .bad-t{color:var(--danger);font-weight:600}
+
+/* cards, buttons, inputs */
+.card{background:var(--card);border:1px solid var(--border)}
+.card-h{height:44px;display:flex;align-items:center;gap:10px;padding:0 16px;border-bottom:1px solid var(--border);font-size:14.5px;font-weight:600}
+.card-b{padding:16px}
+.btn{height:32px;padding:0 14px;display:inline-block;line-height:30px;text-align:center;background:#fff;border:1px solid var(--input-border);color:var(--text);white-space:nowrap;font-size:13px}
+.btn .g{font-size:14px;margin-right:8px;vertical-align:-2px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.btn.success{background:var(--success);border-color:var(--success);color:#fff;font-weight:600}
+.btn.ghost{border-color:transparent;background:transparent}
+.btn.disabled{background:#E2E8F0;border-color:#E2E8F0;color:#94A3B8}
+.btn.lg{height:44px;line-height:42px;font-size:15px}
+.btn.block{display:block;width:100%}
+.btn u{text-decoration:underline}
+.field{display:flex;flex-direction:column;gap:5px}
+.field>label{font-size:12px;color:#475569;font-weight:600}
+.input{height:32px;border:1px solid var(--input-border);background:#fff;display:flex;align-items:center;padding:0 10px;gap:8px;white-space:nowrap;overflow:hidden}
+.input.focus{border:2px solid var(--accent);padding:0 9px}
+.input.err{border:2px solid var(--danger);padding:0 9px}
+.input.ro{background:var(--subtle);color:var(--text-2)}
+.input.sel::after{content:"\E70D";font-family:"Segoe MDL2 Assets";font-size:10px;margin-left:auto;color:var(--muted)}
+.input .ph{color:#94A3B8}
+.input .g{color:var(--muted)}
+.msg{font-size:12px;color:var(--danger);display:flex;gap:6px;align-items:center}
+.help{font-size:12px;color:var(--muted)}
+.caret{display:inline-block;width:1px;height:15px;background:#000;margin-left:-6px}
+.pw{letter-spacing:3px}
+.banner{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;font-size:12.5px}
+.banner.err{background:var(--danger-soft);color:#7F1D1D;border-left:3px solid var(--danger)}
+.banner.warn{background:var(--warning-soft);color:#78350F;border-left:3px solid var(--warning)}
+.banner .g{font-size:15px;margin-top:1px}
+.dlg-foot{background:var(--subtle);border-top:1px solid var(--border);padding:12px 20px;display:flex;justify-content:flex-end;gap:8px}
+.dlg-head{padding:18px 20px 4px}
+.dlg-head h3{margin:0;font-size:17px;font-weight:600}
+.dlg-head p{margin:4px 0 0;color:var(--muted)}
+
+/* ---- screen-specific --------------------------------------------- */
+.toolbar{display:flex;gap:8px;align-items:center;margin-bottom:16px}
+.toolbar .input{height:32px}
+.inl{color:var(--muted);margin-right:2px}
+.grid{width:100%;border-collapse:collapse;table-layout:fixed}
+.grid th{height:38px;background:var(--subtle);color:#475569;font-weight:600;font-size:12px;text-align:left;padding:0 12px;border-bottom:1px solid var(--border);white-space:nowrap}
+.grid td{height:38px;padding:0 12px;border-bottom:1px solid #EEF2F6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.grid .r{text-align:right}.grid .c{text-align:center}
+.grid tr.sel td{background:var(--accent-soft)}
+.grid tr.hov td{background:var(--subtle)}
+.grid .code{color:var(--text-2);font-variant-numeric:tabular-nums}
+.grid .name{font-weight:600}
+.st{display:inline-flex;align-items:center;gap:6px}
+.st::before{content:"";width:8px;height:8px;background:currentColor}
+.st.on{color:var(--success)} .st.off{color:var(--danger)}
+.money{font-variant-numeric:tabular-nums}
+.money.pos{color:var(--success);font-weight:600}
+.sort{color:var(--accent)}
+.card-f{height:44px;display:flex;align-items:center;padding:0 16px;border-top:1px solid var(--border);color:var(--muted);font-size:12.5px}
+.form2{display:grid;grid-template-columns:1fr 1fr;gap:14px 16px}
+.span2{grid-column:1 / span 2}
+.tag{display:inline-block;font-size:11px;font-weight:600;background:var(--accent-soft);color:var(--accent-hover);padding:2px 8px}
+.hist th{height:32px}.hist td{height:32px}
+</style>
+</head>
+<body>
+
+<div class="page-note">
+  <h1>Prototype 02 – Danh mục đối tượng (list screen + edit dialog)</h1>
+  <p>The canonical list/detail pattern. Copy this layout for every catalogue screen. Items tagged [ASSUMPTION] await review.</p>
+</div>
+
+<!-- ============================================================ -->
+<div class="section">A. DoiTuongForm – tìm "nguyen van", Trạng thái = Tất cả, dòng đầu đang chọn</div>
+<div class="scroll">
+<div class="win" style="width:1366px">
+  <div class="titlebar"><span class="t">Lưu ký – Căn tin</span><span class="cap">─</span><span class="cap">☐</span><span class="cap">✕</span></div>
+  <div class="app" style="height:737px">
+    <div class="side">
+      <div class="brand"><div class="logo">LK</div><div><b>Lưu ký – Căn tin</b><small>TRẠI TẠM GIAM SỐ 1</small></div></div>
+      <div class="nav">
+        <div class="nav-i"><span class="g">&#xE80F;</span>Trang chủ</div>
+        <div class="nav-h">NGHIỆP VỤ</div>
+        <div class="nav-i"><span class="g">&#xE8C7;</span>Lưu ký<span class="g chev">&#xE76C;</span></div>
+        <div class="nav-i"><span class="g">&#xE7BF;</span>Căn tin<span class="g chev">&#xE76C;</span></div>
+        <div class="nav-i"><span class="g">&#xE7C3;</span>Báo cáo<span class="g chev">&#xE76C;</span></div>
+        <div class="nav-h">QUẢN LÝ</div>
+        <div class="nav-i" style="color:#fff"><span class="g">&#xE716;</span>Danh mục<span class="g chev">&#xE70D;</span></div>
+        <div class="nav-s active">Đối tượng</div>
+        <div class="nav-s">Cán bộ</div>
+        <div class="nav-s">Hàng hoá</div>
+        <div class="nav-s">Bảng giá</div>
+        <div class="nav-i"><span class="g">&#xE713;</span>Hệ thống<span class="g chev">&#xE76C;</span></div>
+      </div>
+      <div class="me"><div class="avatar">NL</div><div><b>Nguyễn Thị Lan</b><small>Cán bộ theo dõi tiền lưu ký</small></div><span class="g lockbtn">&#xE72E;</span></div>
+    </div>
+    <div class="main">
+      <div class="header"><div><h2>Danh mục đối tượng</h2></div><div class="crumb">Danh mục / Đối tượng</div><div class="qsearch"><span class="g">&#xE721;</span>Tìm đối tượng, chứng từ, hàng hoá…<kbd>Ctrl+K</kbd></div></div>
+      <div class="content">
+        <div class="toolbar">
+          <div class="input focus" style="width:300px"><span class="g">&#xE721;</span>nguyen van<span class="caret" style="margin-left:-6px"></span></div>
+          <div class="input sel" style="width:170px"><span class="inl">Loại:</span>Tất cả</div>
+          <div class="input sel" style="width:190px"><span class="inl">Trạng thái:</span>Tất cả</div>
+          <div class="input sel" style="width:150px"><span class="inl">Buồng:</span>Tất cả</div>
+          <div class="input sel" style="width:190px"><span class="inl">Quản giáo:</span>Tất cả</div>
+          <div style="flex:1"></div>
+          <div class="btn"><span class="g">&#xE898;</span><u>N</u>hập Excel</div>
+          <div class="btn primary"><span class="g">&#xE710;</span><u>T</u>hêm đối tượng</div>
+        </div>
+        <div class="card">
+          <table class="grid">
+            <colgroup><col style="width:110px"><col><col style="width:76px"><col style="width:148px"><col style="width:84px"><col style="width:124px"><col style="width:96px"><col style="width:162px"><col style="width:112px"></colgroup>
+            <tr><th>Mã số <span class="g sort" style="font-size:9px">&#xE70E;</span></th><th>Họ và tên</th><th class="c">Năm sinh</th><th>Loại</th><th>Buồng/khu</th><th>Quản giáo</th><th class="c">Ngày vào</th><th>Trạng thái</th><th class="r">Số dư lưu ký</th></tr>
+            <tr class="sel"><td class="code">DT-2023-0420</td><td class="name">NGUYỄN VĂN HẢI</td><td class="c">1969</td><td>Phạm nhân</td><td>B3-01</td><td>Phạm Thị Hà</td><td class="c">14/02/2023</td><td><span class="st off">Đã chấp hành xong án</span></td><td class="r money">0</td></tr>
+            <tr><td class="code">DT-2024-0311</td><td class="name">NGUYỄN VĂN CƯỜNG</td><td class="c">1990</td><td>Phạm nhân</td><td>B2-07</td><td>Lê Minh Đức</td><td class="c">20/08/2024</td><td><span class="st off">Đã chuyển trại</span></td><td class="r money">0</td></tr>
+            <tr class="hov"><td class="code">DT-2025-0090</td><td class="name">NGUYỄN VĂN DŨNG</td><td class="c">2001</td><td>Phạm nhân</td><td>B1-04</td><td>Phạm Thị Hà</td><td class="c">17/03/2025</td><td><span class="st on">Đang quản lý</span></td><td class="r money pos">85.000</td></tr>
+            <tr><td class="code">DT-2025-0187</td><td class="name">NGUYỄN VĂN AN</td><td class="c">1992</td><td>Phạm nhân</td><td>B1-02</td><td>Lê Minh Đức</td><td class="c">05/11/2025</td><td><span class="st on">Đang quản lý</span></td><td class="r money pos">320.000</td></tr>
+            <tr><td class="code">DT-2026-0012</td><td class="name">NGUYỄN VĂN AN</td><td class="c">1985</td><td>Tạm giữ/tạm giam</td><td>A2-05</td><td>Trần Quốc Bảo</td><td class="c">12/03/2026</td><td><span class="st on">Đang quản lý</span></td><td class="r money pos">1.250.000</td></tr>
+            <tr><td class="code">DT-2026-0045</td><td class="name">NGUYỄN VĂN BÌNH</td><td class="c">1978</td><td>Tạm giữ/tạm giam</td><td>A1-03</td><td>Trần Quốc Bảo</td><td class="c">02/06/2026</td><td><span class="st on">Đang quản lý</span></td><td class="r money">0</td></tr>
+            <tr><td class="code">DT-2026-0101</td><td class="name">NGUYỄN VĂN TOÀN</td><td class="c">1999</td><td>Tạm giữ/tạm giam</td><td>A2-01</td><td>Trần Quốc Bảo</td><td class="c">28/08/2026</td><td><span class="st on">Đang quản lý</span></td><td class="r money pos">540.000</td></tr>
+            <tr><td class="code">DT-2026-0118</td><td class="name">NGUYỄN VĂN THÀNH</td><td class="c">1987</td><td>Tạm giữ/tạm giam</td><td>A1-06</td><td>Phạm Thị Hà</td><td class="c">19/09/2026</td><td><span class="st on">Đang quản lý</span></td><td class="r money pos">2.000.000</td></tr>
+          </table>
+          <div style="height:158px"></div>
+          <div class="card-f">Tìm thấy 8 / 200 đối tượng<span style="margin-left:auto">Enter: sửa · Insert: thêm · Chuột phải: Xuất Excel, Chuyển loại…</span></div>
+        </div>
+      </div>
+      <div class="statusbar">
+        <span><i class="dot"></i>CSDL: SRV-LUUKY\SQLEXPRESS / LuuKyCanTin</span><span><i class="dot"></i>Sao lưu: 3 giờ trước</span><span>Kỳ 10/2026 · đang mở</span><span>Máy: QUAY-01</span><span class="sp"></span><span style="border:0">v1.0.0</span>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+<div class="anno">
+  <b>Rules (apply to every list screen).</b>
+  <ol>
+    <li>Toolbar row (FlowLayoutPanel, 8 px gaps, 16 px below): search InputFrame 300 px with a search glyph, then filter ComboBoxes whose label is inline ("Loại: Tất cả"), then a spacer, then secondary buttons, then <b>one</b> primary button last (the main action of the screen).</li>
+    <li>Search: accent-insensitive ("nguyen van" finds "NGUYỄN VĂN"), 300 ms debounce, no Search button. Filters apply on change. On open the Trạng thái filter defaults to "Đang quản lý" [ASSUMPTION].</li>
+    <li>The grid lives in a CardPanel (white, 1 px --border). DataGridView: BorderStyle None, EnableHeadersVisualStyles = false, header 38 px --subtle / #475569 semibold 9pt, rows 38 px, CellBorderStyle SingleHorizontal, GridColor #EEF2F6, selection --accent-soft with --text foreground, RowHeadersVisible = false, FullRowSelect, ReadOnly. The name column is semibold and the only Fill column.</li>
+    <li>Status cells: a coloured square + text, drawn in CellPainting (green = Đang quản lý, red = Đã chuyển trại / Đã chấp hành xong án). Positive money is green semibold, zero plain. Money right-aligned "#,##0" vi-VN.</li>
+    <li>Card footer: result count left, keyboard hints right (--muted). Row actions that are less frequent (Chuyển loại…, Xuất Excel) live in the row context menu.</li>
+    <li>Read-only access (DM.Xem without DM.Them/DM.Sua): the write buttons are disabled; Enter opens the dialog read-only. No delete for detainees.</li>
+  </ol>
+</div>
+
+<!-- ============================================================ -->
+<div class="section">B. DoiTuongEditForm – Thêm (lỗi trùng mã số) và Sửa (có lịch sử chuyển loại)</div>
+<div class="stage">
+
+  <!-- Thêm -->
+  <div class="card" style="width:560px;box-shadow:0 10px 30px rgba(15,23,42,.25);border-color:#94A3B8">
+    <div class="titlebar"><span class="t">Thêm đối tượng</span><span class="cap">&#x2715;</span></div>
+    <div class="dlg-head"><h3>Thêm đối tượng</h3><p>Nhập thông tin đối tượng mới tiếp nhận.</p></div>
+    <div style="padding:16px 20px 20px" class="form2">
+      <div class="field"><label>Mã số *</label><div class="input err">DT-2026-0012<span class="caret" style="margin-left:0"></span></div><div class="msg"><span class="g">&#xE783;</span>Mã số đã tồn tại</div></div>
+      <div class="field"><label>Năm sinh</label><div class="input">1994</div></div>
+      <div class="field span2"><label>Họ và tên *</label><div class="input">LÊ HOÀNG NAM</div></div>
+      <div class="field"><label>Loại *</label><div class="input sel">Tạm giữ/tạm giam</div></div>
+      <div class="field"><label>Ngày vào *</label><div class="input sel" style="gap:8px"><span class="g">&#xE787;</span>02/10/2026</div></div>
+      <div class="field"><label>Buồng/khu</label><div class="input">A2-05</div></div>
+      <div class="field"><label>Quản giáo phụ trách</label><div class="input sel">Trần Quốc Bảo</div></div>
+      <div class="field"><label>Trạng thái</label><div class="input ro">Đang quản lý</div></div>
+      <div class="field"><label>Số dư lưu ký</label><div class="input ro" style="justify-content:flex-end">0</div></div>
+    </div>
+    <div class="dlg-foot"><div class="btn"><u>H</u>ủy</div><div class="btn primary"><span class="g">&#xE74E;</span><u>L</u>ưu</div></div>
+  </div>
+
+  <!-- Sửa -->
+  <div class="card" style="width:560px;box-shadow:0 10px 30px rgba(15,23,42,.25);border-color:#94A3B8">
+    <div class="titlebar"><span class="t">Sửa đối tượng</span><span class="cap">&#x2715;</span></div>
+    <div class="dlg-head" style="display:flex;align-items:center;gap:10px"><div><h3>NGUYỄN VĂN AN</h3><p>DT-2025-0187 · Buồng B1-02</p></div><span class="tag" style="margin-left:auto">Phạm nhân</span></div>
+    <div style="padding:16px 20px 16px" class="form2">
+      <div class="field"><label>Mã số *</label><div class="input">DT-2025-0187</div></div>
+      <div class="field"><label>Năm sinh</label><div class="input">1992</div></div>
+      <div class="field span2"><label>Họ và tên *</label><div class="input focus">NGUYỄN VĂN AN<span class="caret" style="margin-left:0"></span></div></div>
+      <div class="field"><label>Loại</label><div class="input ro">Phạm nhân</div></div>
+      <div class="field"><label>Ngày vào *</label><div class="input sel"><span class="g">&#xE787;</span>05/11/2025</div></div>
+      <div class="field"><label>Buồng/khu</label><div class="input">B1-02</div></div>
+      <div class="field"><label>Quản giáo phụ trách</label><div class="input sel">Lê Minh Đức</div></div>
+      <div class="field"><label>Trạng thái</label><div class="input ro"><span class="st on">Đang quản lý</span></div></div>
+      <div class="field"><label>Số dư lưu ký</label><div class="input ro" style="justify-content:flex-end;color:var(--success);font-weight:600">320.000</div></div>
+      <div class="span2" style="margin-top:4px">
+        <div style="font-size:12px;color:#475569;font-weight:600;margin-bottom:6px">Lịch sử chuyển loại</div>
+        <div class="card"><table class="grid hist">
+          <colgroup><col style="width:96px"><col style="width:100px"><col><col style="width:120px"></colgroup>
+          <tr><th>Từ ngày</th><th>Loại mới</th><th>Ghi chú</th><th>Người ghi</th></tr>
+          <tr><td>10/01/2026</td><td>Phạm nhân</td><td>Bản án số 15/2026/HS-ST</td><td>Nguyễn Thị Lan</td></tr>
+        </table></div>
+      </div>
+    </div>
+    <div class="dlg-foot"><div class="btn" style="margin-right:auto"><span class="g">&#xE8AB;</span><u>C</u>huyển loại…</div><div class="btn"><u>H</u>ủy</div><div class="btn primary"><span class="g">&#xE74E;</span><u>L</u>ưu</div></div>
+  </div>
+</div>
+<div class="anno">
+  <b>Rules (apply to every edit dialog).</b>
+  <ol>
+    <li>FixedDialog, CenterParent, width 560. Anatomy: title bar · dlg-head (17px semibold title + muted subtitle; on Sửa the title is the record's name and a tag shows its category) · body (TableLayoutPanel, 2 columns, 16 px gap, 14 px rows, padding 20) · footer band (--subtle) with buttons right-aligned, primary last; a secondary record action may sit on the far left.</li>
+    <li>Labels above inputs (12px semibold #475569); required fields end with " *". Long fields (Họ và tên) span both columns.</li>
+    <li>Read-only values (Loại on Sửa, Trạng thái, Ngày ra, Số dư lưu ký) are InputFrames with --subtle background: readable, copyable, not disabled-grey.</li>
+    <li>Validation on Lưu: the field's InputFrame turns red (2 px --danger) and a red message with an error glyph appears under it; focus moves to the first invalid field; the dialog stays open. Server errors ("Mã số đã tồn tại") map to the same field. This replaces ErrorProvider icons.</li>
+    <li>Concurrency conflict (rowversion): MessageBox "Dữ liệu đã được người khác thay đổi. Vui lòng tải lại." then reload [ASSUMPTION on wording].</li>
+  </ol>
+</div>
+
+</body>
+</html>

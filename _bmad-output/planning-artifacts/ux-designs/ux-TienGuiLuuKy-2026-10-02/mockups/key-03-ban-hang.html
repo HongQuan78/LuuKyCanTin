@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prototype 03 – Bán hàng căn tin</title>
+<style>
+/* =====================================================================
+   PROTOTYPE 03 – BanHangForm (POS) + xác nhận ghi sổ
+   Reference for every voucher-entry screen (biên nhận thu, phiếu chi, phiếu nhập).
+   Governing spine sections:
+     DESIGN.md      Typography (amount-medium, amount-large), Components (segmented,
+                    detainee-card, lookup, data-grid, summary-panel, confirm-dialog)
+     EXPERIENCE.md  Component Patterns (Voucher entry, Item lookup, Detainee picker),
+                    State Patterns (insufficient balance, out of stock, voucher states),
+                    Key Flows (Hùng sells at the canteen counter)
+   Rendered 1:1 at 96 DPI: 1 CSS px = 1 WinForms px. Segoe UI 10pt ≈ 13px.
+   ===================================================================== */
+
+/* ---- Modern WinForms kit (identical block in every prototype) ------ */
+:root{
+  --accent:#2563EB; --accent-hover:#1D4ED8; --accent-soft:#DBEAFE;
+  --side:#1E293B; --side-hover:#273449; --side-active:#334155; --side-text:#CBD5E1; --side-muted:#7C8BA1;
+  --surface:#F1F5F9; --card:#FFFFFF; --subtle:#F8FAFC;
+  --border:#E2E8F0; --input-border:#CBD5E1;
+  --text:#0F172A; --text-2:#334155; --muted:#64748B;
+  --success:#15803D; --success-soft:#DCFCE7;
+  --danger:#B91C1C;  --danger-soft:#FEE2E2;
+  --warning:#B45309; --warning-soft:#FEF3C7;
+}
+*{box-sizing:border-box}
+body{margin:0;padding:24px 16px 48px;background:#D5DBE3;font:13px/1.35 "Segoe UI",Tahoma,sans-serif;color:var(--text)}
+.g{font-family:"Segoe Fluent Icons","Segoe MDL2 Assets";font-style:normal;font-weight:400;line-height:1}
+.page-note{max-width:1366px;margin:0 auto 10px}
+.page-note h1{font-size:20px;margin:0 0 4px;font-weight:600}
+.page-note p{margin:2px 0;color:#334155}
+.section{max-width:1366px;margin:32px auto 10px;font-size:15px;font-weight:600;color:#1E293B;border-bottom:1px solid #94A3B8;padding-bottom:5px}
+.scroll{overflow-x:auto;max-width:100%}
+.stage{display:flex;gap:28px;flex-wrap:wrap;justify-content:center;align-items:flex-start}
+.anno{max-width:1366px;margin:10px auto 0;font-size:12.5px;color:#334155;background:#FFFBEB;border:1px solid #FCD34D;padding:10px 12px}
+.anno b{font-weight:600}
+.anno ol{margin:4px 0 0 18px;padding:0}
+
+/* window chrome (Windows 11 title bar) */
+.win{background:var(--surface);border:1px solid #94A3B8;box-shadow:0 10px 30px rgba(15,23,42,.25);margin:0 auto;position:relative;overflow:hidden}
+.titlebar{height:31px;background:#fff;display:flex;align-items:center;padding-left:12px;font-size:12px;border-bottom:1px solid var(--border)}
+.titlebar .t{flex:1;white-space:nowrap}
+.titlebar .cap{width:46px;height:31px;display:flex;align-items:center;justify-content:center;font-size:10px}
+
+/* shell */
+.app{display:flex}
+.side{width:220px;background:var(--side);color:var(--side-text);display:flex;flex-direction:column;flex:none}
+.brand{height:56px;display:flex;align-items:center;gap:10px;padding:0 16px;border-bottom:1px solid #2C3A50}
+.logo{width:32px;height:32px;background:var(--accent);color:#fff;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;flex:none}
+.brand b{display:block;color:#fff;font-size:14px;font-weight:600}
+.brand small{display:block;color:var(--side-muted);font-size:11px}
+.nav{flex:1;padding:8px 0;overflow:hidden}
+.nav-h{padding:14px 16px 6px;font-size:11px;color:var(--side-muted);letter-spacing:.04em}
+.nav-i{height:36px;display:flex;align-items:center;gap:12px;padding:0 14px 0 16px;border-left:3px solid transparent;white-space:nowrap}
+.nav-i .g{font-size:16px;width:16px}
+.nav-i .chev{margin-left:auto;font-size:10px;color:var(--side-muted)}
+.nav-i.active{background:var(--side-active);border-left-color:#60A5FA;color:#fff}
+.nav-s{height:32px;display:flex;align-items:center;padding:0 14px 0 47px;white-space:nowrap;font-size:12.5px}
+.nav-s.active{background:var(--side-active);color:#fff;border-left:3px solid #60A5FA;padding-left:44px}
+.nav-s kbd,.nav-i kbd{margin-left:auto;font:11px "Segoe UI";color:var(--side-muted)}
+.me{border-top:1px solid #2C3A50;padding:12px 16px;display:flex;align-items:center;gap:10px}
+.avatar{width:32px;height:32px;background:#475569;color:#fff;font-weight:600;font-size:12px;display:flex;align-items:center;justify-content:center;flex:none}
+.me b{display:block;color:#fff;font-weight:600;font-size:12.5px;white-space:nowrap}
+.me small{display:block;color:var(--side-muted);font-size:11px;white-space:nowrap}
+.me .lockbtn{margin-left:auto;font-size:15px;color:var(--side-text);width:28px;height:28px;display:flex;align-items:center;justify-content:center}
+.main{flex:1;display:flex;flex-direction:column;min-width:0}
+.header{height:56px;background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:16px;flex:none}
+.header h2{margin:0;font-size:18px;font-weight:600;white-space:nowrap}
+.crumb{color:var(--muted);font-size:12px;white-space:nowrap}
+.qsearch{margin-left:auto;width:320px;height:32px;border:1px solid var(--input-border);background:var(--subtle);display:flex;align-items:center;gap:8px;padding:0 10px;color:var(--muted)}
+.qsearch kbd{margin-left:auto;font:11px "Segoe UI";border:1px solid var(--input-border);background:#fff;padding:1px 5px;color:var(--muted)}
+.content{flex:1;background:var(--surface);padding:20px;position:relative;overflow:hidden}
+.statusbar{height:26px;background:#fff;border-top:1px solid var(--border);display:flex;align-items:center;font-size:12px;color:var(--text-2);flex:none;white-space:nowrap}
+.statusbar span{padding:0 12px;border-right:1px solid var(--border);display:flex;align-items:center;gap:6px}
+.statusbar .sp{flex:1;border:0}
+.dot{width:8px;height:8px;display:inline-block;background:var(--success)}
+.dot.bad{background:var(--danger)} .dot.warn{background:var(--warning)}
+.statusbar .bad-t{color:var(--danger);font-weight:600}
+
+/* cards, buttons, inputs */
+.card{background:var(--card);border:1px solid var(--border)}
+.card-h{height:44px;display:flex;align-items:center;gap:10px;padding:0 16px;border-bottom:1px solid var(--border);font-size:14.5px;font-weight:600}
+.card-b{padding:16px}
+.btn{height:32px;padding:0 14px;display:inline-block;line-height:30px;text-align:center;background:#fff;border:1px solid var(--input-border);color:var(--text);white-space:nowrap;font-size:13px}
+.btn .g{font-size:14px;margin-right:8px;vertical-align:-2px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.btn.success{background:var(--success);border-color:var(--success);color:#fff;font-weight:600}
+.btn.ghost{border-color:transparent;background:transparent}
+.btn.disabled{background:#E2E8F0;border-color:#E2E8F0;color:#94A3B8}
+.btn.lg{height:44px;line-height:42px;font-size:15px}
+.btn.block{display:block;width:100%}
+.btn u{text-decoration:underline}
+.field{display:flex;flex-direction:column;gap:5px}
+.field>label{font-size:12px;color:#475569;font-weight:600}
+.input{height:32px;border:1px solid var(--input-border);background:#fff;display:flex;align-items:center;padding:0 10px;gap:8px;white-space:nowrap;overflow:hidden}
+.input.focus{border:2px solid var(--accent);padding:0 9px}
+.input.err{border:2px solid var(--danger);padding:0 9px}
+.input.ro{background:var(--subtle);color:var(--text-2)}
+.input.sel::after{content:"\E70D";font-family:"Segoe MDL2 Assets";font-size:10px;margin-left:auto;color:var(--muted)}
+.input .ph{color:#94A3B8}
+.input .g{color:var(--muted)}
+.msg{font-size:12px;color:var(--danger);display:flex;gap:6px;align-items:center}
+.help{font-size:12px;color:var(--muted)}
+.caret{display:inline-block;width:1px;height:15px;background:#000;margin-left:-6px}
+.pw{letter-spacing:3px}
+.banner{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;font-size:12.5px}
+.banner.err{background:var(--danger-soft);color:#7F1D1D;border-left:3px solid var(--danger)}
+.banner.warn{background:var(--warning-soft);color:#78350F;border-left:3px solid var(--warning)}
+.banner .g{font-size:15px;margin-top:1px}
+.dlg-foot{background:var(--subtle);border-top:1px solid var(--border);padding:12px 20px;display:flex;justify-content:flex-end;gap:8px}
+.dlg-head{padding:18px 20px 4px}
+.dlg-head h3{margin:0;font-size:17px;font-weight:600}
+.dlg-head p{margin:4px 0 0;color:var(--muted)}
+
+/* ---- screen-specific --------------------------------------------- */
+.pos-wrap{display:flex;gap:16px;height:100%}
+.pos-left{flex:1;display:flex;flex-direction:column;gap:16px;min-width:0}
+.pos-right{width:340px;flex:none;display:flex;flex-direction:column}
+.seg{display:inline-flex;border:1px solid var(--input-border);margin-left:auto}
+.seg span{height:28px;padding:0 12px;display:flex;align-items:center;border-right:1px solid var(--input-border);font-size:12.5px;font-weight:400;background:#fff}
+.seg span:last-child{border-right:0}
+.seg span.on{background:var(--accent);color:#fff;font-weight:600}
+.person{display:flex;align-items:center;gap:12px;flex:1;border:1px solid var(--border);background:var(--subtle);padding:8px 12px;height:56px}
+.person .avatar{width:40px;height:40px;font-size:14px;background:var(--accent)}
+.person b{font-size:14px}
+.person .meta{color:var(--muted);font-size:12px}
+.grid{width:100%;border-collapse:collapse;table-layout:fixed}
+.grid th{height:36px;background:var(--subtle);color:#475569;font-weight:600;font-size:12px;text-align:left;padding:0 12px;border-bottom:1px solid var(--border);white-space:nowrap}
+.grid td{height:38px;padding:0 12px;border-bottom:1px solid #EEF2F6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.grid .r{text-align:right}.grid .c{text-align:center}
+.grid td.edit{outline:2px solid var(--accent);outline-offset:-2px;background:#fff;font-weight:600}
+.grid tr.sel td{background:var(--accent-soft)}
+.grid .name{font-weight:600}
+.drop{position:absolute;background:#fff;border:1px solid var(--input-border);box-shadow:0 8px 20px rgba(15,23,42,.18);z-index:5}
+.drop table{border-collapse:collapse;width:100%}
+.drop td{padding:0 12px;height:36px;white-space:nowrap}
+.drop tr.sel td{background:var(--accent-soft)}
+.drop .r{text-align:right}
+.lookup{height:40px;font-size:15px}
+.lookup .g{font-size:17px}
+.sum-row{display:flex;justify-content:space-between;align-items:baseline;padding:6px 0}
+.sum-row span{color:var(--text-2)}
+.amt-m{font-size:19px;font-weight:600;font-variant-numeric:tabular-nums}   /* 14pt semibold */
+.amt-l{font-size:32px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1}  /* 24pt bold */
+.pos{color:var(--success)} .neg{color:var(--danger)}
+.total{background:var(--accent-soft);padding:14px 16px;margin:12px 0}
+.total.bad{background:var(--danger-soft)}
+.total small{display:block;font-size:12px;font-weight:600;color:var(--accent-hover);letter-spacing:.04em}
+.total.bad small{color:var(--danger)}
+.words{font-style:italic;color:var(--text-2);font-size:12.5px;margin-top:4px}
+.chk{display:flex;align-items:center;gap:8px;margin:4px 0 12px}
+.chk i{width:16px;height:16px;background:var(--accent);color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;font-style:normal}
+.keys{color:var(--muted);font-size:12px;text-align:center;margin-top:10px}
+.qicon{width:44px;height:44px;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;font-size:22px;flex:none}
+</style>
+</head>
+<body>
+
+<div class="page-note">
+  <h1>Prototype 03 – Bán hàng căn tin (POS)</h1>
+  <p>Mouse-free: the seller uses the keyboard and a USB barcode scanner only. Items tagged [ASSUMPTION] await review. Prices are invented sample data.</p>
+</div>
+
+<!-- ============================================================ -->
+<div class="section">A. BanHangForm – người mua là đối tượng, đang tìm mặt hàng "sua"</div>
+<div class="scroll">
+<div class="win" style="width:1366px">
+  <div class="titlebar"><span class="t">Lưu ký – Căn tin</span><span class="cap">─</span><span class="cap">☐</span><span class="cap">✕</span></div>
+  <div class="app" style="height:737px">
+    <div class="side">
+      <div class="brand"><div class="logo">LK</div><div><b>Lưu ký – Căn tin</b><small>TRẠI TẠM GIAM SỐ 1</small></div></div>
+      <div class="nav">
+        <div class="nav-i"><span class="g">&#xE80F;</span>Trang chủ</div>
+        <div class="nav-h">NGHIỆP VỤ</div>
+        <div class="nav-i"><span class="g">&#xE8C7;</span>Lưu ký<span class="g chev">&#xE76C;</span></div>
+        <div class="nav-i" style="color:#fff"><span class="g">&#xE7BF;</span>Căn tin<span class="g chev">&#xE70D;</span></div>
+        <div class="nav-s active">Bán hàng<kbd>F4</kbd></div>
+        <div class="nav-s">Nhập hàng</div>
+        <div class="nav-s">Phiếu bán hàng</div>
+        <div class="nav-i"><span class="g">&#xE7C3;</span>Báo cáo<span class="g chev">&#xE76C;</span></div>
+        <div class="nav-h">QUẢN LÝ</div>
+        <div class="nav-i"><span class="g">&#xE716;</span>Danh mục<span class="g chev">&#xE76C;</span></div>
+      </div>
+      <div class="me"><div class="avatar">PH</div><div><b>Phạm Văn Hùng</b><small>Cán bộ căn tin / bán hàng</small></div><span class="g lockbtn">&#xE72E;</span></div>
+    </div>
+    <div class="main">
+      <div class="header"><h2>Bán hàng</h2><div class="crumb">Phiếu bán hàng mới · Số phiếu cấp khi ghi sổ · Ngày xuất 02/10/2026</div><div class="qsearch"><span class="g">&#xE721;</span>Tìm đối tượng, chứng từ, hàng hoá…<kbd>Ctrl+K</kbd></div></div>
+      <div class="content">
+        <div class="pos-wrap">
+          <div class="pos-left">
+            <!-- Người mua -->
+            <div class="card">
+              <div class="card-h">Người mua
+                <div class="seg"><span class="on">Đối tượng</span><span>Người thân</span><span>CBCS</span><span>Đơn vị đến công tác</span></div>
+              </div>
+              <div class="card-b" style="display:flex;gap:12px;align-items:center">
+                <div class="field" style="width:240px"><label>Đối tượng (mã hoặc tên)</label><div class="input"><span class="g">&#xE721;</span>DT-2026-0012</div></div>
+                <div class="person" style="margin-top:18px">
+                  <div class="avatar">NA</div>
+                  <div><b>NGUYỄN VĂN AN</b><div class="meta">1985 · Tạm giữ/tạm giam · Buồng A2-05 · Quản giáo Trần Quốc Bảo</div></div>
+                  <span class="st" style="margin-left:auto;white-space:nowrap;color:var(--success);display:flex;gap:6px;align-items:center;font-size:12px"><i class="dot"></i>Đang quản lý</span>
+                </div>
+              </div>
+            </div>
+            <!-- Mặt hàng -->
+            <div class="card" style="flex:1;display:flex;flex-direction:column;position:relative">
+              <div class="card-h">Mặt hàng<span class="help" style="font-weight:400;margin-left:auto">5 dòng</span></div>
+              <div style="padding:12px 16px">
+                <div class="input focus lookup"><span class="g">&#xE721;</span>sua<span class="caret" style="margin-left:-6px"></span><span class="help" style="margin-left:auto;font-size:12px">Quét mã vạch hoặc gõ mã/tên · Enter để thêm</span></div>
+              </div>
+              <div class="drop" style="left:16px;top:96px;width:560px">
+                <table>
+                  <tr class="sel"><td style="width:70px;color:var(--text-2)">SU002</td><td style="font-weight:600">Sữa tươi Vinamilk 180ml</td><td style="width:50px">Hộp</td><td class="r" style="width:80px">8.000</td><td class="r" style="width:90px;color:var(--muted)">Tồn 214</td></tr>
+                  <tr><td style="color:var(--text-2)">SU005</td><td style="font-weight:600">Sữa đậu nành Fami 200ml</td><td>Hộp</td><td class="r">6.000</td><td class="r" style="color:var(--muted)">Tồn 96</td></tr>
+                  <tr><td style="color:#94A3B8">SU007</td><td style="color:#94A3B8">Sữa đặc Ông Thọ 380g</td><td style="color:#94A3B8">Hộp</td><td class="r" style="color:#94A3B8">27.000</td><td class="r" style="color:var(--danger);font-weight:600">Hết hàng</td></tr>
+                </table>
+              </div>
+              <table class="grid">
+                <colgroup><col style="width:52px"><col style="width:90px"><col><col style="width:80px"><col style="width:100px"><col style="width:110px"><col style="width:120px"></colgroup>
+                <tr><th class="c">#</th><th>Mã hàng</th><th>Tên mặt hàng</th><th>ĐVT</th><th class="r">Số lượng</th><th class="r">Đơn giá</th><th class="r">Thành tiền</th></tr>
+                <tr><td class="c">1</td><td>MI001</td><td class="name">Mì tôm Hảo Hảo</td><td>Gói</td><td class="r">10</td><td class="r">4.500</td><td class="r">45.000</td></tr>
+                <tr><td class="c">2</td><td>SU002</td><td class="name">Sữa tươi Vinamilk 180ml</td><td>Hộp</td><td class="r">6</td><td class="r">8.000</td><td class="r">48.000</td></tr>
+                <tr class="sel"><td class="c">3</td><td>NU001</td><td class="name">Nước suối Lavie 500ml</td><td>Chai</td><td class="r edit">5</td><td class="r">6.000</td><td class="r">30.000</td></tr>
+                <tr><td class="c">4</td><td>BQ003</td><td class="name">Bánh quy Cosy</td><td>Gói</td><td class="r">1</td><td class="r">38.000</td><td class="r">38.000</td></tr>
+                <tr><td class="c">5</td><td>KD001</td><td class="name">Kem đánh răng P/S 180g</td><td>Hộp</td><td class="r">1</td><td class="r">25.000</td><td class="r">25.000</td></tr>
+              </table>
+            </div>
+          </div>
+
+          <!-- Thanh toán -->
+          <div class="pos-right">
+            <div class="card" style="flex:1;display:flex;flex-direction:column">
+              <div class="card-h">Thanh toán<span class="help" style="font-weight:400;margin-left:auto">Trừ lưu ký</span></div>
+              <div class="card-b" style="flex:1;display:flex;flex-direction:column">
+                <div class="sum-row"><span>Số dư hiện tại</span><span class="amt-m" style="color:var(--text)">1.250.000</span></div>
+                <div class="sum-row"><span>Tiền hàng</span><span class="amt-m" style="color:var(--text)">− 186.000</span></div>
+                <div style="border-top:1px dashed var(--input-border);margin:4px 0"></div>
+                <div class="sum-row"><span>Số dư sau khi mua</span><span class="amt-m pos">1.064.000</span></div>
+                <div class="total"><small>TỔNG TIỀN</small><div class="amt-l">186.000 đ</div><div class="words">Một trăm tám mươi sáu nghìn đồng</div></div>
+                <div class="chk"><i class="g">&#xE73E;</i>In phiếu mua hàng sau khi ghi sổ</div>
+                <div style="flex:1"></div>
+                <div class="btn primary lg block"><span class="g">&#xE8FB;</span><u>G</u>hi sổ&nbsp;&nbsp;<span style="font-weight:400;opacity:.85">F9</span></div>
+                <div style="display:flex;gap:8px;margin-top:8px">
+                  <div class="btn" style="flex:1"><span class="g">&#xE74D;</span><u>X</u>oá dòng</div>
+                  <div class="btn" style="flex:1"><span class="g">&#xE72C;</span>Làm <u>m</u>ới</div>
+                </div>
+                <div class="keys">F9 ghi sổ · Del xoá dòng · F2 sửa số lượng · Esc làm mới</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="statusbar">
+        <span><i class="dot"></i>CSDL: SRV-LUUKY\SQLEXPRESS / LuuKyCanTin</span><span><i class="dot"></i>Sao lưu: 3 giờ trước</span><span>Kỳ 10/2026 · đang mở</span><span>Máy: CANTIN-01</span><span class="sp"></span><span style="border:0">v1.0.0</span>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+<div class="anno">
+  <b>Rules (POS; voucher-entry screens reuse 1, 4, 5, 6).</b>
+  <ol>
+    <li>Two columns: left (fill) = "Người mua" card on top + "Mặt hàng" card filling the rest; right = "Thanh toán" card fixed at 340 px, full height. 16 px gaps. The voucher's number and date live in the header subtitle.</li>
+    <li>Buyer type is a segmented control: RadioButtons with Appearance = Button, FlatStyle Flat; checked = accent fill. Types 1–2 show the detainee picker + card and pay "Trừ lưu ký"; types 3–4 show a free-text buyer, pay cash, and the balance rows are hidden.</li>
+    <li>Detainee card: initials tile, name semibold, meta line muted, status dot on the right. Focus jumps to the item lookup after a pick.</li>
+    <li>Item lookup: a 40 px InputFrame (11pt). The suggestion dropdown shows mã, tên, ĐVT, giá, tồn; out-of-stock items are greyed with a red "Hết hàng" and refused. Enter adds 1 and clears the box; scanning the same code again adds 1.</li>
+    <li>Only Số lượng is editable (F2 or typing). The cell being edited has a 2 px accent outline.</li>
+    <li>Thanh toán: amounts 14pt semibold, right-aligned. "Số dư sau khi mua" green when ≥ 0. Total box --accent-soft with a 24pt bold amount and the amount in words below. A primary 44 px "Ghi sổ F9" button. No AcceptButton on this form: Enter belongs to the lookup [ASSUMPTION F9].</li>
+  </ol>
+</div>
+
+<!-- ============================================================ -->
+<div class="section">B. Trạng thái lỗi – không đủ số dư lưu ký (panel Thanh toán)</div>
+<div class="stage">
+  <div class="card" style="width:340px">
+    <div class="card-h">Thanh toán<span class="help" style="font-weight:400;margin-left:auto">Trừ lưu ký</span></div>
+    <div class="card-b">
+      <div class="sum-row"><span>Số dư hiện tại</span><span class="amt-m">85.000</span></div>
+      <div class="sum-row"><span>Tiền hàng</span><span class="amt-m">− 186.000</span></div>
+      <div style="border-top:1px dashed var(--input-border);margin:4px 0"></div>
+      <div class="sum-row"><span>Còn thiếu</span><span class="amt-m neg">101.000</span></div>
+      <div class="total bad"><small>TỔNG TIỀN</small><div class="amt-l">186.000 đ</div><div class="words">Một trăm tám mươi sáu nghìn đồng</div></div>
+      <div class="banner err" style="margin-bottom:12px"><span class="g">&#xE783;</span><span><b>Không đủ số dư lưu ký.</b> Bớt mặt hàng để tổng tiền không vượt số dư.</span></div>
+      <div class="btn lg block disabled"><span class="g">&#xE8FB;</span>Ghi sổ&nbsp;&nbsp;F9</div>
+    </div>
+  </div>
+</div>
+<div class="anno">
+  <b>Rules.</b> The client never lets a cart exceed the balance: the shortfall row replaces "Số dư sau", the total box turns --danger-soft, a red banner explains, and Ghi sổ is disabled. The service still re-checks under row lock; if the balance changed meanwhile, the same text appears as a MessageBox (Warning) and nothing is posted. An out-of-stock line at posting turns its grid row red and the message names it.
+</div>
+
+<!-- ============================================================ -->
+<div class="section">C. Xác nhận ghi sổ (F9)</div>
+<div class="stage">
+  <div class="card" style="width:460px;box-shadow:0 10px 30px rgba(15,23,42,.25);border-color:#94A3B8">
+    <div class="titlebar"><span class="t">Xác nhận ghi sổ</span><span class="cap">&#x2715;</span></div>
+    <div style="padding:20px;display:flex;gap:14px">
+      <div class="qicon g">&#xE7BF;</div>
+      <div style="flex:1">
+        <div style="font-size:17px;font-weight:600">Ghi sổ phiếu bán hàng?</div>
+        <div class="help" style="font-size:13px;margin-top:2px">NGUYỄN VĂN AN · DT-2026-0012</div>
+        <div style="margin-top:14px;border:1px solid var(--border)">
+          <div class="sum-row" style="padding:8px 12px;border-bottom:1px solid #EEF2F6"><span>Số dư trước</span><span class="amt-m" style="font-size:16px">1.250.000</span></div>
+          <div class="sum-row" style="padding:8px 12px;border-bottom:1px solid #EEF2F6"><span>Số tiền mua hàng</span><span class="amt-m" style="font-size:16px">− 186.000</span></div>
+          <div class="sum-row" style="padding:8px 12px;background:var(--subtle)"><span><b>Số dư sau</b></span><span class="amt-m pos" style="font-size:16px">1.064.000</span></div>
+        </div>
+        <div class="words" style="margin-top:8px">Bằng chữ: Một trăm tám mươi sáu nghìn đồng</div>
+      </div>
+    </div>
+    <div class="dlg-foot"><div class="chk" style="margin:0 auto 0 0"><i class="g">&#xE73E;</i>In phiếu mua hàng</div><div class="btn">Quay <u>l</u>ại</div><div class="btn primary"><span class="g">&#xE8FB;</span><u>G</u>hi sổ</div></div>
+  </div>
+</div>
+<div class="anno">
+  <b>Rules.</b> One confirmation dialog layout for every posting in the app: an icon tile for the voucher type, a 17px question, the subject in muted text, a before → amount → after table, the amount in words, and a footer with the print option on the left and the buttons on the right (primary last). AcceptButton = Ghi sổ, Esc = Quay lại. The print checkbox remembers its last value per workstation [ASSUMPTION]. After posting, the screen clears for the next buyer and focus returns to Đối tượng.
+</div>
+
+</body>
+</html>

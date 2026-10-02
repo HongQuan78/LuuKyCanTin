@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prototype 01 – Đăng nhập &amp; khung chính</title>
+<style>
+/* =====================================================================
+   PROTOTYPE 01 – DangNhapForm, DoiMatKhauForm, MainForm (shell + trang chủ), khoá máy
+   Governing spine sections:
+     DESIGN.md      Colors, Typography, Layout & Spacing, Components (sidebar, header-bar,
+                    status-bar, button, input, card)
+     EXPERIENCE.md  Information Architecture (navigation), State Patterns (sign-in errors,
+                    lock), Interaction Primitives (shortcuts), Key Flows (Lan starts a shift)
+   Rendered 1:1 at 96 DPI: 1 CSS px = 1 WinForms px. Segoe UI 10pt ≈ 13px.
+   Icons = glyphs of the "Segoe MDL2 Assets" font (built into Windows 10/11).
+   ===================================================================== */
+
+/* ---- Modern WinForms kit (identical block in every prototype) ------ */
+:root{
+  --accent:#2563EB; --accent-hover:#1D4ED8; --accent-soft:#DBEAFE;
+  --side:#1E293B; --side-hover:#273449; --side-active:#334155; --side-text:#CBD5E1; --side-muted:#7C8BA1;
+  --surface:#F1F5F9; --card:#FFFFFF; --subtle:#F8FAFC;
+  --border:#E2E8F0; --input-border:#CBD5E1;
+  --text:#0F172A; --text-2:#334155; --muted:#64748B;
+  --success:#15803D; --success-soft:#DCFCE7;
+  --danger:#B91C1C;  --danger-soft:#FEE2E2;
+  --warning:#B45309; --warning-soft:#FEF3C7;
+}
+*{box-sizing:border-box}
+body{margin:0;padding:24px 16px 48px;background:#D5DBE3;font:13px/1.35 "Segoe UI",Tahoma,sans-serif;color:var(--text)}
+.g{font-family:"Segoe Fluent Icons","Segoe MDL2 Assets";font-style:normal;font-weight:400;line-height:1}
+.page-note{max-width:1366px;margin:0 auto 10px}
+.page-note h1{font-size:20px;margin:0 0 4px;font-weight:600}
+.page-note p{margin:2px 0;color:#334155}
+.section{max-width:1366px;margin:32px auto 10px;font-size:15px;font-weight:600;color:#1E293B;border-bottom:1px solid #94A3B8;padding-bottom:5px}
+.scroll{overflow-x:auto;max-width:100%}
+.stage{display:flex;gap:28px;flex-wrap:wrap;justify-content:center;align-items:flex-start}
+.anno{max-width:1366px;margin:10px auto 0;font-size:12.5px;color:#334155;background:#FFFBEB;border:1px solid #FCD34D;padding:10px 12px}
+.anno b{font-weight:600}
+.anno ol{margin:4px 0 0 18px;padding:0}
+
+/* window chrome (Windows 11 title bar) */
+.win{background:var(--surface);border:1px solid #94A3B8;box-shadow:0 10px 30px rgba(15,23,42,.25);margin:0 auto;position:relative;overflow:hidden}
+.titlebar{height:31px;background:#fff;display:flex;align-items:center;padding-left:12px;font-size:12px;border-bottom:1px solid var(--border)}
+.titlebar .t{flex:1;white-space:nowrap}
+.titlebar .cap{width:46px;height:31px;display:flex;align-items:center;justify-content:center;font-size:10px}
+
+/* shell */
+.app{display:flex}
+.side{width:220px;background:var(--side);color:var(--side-text);display:flex;flex-direction:column;flex:none}
+.brand{height:56px;display:flex;align-items:center;gap:10px;padding:0 16px;border-bottom:1px solid #2C3A50}
+.logo{width:32px;height:32px;background:var(--accent);color:#fff;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;flex:none}
+.brand b{display:block;color:#fff;font-size:14px;font-weight:600}
+.brand small{display:block;color:var(--side-muted);font-size:11px}
+.nav{flex:1;padding:8px 0;overflow:hidden}
+.nav-h{padding:14px 16px 6px;font-size:11px;color:var(--side-muted);letter-spacing:.04em}
+.nav-i{height:36px;display:flex;align-items:center;gap:12px;padding:0 14px 0 16px;border-left:3px solid transparent;white-space:nowrap}
+.nav-i .g{font-size:16px;width:16px}
+.nav-i .chev{margin-left:auto;font-size:10px;color:var(--side-muted)}
+.nav-i.active{background:var(--side-active);border-left-color:#60A5FA;color:#fff}
+.nav-s{height:32px;display:flex;align-items:center;padding:0 14px 0 47px;white-space:nowrap;font-size:12.5px}
+.nav-s.active{background:var(--side-active);color:#fff;border-left:3px solid #60A5FA;padding-left:44px}
+.nav-s kbd,.nav-i kbd{margin-left:auto;font:11px "Segoe UI";color:var(--side-muted)}
+.me{border-top:1px solid #2C3A50;padding:12px 16px;display:flex;align-items:center;gap:10px}
+.avatar{width:32px;height:32px;background:#475569;color:#fff;font-weight:600;font-size:12px;display:flex;align-items:center;justify-content:center;flex:none}
+.me b{display:block;color:#fff;font-weight:600;font-size:12.5px;white-space:nowrap}
+.me small{display:block;color:var(--side-muted);font-size:11px;white-space:nowrap}
+.me .lockbtn{margin-left:auto;font-size:15px;color:var(--side-text);width:28px;height:28px;display:flex;align-items:center;justify-content:center}
+.main{flex:1;display:flex;flex-direction:column;min-width:0}
+.header{height:56px;background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:16px;flex:none}
+.header h2{margin:0;font-size:18px;font-weight:600;white-space:nowrap}
+.crumb{color:var(--muted);font-size:12px;white-space:nowrap}
+.qsearch{margin-left:auto;width:320px;height:32px;border:1px solid var(--input-border);background:var(--subtle);display:flex;align-items:center;gap:8px;padding:0 10px;color:var(--muted)}
+.qsearch kbd{margin-left:auto;font:11px "Segoe UI";border:1px solid var(--input-border);background:#fff;padding:1px 5px;color:var(--muted)}
+.content{flex:1;background:var(--surface);padding:20px;position:relative;overflow:hidden}
+.statusbar{height:26px;background:#fff;border-top:1px solid var(--border);display:flex;align-items:center;font-size:12px;color:var(--text-2);flex:none;white-space:nowrap}
+.statusbar span{padding:0 12px;border-right:1px solid var(--border);display:flex;align-items:center;gap:6px}
+.statusbar .sp{flex:1;border:0}
+.dot{width:8px;height:8px;display:inline-block;background:var(--success)}
+.dot.bad{background:var(--danger)} .dot.warn{background:var(--warning)}
+.statusbar .bad-t{color:var(--danger);font-weight:600}
+
+/* cards, buttons, inputs */
+.card{background:var(--card);border:1px solid var(--border)}
+.card-h{height:44px;display:flex;align-items:center;gap:10px;padding:0 16px;border-bottom:1px solid var(--border);font-size:14.5px;font-weight:600}
+.card-b{padding:16px}
+.btn{height:32px;padding:0 14px;display:inline-block;line-height:30px;text-align:center;background:#fff;border:1px solid var(--input-border);color:var(--text);white-space:nowrap;font-size:13px}
+.btn .g{font-size:14px;margin-right:8px;vertical-align:-2px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.btn.success{background:var(--success);border-color:var(--success);color:#fff;font-weight:600}
+.btn.ghost{border-color:transparent;background:transparent}
+.btn.disabled{background:#E2E8F0;border-color:#E2E8F0;color:#94A3B8}
+.btn.lg{height:44px;line-height:42px;font-size:15px}
+.btn.block{display:block;width:100%}
+.btn u{text-decoration:underline}
+.field{display:flex;flex-direction:column;gap:5px}
+.field>label{font-size:12px;color:#475569;font-weight:600}
+.input{height:32px;border:1px solid var(--input-border);background:#fff;display:flex;align-items:center;padding:0 10px;gap:8px;white-space:nowrap;overflow:hidden}
+.input.focus{border:2px solid var(--accent);padding:0 9px}
+.input.err{border:2px solid var(--danger);padding:0 9px}
+.input.ro{background:var(--subtle);color:var(--text-2)}
+.input.sel::after{content:"\E70D";font-family:"Segoe MDL2 Assets";font-size:10px;margin-left:auto;color:var(--muted)}
+.input .ph{color:#94A3B8}
+.input .g{color:var(--muted)}
+.msg{font-size:12px;color:var(--danger);display:flex;gap:6px;align-items:center}
+.help{font-size:12px;color:var(--muted)}
+.caret{display:inline-block;width:1px;height:15px;background:#000;margin-left:-6px}
+.pw{letter-spacing:3px}
+.banner{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;font-size:12.5px}
+.banner.err{background:var(--danger-soft);color:#7F1D1D;border-left:3px solid var(--danger)}
+.banner.warn{background:var(--warning-soft);color:#78350F;border-left:3px solid var(--warning)}
+.banner .g{font-size:15px;margin-top:1px}
+.dlg-foot{background:var(--subtle);border-top:1px solid var(--border);padding:12px 20px;display:flex;justify-content:flex-end;gap:8px}
+.dlg-head{padding:18px 20px 4px}
+.dlg-head h3{margin:0;font-size:17px;font-weight:600}
+.dlg-head p{margin:4px 0 0;color:var(--muted)}
+
+/* ---- screen-specific --------------------------------------------- */
+.login{width:760px;height:460px;display:flex;background:#fff;border:1px solid #94A3B8;box-shadow:0 10px 30px rgba(15,23,42,.25);position:relative}
+.login .left{width:300px;background:var(--side);color:var(--side-text);padding:32px 28px;display:flex;flex-direction:column}
+.login .left .logo{width:48px;height:48px;font-size:18px}
+.login .left h2{color:#fff;font-size:22px;font-weight:600;margin:20px 0 6px}
+.login .left .unit{margin-top:auto;font-size:12px;color:var(--side-muted)}
+.login .left .unit b{display:block;color:#fff;font-size:13px;font-weight:600;margin-bottom:2px}
+.login .right{flex:1;padding:40px 44px;display:flex;flex-direction:column;gap:16px}
+.login .right h3{margin:0;font-size:20px;font-weight:600}
+.login .close{position:absolute;right:0;top:0;width:46px;height:32px;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--muted)}
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:20px}
+.tile{background:#fff;border:1px solid var(--border);padding:18px;height:124px;display:flex;flex-direction:column;gap:6px;position:relative}
+.tile .g{font-size:24px;color:var(--accent)}
+.tile b{font-size:15px;font-weight:600;margin-top:6px}
+.tile span{color:var(--muted);font-size:12px}
+.tile kbd{position:absolute;right:14px;top:14px;font:600 12px "Segoe UI";background:var(--accent-soft);color:var(--accent-hover);padding:2px 8px}
+.tile.hot{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.rules li{display:flex;gap:8px;align-items:center;font-size:12.5px;margin:3px 0}
+.rules{list-style:none;margin:0;padding:0}
+.ok{color:var(--success)} .no{color:#94A3B8}
+.lock{position:absolute;inset:0;background:var(--side);display:flex;align-items:center;justify-content:center}
+</style>
+</head>
+<body>
+
+<div class="page-note">
+  <h1>Prototype 01 – Đăng nhập, đổi mật khẩu, khung chính, khoá máy</h1>
+  <p>Modern flat style, built from WinForms controls: Panel, flat Button, Label, TextBox, TableLayoutPanel, plus two small shared controls (CardPanel, InputFrame). Items tagged [ASSUMPTION] await review.</p>
+</div>
+
+<!-- ============================================================ -->
+<div class="section">A. DangNhapForm – bình thường · sai mật khẩu · tài khoản bị khoá</div>
+<div class="stage">
+
+  <div class="login">
+    <span class="close g">&#xE711;</span>
+    <div class="left">
+      <div class="logo">LK</div>
+      <h2>Lưu ký – Căn tin</h2>
+      <div>Quản lý tiền gửi lưu ký và bán hàng căn tin</div>
+      <div class="unit"><b>TRẠI TẠM GIAM SỐ 1</b>Máy: QUAY-01 · v1.0.0</div>
+    </div>
+    <div class="right">
+      <div><h3>Đăng nhập</h3><div class="help" style="margin-top:4px;font-size:13px">Dùng tài khoản do quản trị viên cấp.</div></div>
+      <div class="field"><label>Tên đăng nhập</label><div class="input focus"><span class="g">&#xE77B;</span>lan.nt<span class="caret" style="margin-left:0"></span></div></div>
+      <div class="field"><label>Mật khẩu</label><div class="input"><span class="g">&#xE72E;</span><span class="ph">Nhập mật khẩu</span></div></div>
+      <div style="height:0"></div>
+      <div class="btn primary lg block"><u>Đ</u>ăng nhập</div>
+      <div class="help" style="text-align:center">Quên mật khẩu? Liên hệ quản trị viên.</div>
+    </div>
+  </div>
+
+  <div class="login">
+    <span class="close g">&#xE711;</span>
+    <div class="left">
+      <div class="logo">LK</div>
+      <h2>Lưu ký – Căn tin</h2>
+      <div>Quản lý tiền gửi lưu ký và bán hàng căn tin</div>
+      <div class="unit"><b>TRẠI TẠM GIAM SỐ 1</b>Máy: QUAY-01 · v1.0.0</div>
+    </div>
+    <div class="right">
+      <div><h3>Đăng nhập</h3><div class="help" style="margin-top:4px;font-size:13px">Dùng tài khoản do quản trị viên cấp.</div></div>
+      <div class="banner err"><span class="g">&#xE783;</span><span>Tên đăng nhập hoặc mật khẩu không đúng</span></div>
+      <div class="field"><label>Tên đăng nhập</label><div class="input"><span class="g">&#xE77B;</span>lan.nt</div></div>
+      <div class="field"><label>Mật khẩu</label><div class="input focus"><span class="g">&#xE72E;</span><span class="caret" style="margin-left:0"></span></div></div>
+      <div class="btn primary lg block"><u>Đ</u>ăng nhập</div>
+    </div>
+  </div>
+</div>
+<div class="stage" style="margin-top:20px">
+  <div style="width:416px" class="card">
+    <div class="card-b" style="display:flex;flex-direction:column;gap:10px">
+      <div class="help">Biến thể của banner (cùng vị trí, phía trên ô Tên đăng nhập):</div>
+      <div class="banner err"><span class="g">&#xE72E;</span><span>Tài khoản đã bị khoá, liên hệ quản trị viên</span></div>
+      <div class="btn primary lg block disabled">Đang đăng nhập…</div>
+    </div>
+  </div>
+</div>
+<div class="anno">
+  <b>Rules.</b>
+  <ol>
+    <li>FormBorderStyle = None, 760×460, CenterScreen, custom ✕ at the top-right (Esc also closes). The left panel is <code>--side</code> with the logo, app name, unit name (TenDonVi) and workstation/version; the right is white with 44 px padding.</li>
+    <li>Labels sit <b>above</b> inputs (12px semibold, #475569). Inputs are InputFrame 32 px high with a leading glyph; focus = 2 px accent border.</li>
+    <li>Errors appear in a red banner above the fields (never a MessageBox). The password box is cleared and focused. While signing in, the button reads "Đang đăng nhập…" and is disabled.</li>
+    <li>Primary button: full width, 44 px, accent fill, AcceptButton.</li>
+  </ol>
+</div>
+
+<!-- ============================================================ -->
+<div class="section">B. DoiMatKhauForm – bắt buộc đổi mật khẩu lần đầu (kiểm tra chính sách trực tiếp)</div>
+<div class="stage">
+  <div class="card" style="width:480px;box-shadow:0 10px 30px rgba(15,23,42,.25);border-color:#94A3B8">
+    <div class="titlebar"><span class="t">Đổi mật khẩu</span><span class="cap">&#x2715;</span></div>
+    <div class="dlg-head"><h3>Đặt mật khẩu mới</h3><p>Đây là lần đăng nhập đầu tiên, vui lòng đổi mật khẩu trước khi tiếp tục.</p></div>
+    <div style="padding:16px 20px;display:flex;flex-direction:column;gap:14px">
+      <div class="field"><label>Mật khẩu hiện tại</label><div class="input pw">••••••••</div></div>
+      <div class="field"><label>Mật khẩu mới</label><div class="input pw">••••••</div></div>
+      <div class="field"><label>Nhập lại mật khẩu mới</label><div class="input focus"><span class="caret" style="margin-left:0"></span></div></div>
+      <ul class="rules">
+        <li class="no"><span class="g">&#xE711;</span>Ít nhất 8 ký tự</li>
+        <li class="ok"><span class="g">&#xE73E;</span>Có chữ hoa</li>
+        <li class="ok"><span class="g">&#xE73E;</span>Có chữ thường</li>
+        <li class="no"><span class="g">&#xE711;</span>Có chữ số</li>
+        <li class="ok"><span class="g">&#xE73E;</span>Khác mật khẩu hiện tại</li>
+      </ul>
+    </div>
+    <div class="dlg-foot"><div class="btn">Đăng <u>x</u>uất</div><div class="btn primary disabled"><u>L</u>ưu mật khẩu</div></div>
+  </div>
+</div>
+<div class="anno">
+  <b>Rules.</b> The policy list updates while typing (green ✓ / grey ✕ labels). The primary button stays disabled until every rule passes and both new passwords match. On a forced change the secondary button is "Đăng xuất"; when opened from Hệ thống › Đổi mật khẩu it is "Hủy".
+  Standard dialog anatomy: title bar, dlg-head (17px semibold title + muted subtitle), body padding 20, footer band (--subtle) with buttons right-aligned, primary last.
+</div>
+
+<!-- ============================================================ -->
+<div class="section">C. MainForm – khung chính, trang chủ</div>
+<div class="scroll">
+<div class="win" style="width:1366px">
+  <div class="titlebar"><span class="t">Lưu ký – Căn tin</span><span class="cap">─</span><span class="cap">☐</span><span class="cap">✕</span></div>
+  <div class="app" style="height:737px">
+    <div class="side">
+      <div class="brand"><div class="logo">LK</div><div><b>Lưu ký – Căn tin</b><small>TRẠI TẠM GIAM SỐ 1</small></div></div>
+      <div class="nav">
+        <div class="nav-i active"><span class="g">&#xE80F;</span>Trang chủ</div>
+        <div class="nav-h">NGHIỆP VỤ</div>
+        <div class="nav-i"><span class="g">&#xE8C7;</span>Lưu ký<span class="g chev">&#xE76C;</span></div>
+        <div class="nav-i"><span class="g">&#xE7BF;</span>Căn tin<span class="g chev">&#xE76C;</span></div>
+        <div class="nav-i"><span class="g">&#xE7C3;</span>Báo cáo<span class="g chev">&#xE76C;</span></div>
+        <div class="nav-h">QUẢN LÝ</div>
+        <div class="nav-i"><span class="g">&#xE716;</span>Danh mục<span class="g chev">&#xE76C;</span></div>
+        <div class="nav-i"><span class="g">&#xE713;</span>Hệ thống<span class="g chev">&#xE76C;</span></div>
+      </div>
+      <div class="me"><div class="avatar">NL</div><div><b>Nguyễn Thị Lan</b><small>Cán bộ theo dõi tiền lưu ký</small></div><span class="g lockbtn" title="Khoá máy (Ctrl+L)">&#xE72E;</span></div>
+    </div>
+    <div class="main">
+      <div class="header"><h2>Trang chủ</h2><div class="qsearch"><span class="g">&#xE721;</span>Tìm đối tượng, chứng từ, hàng hoá…<kbd>Ctrl+K</kbd></div></div>
+      <div class="content">
+        <div style="font-size:20px;font-weight:600">Chào buổi sáng, Nguyễn Thị Lan</div>
+        <div class="help" style="font-size:13px;margin-top:2px">Thứ Sáu, 02/10/2026 · Kỳ 10/2026 đang mở</div>
+        <div class="tiles">
+          <div class="tile hot"><span class="g">&#xE710;</span><kbd>F2</kbd><b>Lập biên nhận thu</b><span>Nhận tiền gửi lưu ký cho đối tượng</span></div>
+          <div class="tile"><span class="g">&#xE8C7;</span><kbd>F3</kbd><b>Lập phiếu chi</b><span>Chi tiền, chuyển về người thân, tất toán</span></div>
+          <div class="tile"><span class="g">&#xE7BF;</span><kbd>F4</kbd><b>Bán hàng</b><span>Bán hàng căn tin, trừ tiền lưu ký</span></div>
+          <div class="tile"><span class="g">&#xE77B;</span><kbd>F5</kbd><b>Màn hình quầy</b><span>Tra cứu nhanh một đối tượng tại quầy</span></div>
+        </div>
+        <div class="banner warn" style="margin-top:20px;max-width:640px"><span class="g">&#xE7BA;</span><span>Bản sao lưu gần nhất đã quá 24 giờ. Báo quản trị viên kiểm tra lịch sao lưu.</span></div>
+      </div>
+      <div class="statusbar">
+        <span><i class="dot"></i>CSDL: SRV-LUUKY\SQLEXPRESS / LuuKyCanTin</span>
+        <span class="bad-t"><i class="dot bad"></i>Sao lưu: 2 ngày trước</span>
+        <span>Kỳ 10/2026 · đang mở</span>
+        <span>Máy: QUAY-01</span>
+        <span class="sp"></span>
+        <span style="border:0">v1.0.0</span>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+<div class="anno">
+  <b>Rules.</b>
+  <ol>
+    <li>MainForm: Maximized. Left: sidebar Panel 220 px (Dock Left, --side). Right: header Panel 56 px (Dock Top, white, bottom border), status Panel 26 px (Dock Bottom), content Panel (Dock Fill, --surface, Padding 20).</li>
+    <li>Each screen is a UserControl hosted in the content Panel. It is created once and cached, so its state survives navigation and locking [ASSUMPTION; replaces MDI]. The header shows the screen title and the quick-search box (Ctrl+K).</li>
+    <li>Sidebar items are flat Buttons (FlatAppearance.BorderSize = 0, TextAlign MiddleLeft, glyph Label + text). Hover = --side-hover. Active = --side-active + 3 px left bar #60A5FA + white text. A group opens its sub-items below it; only one group is open at a time. Shortcuts are shown muted on the right. Items without permission are hidden; an empty group is hidden.</li>
+    <li>Trang chủ: greeting + 4 quick-action tiles (only the ones the user may use) [ASSUMPTION]. System warnings show here as a warning banner.</li>
+    <li>Status bar: square 8 px dots: green = OK, red = degraded (text turns red semibold, tooltip explains). Refreshes every 60 s.</li>
+    <li>User block at the bottom of the sidebar: initials tile, name, role, lock button (Ctrl+L).</li>
+  </ol>
+</div>
+
+<!-- ============================================================ -->
+<div class="section">D. Khoá phiên làm việc (sau 5 phút không thao tác hoặc Ctrl+L)</div>
+<div class="scroll">
+<div class="win" style="width:1366px">
+  <div class="titlebar"><span class="t">Lưu ký – Căn tin</span><span class="cap">─</span><span class="cap">☐</span><span class="cap">✕</span></div>
+  <div style="position:relative;height:520px">
+    <div class="lock">
+      <div class="card" style="width:380px;border:0">
+        <div class="card-b" style="padding:28px;display:flex;flex-direction:column;gap:14px;align-items:stretch">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+            <div class="avatar" style="width:56px;height:56px;font-size:18px;background:var(--accent)">NL</div>
+            <div style="font-size:17px;font-weight:600;margin-top:6px">Nguyễn Thị Lan</div>
+            <div class="help" style="display:flex;gap:6px;align-items:center"><span class="g">&#xE72E;</span>Phiên làm việc đã bị khoá</div>
+          </div>
+          <div class="field"><label>Mật khẩu</label><div class="input focus"><span class="caret" style="margin-left:0"></span></div></div>
+          <div class="btn primary lg block"><u>M</u>ở khoá</div>
+          <div style="text-align:center;color:var(--accent);text-decoration:underline">Đăng xuất</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+<div class="anno">
+  <b>Rules.</b> An opaque Panel (--side) docked Fill over the whole MainForm, brought to front; a centred white card 380 px. Password only, no user name. "Đăng xuất" is a LinkLabel and asks "Mọi dữ liệu chưa lưu sẽ bị mất. Bạn có chắc muốn đăng xuất?" (Yes/No, default No). Screens underneath keep their state.
+</div>
+
+</body>
+</html>
