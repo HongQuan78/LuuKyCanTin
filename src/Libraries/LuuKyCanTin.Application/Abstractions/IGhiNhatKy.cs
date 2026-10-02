@@ -8,7 +8,10 @@ namespace LuuKyCanTin.Application.Abstractions;
 /// </summary>
 public interface IGhiNhatKy
 {
-    /// <param name="duLieu">Serialized to JSON as the row's <c>DuLieuMoi</c>. Never pass secrets.</param>
+    /// <param name="duLieuMoi">Serialized to JSON as the row's <c>DuLieuMoi</c>. Never pass secrets.</param>
     /// <remarks>Saves the current unit of work, so any pending changes in it are saved too.</remarks>
-    Task GhiAsync(HanhDong hanhDong, string? tenBang, long? banGhiId, object? duLieu = null, CancellationToken ct = default);
+    Task GhiAsync(HanhDong hanhDong, string? tenBang, long? banGhiId, object? duLieuMoi = null, CancellationToken ct = default);
+
+    /// <summary>Logs a change with its before and after values, for join tables the interceptor can't follow.</summary>
+    Task GhiAsync(HanhDong hanhDong, string? tenBang, long? banGhiId, object? duLieuCu, object? duLieuMoi, CancellationToken ct = default);
 }

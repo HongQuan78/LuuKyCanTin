@@ -1,5 +1,6 @@
 using LuuKyCanTin.Application.Common;
 using LuuKyCanTin.Domain.DanhMuc;
+using LuuKyCanTin.Domain.HeThong;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 
@@ -13,6 +14,14 @@ namespace LuuKyCanTin.Application.Abstractions;
 public interface IAppDbContext
 {
     DbSet<CanBo> CanBo { get; }
+
+    DbSet<VaiTro> VaiTro { get; }
+
+    DbSet<Quyen> Quyen { get; }
+
+    DbSet<VaiTroQuyen> VaiTroQuyen { get; }
+
+    DbSet<NguoiDungVaiTro> NguoiDungVaiTro { get; }
 
     EntityEntry<TEntity> Entry<TEntity>(TEntity entity)
         where TEntity : class;

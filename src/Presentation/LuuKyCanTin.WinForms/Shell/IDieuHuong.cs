@@ -4,4 +4,10 @@ namespace LuuKyCanTin.WinForms.Shell;
 public interface IDieuHuong
 {
     void MoDanhMucCanBo();
+
+    /// <summary>Opens the role and permission screen.</summary>
+    void MoVaiTro();
+
+    /// <summary>Opens the voluntary change-password dialog for the signed-in user.</summary>
+    void MoDoiMatKhau();
 }

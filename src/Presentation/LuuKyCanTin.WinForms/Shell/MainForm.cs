@@ -20,17 +20,31 @@ public partial class MainForm : Form, IMainView
         _scopeFactory = scopeFactory;
         InitializeComponent();
         mnuCanBo.Click += (_, _) => DanhMucCanBoClicked?.Invoke(this, EventArgs.Empty);
+        mnuVaiTro.Click += (_, _) => VaiTroClicked?.Invoke(this, EventArgs.Empty);
+        mnuDoiMatKhau.Click += (_, _) => DoiMatKhauClicked?.Invoke(this, EventArgs.Empty);
+        mnuDangXuat.Click += (_, _) => DangXuatClicked?.Invoke(this, EventArgs.Empty);
     }
 
     public event EventHandler? Loaded;
 
     public event EventHandler? DanhMucCanBoClicked;
 
+    public event EventHandler? VaiTroClicked;
+
+    public event EventHandler? DoiMatKhauClicked;
+
+    public event EventHandler? DangXuatClicked;
+
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public string TieuDe
     {
         set => Text = value;
     }
+
+    public void Dong() => Close();
+
+    public void HienLoi(string thongBao) =>
+        MessageBox.Show(this, thongBao, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Warning);
 
     protected override void OnLoad(EventArgs e)
     {

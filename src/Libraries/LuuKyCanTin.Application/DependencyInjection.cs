@@ -13,8 +13,11 @@ public static class DependencyInjection
     {
         services.AddSingleton<IValidator<LuuCanBoRequest>, LuuCanBoRequestValidator>();
         services.AddScoped<ICanBoService, CanBoService>();
+        services.AddScoped<IVaiTroService, VaiTroService>();
 
+        services.AddScoped<GhiNhanDangNhapSaiService>();
         services.AddScoped<DangNhapService>();
+        services.AddScoped<DoiMatKhauService>();
         services.AddScoped<ThemDoiTuongService>();
         services.AddScoped<LayDoiTuongDangQuanLyQuery>();
         services.AddScoped<GhiSoLuuKyService>();

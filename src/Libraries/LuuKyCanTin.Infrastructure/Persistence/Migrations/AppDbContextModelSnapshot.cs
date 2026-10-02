@@ -249,6 +249,11 @@ namespace LuuKyCanTin.Infrastructure.Persistence.Migrations
                     b.Property<int>("NguoiTaoId")
                         .HasColumnType("int");
 
+                    b.Property<bool>("PhaiDoiMatKhau")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
                     b.Property<byte[]>("RowVer")
                         .IsConcurrencyToken()
                         .IsRequired()
@@ -272,6 +277,21 @@ namespace LuuKyCanTin.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("NguoiDung", (string)null);
+                });
+
+            modelBuilder.Entity("LuuKyCanTin.Domain.HeThong.NguoiDungVaiTro", b =>
+                {
+                    b.Property<int>("NguoiDungId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("VaiTroId")
+                        .HasColumnType("int");
+
+                    b.HasKey("NguoiDungId", "VaiTroId");
+
+                    b.HasIndex("VaiTroId");
+
+                    b.ToTable("NguoiDungVaiTro", (string)null);
                 });
 
             modelBuilder.Entity("LuuKyCanTin.Domain.HeThong.NhatKyThaoTac", b =>
@@ -325,6 +345,375 @@ namespace LuuKyCanTin.Infrastructure.Persistence.Migrations
                     b.ToTable("NhatKyThaoTac", null, t =>
                         {
                             t.HasCheckConstraint("CK_NhatKyThaoTac_HanhDong", "[HanhDong] IN ('Them', 'Sua', 'Huy', 'In', 'Duyet', 'DangNhap')");
+                        });
+                });
+
+            modelBuilder.Entity("LuuKyCanTin.Domain.HeThong.Quyen", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Ma")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<string>("Module")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(10)");
+
+                    b.Property<string>("Ten")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .IsUnicode(true)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Ma")
+                        .IsUnique();
+
+                    b.ToTable("Quyen", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Ma = "HT.Xem",
+                            Module = "HT",
+                            Ten = "Xem — Hệ thống"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Ma = "HT.Them",
+                            Module = "HT",
+                            Ten = "Them — Hệ thống"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Ma = "HT.Sua",
+                            Module = "HT",
+                            Ten = "Sua — Hệ thống"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Ma = "HT.Huy",
+                            Module = "HT",
+                            Ten = "Huy — Hệ thống"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Ma = "HT.In",
+                            Module = "HT",
+                            Ten = "In — Hệ thống"
+                        },
+                        new
+                        {
+                            Id = 6,
+                            Ma = "HT.Duyet",
+                            Module = "HT",
+                            Ten = "Duyet — Hệ thống"
+                        },
+                        new
+                        {
+                            Id = 7,
+                            Ma = "DM.Xem",
+                            Module = "DM",
+                            Ten = "Xem — Danh mục"
+                        },
+                        new
+                        {
+                            Id = 8,
+                            Ma = "DM.Them",
+                            Module = "DM",
+                            Ten = "Them — Danh mục"
+                        },
+                        new
+                        {
+                            Id = 9,
+                            Ma = "DM.Sua",
+                            Module = "DM",
+                            Ten = "Sua — Danh mục"
+                        },
+                        new
+                        {
+                            Id = 10,
+                            Ma = "DM.Huy",
+                            Module = "DM",
+                            Ten = "Huy — Danh mục"
+                        },
+                        new
+                        {
+                            Id = 11,
+                            Ma = "DM.In",
+                            Module = "DM",
+                            Ten = "In — Danh mục"
+                        },
+                        new
+                        {
+                            Id = 12,
+                            Ma = "DM.Duyet",
+                            Module = "DM",
+                            Ten = "Duyet — Danh mục"
+                        },
+                        new
+                        {
+                            Id = 13,
+                            Ma = "LK-T.Xem",
+                            Module = "LK-T",
+                            Ten = "Xem — Tăng tiền lưu ký"
+                        },
+                        new
+                        {
+                            Id = 14,
+                            Ma = "LK-T.Them",
+                            Module = "LK-T",
+                            Ten = "Them — Tăng tiền lưu ký"
+                        },
+                        new
+                        {
+                            Id = 15,
+                            Ma = "LK-T.Sua",
+                            Module = "LK-T",
+                            Ten = "Sua — Tăng tiền lưu ký"
+                        },
+                        new
+                        {
+                            Id = 16,
+                            Ma = "LK-T.Huy",
+                            Module = "LK-T",
+                            Ten = "Huy — Tăng tiền lưu ký"
+                        },
+                        new
+                        {
+                            Id = 17,
+                            Ma = "LK-T.In",
+                            Module = "LK-T",
+                            Ten = "In — Tăng tiền lưu ký"
+                        },
+                        new
+                        {
+                            Id = 18,
+                            Ma = "LK-T.Duyet",
+                            Module = "LK-T",
+                            Ten = "Duyet — Tăng tiền lưu ký"
+                        },
+                        new
+                        {
+                            Id = 19,
+                            Ma = "LK-C.Xem",
+                            Module = "LK-C",
+                            Ten = "Xem — Giảm tiền lưu ký"
+                        },
+                        new
+                        {
+                            Id = 20,
+                            Ma = "LK-C.Them",
+                            Module = "LK-C",
+                            Ten = "Them — Giảm tiền lưu ký"
+                        },
+                        new
+                        {
+                            Id = 21,
+                            Ma = "LK-C.Sua",
+                            Module = "LK-C",
+                            Ten = "Sua — Giảm tiền lưu ký"
+                        },
+                        new
+                        {
+                            Id = 22,
+                            Ma = "LK-C.Huy",
+                            Module = "LK-C",
+                            Ten = "Huy — Giảm tiền lưu ký"
+                        },
+                        new
+                        {
+                            Id = 23,
+                            Ma = "LK-C.In",
+                            Module = "LK-C",
+                            Ten = "In — Giảm tiền lưu ký"
+                        },
+                        new
+                        {
+                            Id = 24,
+                            Ma = "LK-C.Duyet",
+                            Module = "LK-C",
+                            Ten = "Duyet — Giảm tiền lưu ký"
+                        },
+                        new
+                        {
+                            Id = 25,
+                            Ma = "LK-BC.Xem",
+                            Module = "LK-BC",
+                            Ten = "Xem — Báo cáo lưu ký"
+                        },
+                        new
+                        {
+                            Id = 26,
+                            Ma = "LK-BC.Them",
+                            Module = "LK-BC",
+                            Ten = "Them — Báo cáo lưu ký"
+                        },
+                        new
+                        {
+                            Id = 27,
+                            Ma = "LK-BC.Sua",
+                            Module = "LK-BC",
+                            Ten = "Sua — Báo cáo lưu ký"
+                        },
+                        new
+                        {
+                            Id = 28,
+                            Ma = "LK-BC.Huy",
+                            Module = "LK-BC",
+                            Ten = "Huy — Báo cáo lưu ký"
+                        },
+                        new
+                        {
+                            Id = 29,
+                            Ma = "LK-BC.In",
+                            Module = "LK-BC",
+                            Ten = "In — Báo cáo lưu ký"
+                        },
+                        new
+                        {
+                            Id = 30,
+                            Ma = "LK-BC.Duyet",
+                            Module = "LK-BC",
+                            Ten = "Duyet — Báo cáo lưu ký"
+                        },
+                        new
+                        {
+                            Id = 31,
+                            Ma = "NH.Xem",
+                            Module = "NH",
+                            Ten = "Xem — Nhập hàng"
+                        },
+                        new
+                        {
+                            Id = 32,
+                            Ma = "NH.Them",
+                            Module = "NH",
+                            Ten = "Them — Nhập hàng"
+                        },
+                        new
+                        {
+                            Id = 33,
+                            Ma = "NH.Sua",
+                            Module = "NH",
+                            Ten = "Sua — Nhập hàng"
+                        },
+                        new
+                        {
+                            Id = 34,
+                            Ma = "NH.Huy",
+                            Module = "NH",
+                            Ten = "Huy — Nhập hàng"
+                        },
+                        new
+                        {
+                            Id = 35,
+                            Ma = "NH.In",
+                            Module = "NH",
+                            Ten = "In — Nhập hàng"
+                        },
+                        new
+                        {
+                            Id = 36,
+                            Ma = "NH.Duyet",
+                            Module = "NH",
+                            Ten = "Duyet — Nhập hàng"
+                        },
+                        new
+                        {
+                            Id = 37,
+                            Ma = "BH.Xem",
+                            Module = "BH",
+                            Ten = "Xem — Bán hàng"
+                        },
+                        new
+                        {
+                            Id = 38,
+                            Ma = "BH.Them",
+                            Module = "BH",
+                            Ten = "Them — Bán hàng"
+                        },
+                        new
+                        {
+                            Id = 39,
+                            Ma = "BH.Sua",
+                            Module = "BH",
+                            Ten = "Sua — Bán hàng"
+                        },
+                        new
+                        {
+                            Id = 40,
+                            Ma = "BH.Huy",
+                            Module = "BH",
+                            Ten = "Huy — Bán hàng"
+                        },
+                        new
+                        {
+                            Id = 41,
+                            Ma = "BH.In",
+                            Module = "BH",
+                            Ten = "In — Bán hàng"
+                        },
+                        new
+                        {
+                            Id = 42,
+                            Ma = "BH.Duyet",
+                            Module = "BH",
+                            Ten = "Duyet — Bán hàng"
+                        },
+                        new
+                        {
+                            Id = 43,
+                            Ma = "HH-BC.Xem",
+                            Module = "HH-BC",
+                            Ten = "Xem — Báo cáo hàng hóa"
+                        },
+                        new
+                        {
+                            Id = 44,
+                            Ma = "HH-BC.Them",
+                            Module = "HH-BC",
+                            Ten = "Them — Báo cáo hàng hóa"
+                        },
+                        new
+                        {
+                            Id = 45,
+                            Ma = "HH-BC.Sua",
+                            Module = "HH-BC",
+                            Ten = "Sua — Báo cáo hàng hóa"
+                        },
+                        new
+                        {
+                            Id = 46,
+                            Ma = "HH-BC.Huy",
+                            Module = "HH-BC",
+                            Ten = "Huy — Báo cáo hàng hóa"
+                        },
+                        new
+                        {
+                            Id = 47,
+                            Ma = "HH-BC.In",
+                            Module = "HH-BC",
+                            Ten = "In — Báo cáo hàng hóa"
+                        },
+                        new
+                        {
+                            Id = 48,
+                            Ma = "HH-BC.Duyet",
+                            Module = "HH-BC",
+                            Ten = "Duyet — Báo cáo hàng hóa"
                         });
                 });
 
@@ -386,6 +775,407 @@ namespace LuuKyCanTin.Infrastructure.Persistence.Migrations
                             NguoiTaoId = 0,
                             RowVer = new byte[0],
                             TenDonVi = ""
+                        });
+                });
+
+            modelBuilder.Entity("LuuKyCanTin.Domain.HeThong.VaiTro", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Ma")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(30)");
+
+                    b.Property<DateTime?>("NgaySua")
+                        .HasPrecision(0)
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<DateTime>("NgayTao")
+                        .HasPrecision(0)
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<int?>("NguoiSuaId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("NguoiTaoId")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVer")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("Ten")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .IsUnicode(true)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Ma")
+                        .IsUnique();
+
+                    b.ToTable("VaiTro", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Ma = "QUAN_TRI",
+                            NgayTao = new DateTime(2026, 10, 2, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            NguoiTaoId = 0,
+                            RowVer = new byte[0],
+                            Ten = "Quản trị hệ thống"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Ma = "LUU_KY",
+                            NgayTao = new DateTime(2026, 10, 2, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            NguoiTaoId = 0,
+                            RowVer = new byte[0],
+                            Ten = "Cán bộ theo dõi tiền lưu ký"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Ma = "CAN_TIN",
+                            NgayTao = new DateTime(2026, 10, 2, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            NguoiTaoId = 0,
+                            RowVer = new byte[0],
+                            Ten = "Cán bộ căn tin / bán hàng"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Ma = "QUAN_GIAO",
+                            NgayTao = new DateTime(2026, 10, 2, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            NguoiTaoId = 0,
+                            RowVer = new byte[0],
+                            Ten = "Cán bộ quản giáo"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Ma = "LANH_DAO",
+                            NgayTao = new DateTime(2026, 10, 2, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            NguoiTaoId = 0,
+                            RowVer = new byte[0],
+                            Ten = "Chỉ huy phụ trách / Lãnh đạo đơn vị"
+                        },
+                        new
+                        {
+                            Id = 6,
+                            Ma = "KE_TOAN",
+                            NgayTao = new DateTime(2026, 10, 2, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            NguoiTaoId = 0,
+                            RowVer = new byte[0],
+                            Ten = "Kế toán đơn vị"
+                        });
+                });
+
+            modelBuilder.Entity("LuuKyCanTin.Domain.HeThong.VaiTroQuyen", b =>
+                {
+                    b.Property<int>("VaiTroId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("QuyenId")
+                        .HasColumnType("int");
+
+                    b.HasKey("VaiTroId", "QuyenId");
+
+                    b.HasIndex("QuyenId");
+
+                    b.ToTable("VaiTroQuyen", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            VaiTroId = 1,
+                            QuyenId = 1
+                        },
+                        new
+                        {
+                            VaiTroId = 1,
+                            QuyenId = 2
+                        },
+                        new
+                        {
+                            VaiTroId = 1,
+                            QuyenId = 3
+                        },
+                        new
+                        {
+                            VaiTroId = 1,
+                            QuyenId = 4
+                        },
+                        new
+                        {
+                            VaiTroId = 1,
+                            QuyenId = 5
+                        },
+                        new
+                        {
+                            VaiTroId = 1,
+                            QuyenId = 6
+                        },
+                        new
+                        {
+                            VaiTroId = 1,
+                            QuyenId = 7
+                        },
+                        new
+                        {
+                            VaiTroId = 1,
+                            QuyenId = 8
+                        },
+                        new
+                        {
+                            VaiTroId = 1,
+                            QuyenId = 9
+                        },
+                        new
+                        {
+                            VaiTroId = 1,
+                            QuyenId = 10
+                        },
+                        new
+                        {
+                            VaiTroId = 1,
+                            QuyenId = 11
+                        },
+                        new
+                        {
+                            VaiTroId = 1,
+                            QuyenId = 12
+                        },
+                        new
+                        {
+                            VaiTroId = 2,
+                            QuyenId = 13
+                        },
+                        new
+                        {
+                            VaiTroId = 2,
+                            QuyenId = 14
+                        },
+                        new
+                        {
+                            VaiTroId = 2,
+                            QuyenId = 15
+                        },
+                        new
+                        {
+                            VaiTroId = 2,
+                            QuyenId = 16
+                        },
+                        new
+                        {
+                            VaiTroId = 2,
+                            QuyenId = 17
+                        },
+                        new
+                        {
+                            VaiTroId = 2,
+                            QuyenId = 19
+                        },
+                        new
+                        {
+                            VaiTroId = 2,
+                            QuyenId = 20
+                        },
+                        new
+                        {
+                            VaiTroId = 2,
+                            QuyenId = 21
+                        },
+                        new
+                        {
+                            VaiTroId = 2,
+                            QuyenId = 22
+                        },
+                        new
+                        {
+                            VaiTroId = 2,
+                            QuyenId = 23
+                        },
+                        new
+                        {
+                            VaiTroId = 2,
+                            QuyenId = 25
+                        },
+                        new
+                        {
+                            VaiTroId = 2,
+                            QuyenId = 26
+                        },
+                        new
+                        {
+                            VaiTroId = 2,
+                            QuyenId = 27
+                        },
+                        new
+                        {
+                            VaiTroId = 2,
+                            QuyenId = 28
+                        },
+                        new
+                        {
+                            VaiTroId = 2,
+                            QuyenId = 29
+                        },
+                        new
+                        {
+                            VaiTroId = 2,
+                            QuyenId = 7
+                        },
+                        new
+                        {
+                            VaiTroId = 3,
+                            QuyenId = 31
+                        },
+                        new
+                        {
+                            VaiTroId = 3,
+                            QuyenId = 32
+                        },
+                        new
+                        {
+                            VaiTroId = 3,
+                            QuyenId = 33
+                        },
+                        new
+                        {
+                            VaiTroId = 3,
+                            QuyenId = 34
+                        },
+                        new
+                        {
+                            VaiTroId = 3,
+                            QuyenId = 35
+                        },
+                        new
+                        {
+                            VaiTroId = 3,
+                            QuyenId = 36
+                        },
+                        new
+                        {
+                            VaiTroId = 3,
+                            QuyenId = 37
+                        },
+                        new
+                        {
+                            VaiTroId = 3,
+                            QuyenId = 38
+                        },
+                        new
+                        {
+                            VaiTroId = 3,
+                            QuyenId = 39
+                        },
+                        new
+                        {
+                            VaiTroId = 3,
+                            QuyenId = 40
+                        },
+                        new
+                        {
+                            VaiTroId = 3,
+                            QuyenId = 41
+                        },
+                        new
+                        {
+                            VaiTroId = 3,
+                            QuyenId = 42
+                        },
+                        new
+                        {
+                            VaiTroId = 3,
+                            QuyenId = 43
+                        },
+                        new
+                        {
+                            VaiTroId = 3,
+                            QuyenId = 44
+                        },
+                        new
+                        {
+                            VaiTroId = 3,
+                            QuyenId = 45
+                        },
+                        new
+                        {
+                            VaiTroId = 3,
+                            QuyenId = 46
+                        },
+                        new
+                        {
+                            VaiTroId = 3,
+                            QuyenId = 47
+                        },
+                        new
+                        {
+                            VaiTroId = 3,
+                            QuyenId = 48
+                        },
+                        new
+                        {
+                            VaiTroId = 3,
+                            QuyenId = 25
+                        },
+                        new
+                        {
+                            VaiTroId = 4,
+                            QuyenId = 25
+                        },
+                        new
+                        {
+                            VaiTroId = 5,
+                            QuyenId = 18
+                        },
+                        new
+                        {
+                            VaiTroId = 5,
+                            QuyenId = 24
+                        },
+                        new
+                        {
+                            VaiTroId = 5,
+                            QuyenId = 36
+                        },
+                        new
+                        {
+                            VaiTroId = 5,
+                            QuyenId = 25
+                        },
+                        new
+                        {
+                            VaiTroId = 5,
+                            QuyenId = 43
+                        },
+                        new
+                        {
+                            VaiTroId = 5,
+                            QuyenId = 1
+                        },
+                        new
+                        {
+                            VaiTroId = 6,
+                            QuyenId = 25
+                        },
+                        new
+                        {
+                            VaiTroId = 6,
+                            QuyenId = 43
                         });
                 });
 
@@ -545,6 +1335,36 @@ namespace LuuKyCanTin.Infrastructure.Persistence.Migrations
 
                             t.HasCheckConstraint("CK_ChungTuLuuKy_TrangThai", "[TrangThai] IN (1, 2, 3)");
                         });
+                });
+
+            modelBuilder.Entity("LuuKyCanTin.Domain.HeThong.NguoiDungVaiTro", b =>
+                {
+                    b.HasOne("LuuKyCanTin.Domain.HeThong.NguoiDung", null)
+                        .WithMany()
+                        .HasForeignKey("NguoiDungId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("LuuKyCanTin.Domain.HeThong.VaiTro", null)
+                        .WithMany()
+                        .HasForeignKey("VaiTroId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("LuuKyCanTin.Domain.HeThong.VaiTroQuyen", b =>
+                {
+                    b.HasOne("LuuKyCanTin.Domain.HeThong.Quyen", null)
+                        .WithMany()
+                        .HasForeignKey("QuyenId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("LuuKyCanTin.Domain.HeThong.VaiTro", null)
+                        .WithMany()
+                        .HasForeignKey("VaiTroId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("LuuKyCanTin.Domain.LuuKy.ChungTuLuuKy", b =>

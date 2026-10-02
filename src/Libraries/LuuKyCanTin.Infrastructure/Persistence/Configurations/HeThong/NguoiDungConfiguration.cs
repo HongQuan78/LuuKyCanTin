@@ -20,6 +20,7 @@ internal sealed class NguoiDungConfiguration : AuditableEntityConfiguration<Nguo
         // The sentinel is the default itself, so a true value lets the database default apply and an explicit
         // false is still written (without it EF would treat false as "unset" only if it were the sentinel).
         builder.Property(e => e.DangHoatDong).HasDefaultValue(true).HasSentinel(true);
+        builder.Property(e => e.PhaiDoiMatKhau).HasDefaultValue(false);
         builder.Property(e => e.SoLanSai).HasDefaultValue((byte)0);
         builder.Property(e => e.KhoaDen).HasColumnType("datetime2(0)");
     }

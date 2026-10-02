@@ -101,18 +101,10 @@ internal static class Program
         if (!SchemaVersionIsCurrent(host.Services))
             return 1;
 
-        // Sign-in first; the shell opens only on success (full login rules are Epic 2).
-        using (var loginForm = host.Services.GetRequiredService<LoginForm>())
-        {
-            ActivatorUtilities.CreateInstance<LoginPresenter>(host.Services, loginForm);
-            if (loginForm.ShowDialog() != DialogResult.OK)
-                return 0;
-        }
-
-        var mainForm = host.Services.GetRequiredService<MainForm>();
-        // The presenter stays alive through its subscription to the form's events.
-        ActivatorUtilities.CreateInstance<MainPresenter>(host.Services, mainForm);
-        WinFormsApp.Run(mainForm);
+        // Sign-in and sign-out loop without restarting: the context swaps login and shell as the user signs out.
+        var context = new ShellApplicationContext(host.Services);
+        context.BatDau();
+        WinFormsApp.Run(context);
         return 0;
     }
 

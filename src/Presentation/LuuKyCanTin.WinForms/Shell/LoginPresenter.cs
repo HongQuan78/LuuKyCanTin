@@ -3,7 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace LuuKyCanTin.WinForms.Shell;
 
-/// <summary>Thin sign-in for the skeleton; the full rules (lockout, forced change) are Epic 2.</summary>
+/// <summary>Sign-in with lockout and the forced first change (FR1). The shell opens only on a successful result.</summary>
 public sealed class LoginPresenter
 {
     private readonly ILoginView _view;
@@ -27,6 +27,9 @@ public sealed class LoginPresenter
         };
     }
 
+    /// <summary>Set after a successful sign-in; true when the shell must wait for a password change.</summary>
+    public bool PhaiDoiMatKhau { get; private set; }
+
     public async Task DangNhapAsync()
     {
         await using var scope = _scopeFactory.CreateAsyncScope();
@@ -34,8 +37,14 @@ public sealed class LoginPresenter
 
         var ketQua = await dangNhap.DangNhapAsync(_view.TenDangNhap, _view.MatKhau);
         if (ketQua.ThanhCong)
+        {
+            PhaiDoiMatKhau = ketQua.PhaiDoiMatKhau;
             _view.DongVoiKetQua(true);
-        else
-            _view.HienLoi(ketQua.ThongBao ?? DangNhapService.SaiThongTin);
+            return;
+        }
+
+        _view.HienLoi(ketQua.ThongBao ?? DangNhapService.SaiThongTin);
+        if (ketQua.TrangThai == TrangThaiDangNhap.TaiKhoanBiKhoa)
+            _view.XoaMatKhau();
     }
 }

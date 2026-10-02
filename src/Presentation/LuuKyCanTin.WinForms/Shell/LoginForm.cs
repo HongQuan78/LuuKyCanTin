@@ -20,6 +20,12 @@ public partial class LoginForm : Form, ILoginView
         txtMatKhau.Focus();
     }
 
+    public void XoaMatKhau()
+    {
+        txtMatKhau.Clear();
+        txtMatKhau.Focus();
+    }
+
     public void DongVoiKetQua(bool thanhCong)
     {
         DialogResult = thanhCong ? DialogResult.OK : DialogResult.Cancel;

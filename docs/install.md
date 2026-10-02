@@ -26,8 +26,26 @@ LuuKyCanTin.WinForms.exe --migrate --seed-demo --environment Development
 | `admin` | `LuuKy@2026` |
 
 - Mật khẩu được băm bằng PBKDF2-SHA256 (600.000 vòng, salt ngẫu nhiên 16 byte); không lưu dạng rõ.
-- **Chưa có cách đổi mật khẩu.** Chức năng bắt buộc đổi ở lần đăng nhập đầu tiên và màn hình quản trị tài khoản chỉ có ở Epic 2 (FR1); ở bản walking skeleton này không có công cụ đổi mật khẩu nào. Vì vậy chỉ dùng tài khoản này ngoài môi trường phát triển khi đã chấp nhận rủi ro, hoặc sửa hash bằng tay trong cơ sở dữ liệu qua quản trị viên.
+- Ở lần đăng nhập đầu tiên, hệ thống **bắt buộc đổi mật khẩu** (`PhaiDoiMatKhau = 1` trong migration `AddDangNhapBaoMat`). Sau khi đổi, mật khẩu mới phải có ít nhất 8 ký tự, gồm chữ in hoa, chữ thường và chữ số.
 - Hash khởi tạo nằm trong migration `AddWalkingSkeletonTables` (một chuỗi cố định, sinh một lần ngoại tuyến bằng `Pbkdf2MatKhauHasher` trong Infrastructure).
+
+## Đăng nhập, khoá tài khoản và phân quyền
+
+- Sai mật khẩu 5 lần liên tiếp thì tài khoản bị khoá. Thời gian khoá đọc từ `appsettings.json`:
+  `"DangNhap": { "ThoiGianKhoaPhut": 15 }`. Giá trị `0` nghĩa là chỉ quản trị viên mở khoá (Story 2.4).
+  Vì các máy trạm dùng chung một cơ sở dữ liệu, **mọi máy phải cấu hình cùng một giá trị**.
+- `--seed-demo` tạo thêm một tài khoản cho mỗi vai trò chuẩn (mật khẩu chung `Demo@2026`, không buộc đổi):
+
+  | Tên đăng nhập | Vai trò |
+  |---|---|
+  | `luuky` | Cán bộ theo dõi tiền lưu ký |
+  | `cantin` | Cán bộ căn tin / bán hàng |
+  | `quangiao` | Cán bộ quản giáo |
+  | `lanhdao` | Chỉ huy phụ trách / Lãnh đạo đơn vị |
+  | `ketoan` | Kế toán đơn vị |
+
+- Màn hình **Hệ thống › Vai trò** cho phép quản trị viên bật/tắt quyền của từng vai trò; thay đổi được ghi vào nhật ký kèm danh sách quyền trước/sau.
+
 
 ## Điều kiện máy trạm
 

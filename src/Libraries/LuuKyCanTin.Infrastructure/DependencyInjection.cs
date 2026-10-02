@@ -30,6 +30,7 @@ public static class DependencyInjection
                 + "in the .env file next to the exe (see .env.example) or as an environment variable.");
 
         services.AddSingleton<IClock, SystemClock>();
+        services.AddSingleton(LayDangNhapOptions(configuration));
         services.AddSingleton<CurrentUserSession>();
         services.AddSingleton<ICurrentUser>(sp => sp.GetRequiredService<CurrentUserSession>());
         services.AddSingleton<ICurrentUserSession>(sp => sp.GetRequiredService<CurrentUserSession>());
@@ -48,6 +49,7 @@ public static class DependencyInjection
         services.AddScoped<IDemoDataSeeder, DemoDataSeeder>();
 
         services.AddScoped<INguoiDungStore, NguoiDungStore>();
+        services.AddScoped<IKiemTraQuyen, KiemTraQuyen>();
         services.AddScoped<IThongTinDonViStore, ThongTinDonViStore>();
         services.AddScoped<IDoiTuongStore, DoiTuongStore>();
         services.AddScoped<IChungTuLuuKyStore, ChungTuLuuKyStore>();
@@ -59,5 +61,15 @@ public static class DependencyInjection
         services.AddScoped<IReportTemplate<BienNhanThuModel>, BienNhanThuReport>();
 
         return services;
+    }
+
+    // Bound by hand: Infrastructure has IConfiguration but not the Binder package, and one int needs no binder.
+    private static DangNhapOptions LayDangNhapOptions(IConfiguration configuration)
+    {
+        var options = new DangNhapOptions();
+        if (int.TryParse(configuration[$"{DangNhapOptions.SectionName}:{nameof(DangNhapOptions.ThoiGianKhoaPhut)}"], out var phut))
+            options.ThoiGianKhoaPhut = phut;
+
+        return options;
     }
 }
