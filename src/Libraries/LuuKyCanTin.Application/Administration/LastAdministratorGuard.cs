@@ -13,7 +13,7 @@ namespace LuuKyCanTin.Application.Administration;
 public sealed class LastAdministratorGuard(IAppDbContext db, IUserStore userStore)
 {
     public const string LastAdministratorRequiredMessage =
-        "Không thể thực hiện: hệ thống phải còn ít nhất một tài khoản quản trị đang hoạt động";
+        "Không thể thực hiện: hệ thống phải còn ít nhất một tài khoản quản trị đang hoạt động.";
 
     /// <summary>An account and its role ids as the guard reads them before a change.</summary>
     public sealed record AccountState(int UserId, bool IsActive, IReadOnlyCollection<int> RoleIds);

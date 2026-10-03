@@ -1,3 +1,4 @@
+using LuuKyCanTin.Application;
 using LuuKyCanTin.Application.Abstractions;
 using LuuKyCanTin.Application.Administration;
 using LuuKyCanTin.Infrastructure;
@@ -24,12 +25,15 @@ public sealed class InfrastructureRegistrationTests
         return (builder.DataSource, builder.InitialCatalog);
     }
 
-    private static ServiceProvider CreateProvider(string? connectionString)
+    private static ServiceProvider CreateProvider(string? connectionString, bool includeApplication = false)
     {
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?> { ["ConnectionStrings:LuuKyCanTin"] = connectionString })
             .Build();
-        return new ServiceCollection().AddLogging().AddInfrastructure(configuration).BuildServiceProvider(validateScopes: true);
+        var services = new ServiceCollection().AddLogging();
+        if (includeApplication)
+            services.AddApplication();
+        return services.AddInfrastructure(configuration).BuildServiceProvider(validateScopes: true);
     }
 
     [Fact]
@@ -56,6 +60,17 @@ public sealed class InfrastructureRegistrationTests
     public void AddInfrastructure_DatabaseService_IsResolvable(Type service)
     {
         using var provider = CreateProvider(ConnectionString);
+        using var scope = provider.CreateScope();
+
+        scope.ServiceProvider.GetService(service).ShouldNotBeNull();
+    }
+
+    [Theory]
+    [InlineData(typeof(IAccountService))]
+    [InlineData(typeof(LastAdministratorGuard))]
+    public void AddApplicationAndInfrastructure_AccountServices_AreResolvable(Type service)
+    {
+        using var provider = CreateProvider(ConnectionString, includeApplication: true);
         using var scope = provider.CreateScope();
 
         scope.ServiceProvider.GetService(service).ShouldNotBeNull();

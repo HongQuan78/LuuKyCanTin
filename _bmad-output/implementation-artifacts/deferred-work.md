@@ -49,3 +49,10 @@
 - source_spec: `_bmad-output/implementation-artifacts/stories/epic-01/1-3-iclock-audit-log-interceptor.md`
   summary: `ExecuteUpdate`/`ExecuteDelete` on `NhatKyThaoTac` bypass the `SaveChanges` append-only guard, although AC 4 says "through EF".
   evidence: Accepted by a review decision until Epic 7 applies `DENY UPDATE, DELETE` on the table. No code calls them on the log today. Close this item when the DENY lands.
+
+- source_spec: `_bmad-output/implementation-artifacts/stories/epic-02/2-4-user-accounts-role-assignment.md`
+  summary: The new 2.4 terms (TemporaryPassword, LastAdministratorGuard, TransactionIsolation, AccountRow) are not in the naming-conventions glossary.
+  evidence: The convention requires new domain terms to be added in the same change; the review workflow defers findings whose fix edits a rules file.
+- source_spec: `_bmad-output/implementation-artifacts/stories/epic-02/2-4-user-accounts-role-assignment.md`
+  summary: The UniqueConstraintException to BusinessRuleException mapping in AccountService.CreateAsync and ReactivateAsync has no deterministic test.
+  evidence: Forcing the database, rather than the service pre-check, to reject needs a timing-dependent concurrent create; the filtered index itself is covered by a raw-context test. A deterministic two-session harness would settle it.

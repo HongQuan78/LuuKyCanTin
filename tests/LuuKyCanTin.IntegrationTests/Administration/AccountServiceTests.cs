@@ -1,3 +1,4 @@
+using System.Data;
 using LuuKyCanTin.Application.Abstractions;
 using LuuKyCanTin.Application.Administration;
 using LuuKyCanTin.Application.Common;
@@ -7,6 +8,7 @@ using LuuKyCanTin.Infrastructure.Administration;
 using LuuKyCanTin.Infrastructure.Persistence;
 using LuuKyCanTin.IntegrationTests.Common;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Shouldly;
 
 namespace LuuKyCanTin.IntegrationTests.Administration;
@@ -469,6 +471,140 @@ public sealed class AccountServiceTests : IClassFixture<AppDatabaseFixture>, IAs
     }
 
     [SqlServerFact]
+    public async Task UpdateRoles_EmptyRoleSet_IsRejected()
+    {
+        await SignInAsync("admin");
+        var officer = await CreateOfficerAsync();
+        var custodyRoleId = await GetRoleIdAsync(RoleCodes.CustodyOfficer);
+
+        int userId;
+        await using (var db = NewContext())
+            userId = (await CreateService(db).CreateAsync(new CreateAccountRequest(NewUserName(), officer.Id, [custodyRoleId]))).UserId;
+
+        await using (var db = NewContext())
+        {
+            var error = await Should.ThrowAsync<BusinessRuleException>(
+                () => CreateService(db).UpdateRolesAsync(userId, []));
+            error.Message.ShouldBe(AccountService.InvalidRoleMessage);
+        }
+
+        (await GetUserRoleCodesAsync(userId)).ShouldBe([RoleCodes.CustodyOfficer]);
+        _fixture.User.SignOut();
+    }
+
+    [SqlServerFact]
+    public async Task UpdateRoles_GuardedWrite_RunsInASerializableTransaction()
+    {
+        await SignInAsync("admin");
+        var officer = await CreateOfficerAsync();
+        var custodyRoleId = await GetRoleIdAsync(RoleCodes.CustodyOfficer);
+        var accountantRoleId = await GetRoleIdAsync(RoleCodes.Accountant);
+
+        int userId;
+        await using (var db = NewContext())
+            userId = (await CreateService(db).CreateAsync(new CreateAccountRequest(NewUserName(), officer.Id, [custodyRoleId]))).UserId;
+
+        await using (var db = NewContext())
+        {
+            var userStore = new UserStore(db);
+            var probe = new TransactionProbeAuditLogWriter(
+                db, new AuditLogWriter(db, new AuditLogFactory(_fixture.Clock, _fixture.User)));
+            var service = new AccountService(
+                db, userStore, new PermissionChecker(db, _fixture.User), probe, _hasher,
+                _fixture.Clock, _fixture.User, new CreateAccountRequestValidator(), new LastAdministratorGuard(db, userStore));
+
+            await service.UpdateRolesAsync(userId, [accountantRoleId]);
+
+            probe.ObservedIsolationLevel.ShouldBe(IsolationLevel.Serializable);
+        }
+
+        _fixture.User.SignOut();
+    }
+
+    [SqlServerFact]
+    public async Task Reactivate_Success_IsActive()
+    {
+        await SignInAsync("admin");
+        var officer = await CreateOfficerAsync();
+        var custodyRoleId = await GetRoleIdAsync(RoleCodes.CustodyOfficer);
+
+        int userId;
+        await using (var db = NewContext())
+            userId = (await CreateService(db).CreateAsync(new CreateAccountRequest(NewUserName(), officer.Id, [custodyRoleId]))).UserId;
+        await SetActiveAsync(userId, false);
+
+        await using (var db = NewContext())
+            await CreateService(db).ReactivateAsync(userId);
+
+        (await ReadUserAsync(userId)).IsActive.ShouldBeTrue();
+        _fixture.User.SignOut();
+    }
+
+    [SqlServerFact]
+    public async Task Create_InvalidOfficer_IsRejected()
+    {
+        await SignInAsync("admin");
+        var custodyRoleId = await GetRoleIdAsync(RoleCodes.CustodyOfficer);
+
+        await using var db = NewContext();
+        var error = await Should.ThrowAsync<BusinessRuleException>(
+            () => CreateService(db).CreateAsync(new CreateAccountRequest(NewUserName(), int.MaxValue, [custodyRoleId])));
+
+        error.Message.ShouldBe(AccountService.InvalidOfficerMessage);
+        _fixture.User.SignOut();
+    }
+
+    [SqlServerFact]
+    public async Task Create_InvalidRole_IsRejected()
+    {
+        await SignInAsync("admin");
+        var officer = await CreateOfficerAsync();
+
+        await using var db = NewContext();
+        var error = await Should.ThrowAsync<BusinessRuleException>(
+            () => CreateService(db).CreateAsync(new CreateAccountRequest(NewUserName(), officer.Id, [int.MaxValue])));
+
+        error.Message.ShouldBe(AccountService.InvalidRoleMessage);
+        _fixture.User.SignOut();
+    }
+
+    [SqlServerFact]
+    public async Task UnlockOrReset_UnknownAccount_IsRejected()
+    {
+        await SignInAsync("admin");
+        await using var db = NewContext();
+        var service = CreateService(db);
+
+        var unlockError = await Should.ThrowAsync<BusinessRuleException>(() => service.UnlockAsync(int.MaxValue));
+        unlockError.Message.ShouldBe(AccountService.AccountNotFoundMessage);
+
+        var resetError = await Should.ThrowAsync<BusinessRuleException>(() => service.ResetPasswordAsync(int.MaxValue));
+        resetError.Message.ShouldBe(AccountService.AccountNotFoundMessage);
+        _fixture.User.SignOut();
+    }
+
+    [SqlServerFact]
+    public async Task GetOfficersForAccountCreation_ExcludesInactiveOfficers()
+    {
+        await SignInAsync("admin");
+        var activeOfficer = await CreateOfficerAsync();
+        var inactiveOfficer = await CreateOfficerAsync();
+        await using (var officerDb = _fixture.Database.CreateDbContext())
+        {
+            var officer = await officerDb.Officer.SingleAsync(o => o.Id == inactiveOfficer.Id);
+            officer.IsActive = false;
+            await officerDb.SaveChangesAsync();
+        }
+
+        await using var db = NewContext();
+        var officers = await CreateService(db).GetOfficersForAccountCreationAsync();
+
+        officers.ShouldContain(o => o.Id == activeOfficer.Id);
+        officers.ShouldNotContain(o => o.Id == inactiveOfficer.Id);
+        _fixture.User.SignOut();
+    }
+
+    [SqlServerFact]
     public async Task UpdateRoles_RemovingTheAdminRoleFromTheOnlyAdministrator_IsRejected()
     {
         // A database of its own: the seeded admin is then the only administrator, deterministically.
@@ -568,5 +704,28 @@ public sealed class AccountServiceTests : IClassFixture<AppDatabaseFixture>, IAs
         (await CountUsersAsync()).ShouldBe(usersBefore);
         (await CountAuditLogsAsync()).ShouldBe(auditLogsBefore);
         _fixture.User.SignOut();
+    }
+
+    /// <summary>An audit writer that records the isolation level of the transaction it is called inside.</summary>
+    private sealed class TransactionProbeAuditLogWriter(AppDbContext db, IAuditLogWriter inner) : IAuditLogWriter
+    {
+        public IsolationLevel? ObservedIsolationLevel { get; private set; }
+
+        public Task WriteAsync(
+            AuditAction action, string? tableName, long? recordId, object? newValues = null, CancellationToken ct = default)
+        {
+            Capture();
+            return inner.WriteAsync(action, tableName, recordId, newValues, ct);
+        }
+
+        public Task WriteAsync(
+            AuditAction action, string? tableName, long? recordId, object? oldValues, object? newValues, CancellationToken ct = default)
+        {
+            Capture();
+            return inner.WriteAsync(action, tableName, recordId, oldValues, newValues, ct);
+        }
+
+        private void Capture() =>
+            ObservedIsolationLevel = db.Database.CurrentTransaction?.GetDbTransaction().IsolationLevel;
     }
 }

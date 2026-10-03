@@ -6,11 +6,17 @@ namespace LuuKyCanTin.WinForms.Administration;
 
 public partial class CreateAccountForm : Form, ICreateAccountView
 {
+    private readonly FieldErrorDisplay<CreateAccountField> _fieldErrors = new();
+
     public CreateAccountForm()
     {
         InitializeComponent();
+        _fieldErrors.Add(CreateAccountField.UserName, frmUserName, errUserName);
+        _fieldErrors.Add(CreateAccountField.Officer, frmOfficer, errOfficer);
         btnSave.Click += (_, _) =>
         {
+            // The new attempt replaces the old messages; the presenter shows whatever is still wrong.
+            _fieldErrors.ClearAll();
             bnrError.Message = "";
             CreateClicked?.Invoke(this, EventArgs.Empty);
         };
@@ -43,6 +49,8 @@ public partial class CreateAccountForm : Form, ICreateAccountView
     }
 
     public bool ShowModal() => ShowDialog() == DialogResult.OK;
+
+    public void ShowFieldErrors(IReadOnlyList<FieldMessage<CreateAccountField>> errors) => _fieldErrors.Show(errors);
 
     public void ShowError(string message) => bnrError.Message = message;
 

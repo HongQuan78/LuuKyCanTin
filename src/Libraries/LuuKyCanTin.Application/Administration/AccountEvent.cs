@@ -9,4 +9,7 @@ public static class AccountEvent
     /// Vietnamese.
     /// </summary>
     public const string ResetPassword = "DatLaiMatKhau";
+
+    /// <summary>An unlock that changed no column still gets a row naming the action.</summary>
+    public const string Unlock = "MoKhoa";
 }

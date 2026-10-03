@@ -7,6 +7,8 @@ public sealed class CreateAccountRequestValidator : AbstractValidator<CreateAcco
 {
     public const int MinUserNameLength = 3;
     public const int MaxUserNameLength = 50;
+    public const string OfficerRequiredMessage = "Phải chọn cán bộ.";
+    public const string RoleRequiredMessage = "Phải chọn ít nhất một vai trò.";
 
     public CreateAccountRequestValidator()
     {
@@ -23,10 +25,10 @@ public sealed class CreateAccountRequestValidator : AbstractValidator<CreateAcco
 
         RuleFor(r => r.OfficerId)
             .GreaterThan(0)
-            .WithMessage("Phải chọn cán bộ.");
+            .WithMessage(OfficerRequiredMessage);
 
         RuleFor(r => r.RoleIds)
             .NotEmpty()
-            .WithMessage("Phải chọn ít nhất một vai trò.");
+            .WithMessage(RoleRequiredMessage);
     }
 }

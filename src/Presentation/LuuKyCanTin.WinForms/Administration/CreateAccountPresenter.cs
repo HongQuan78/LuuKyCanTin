@@ -1,6 +1,7 @@
 using LuuKyCanTin.Application.Administration;
 using LuuKyCanTin.Application.Common;
 using LuuKyCanTin.Domain.Administration;
+using LuuKyCanTin.WinForms.Common;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace LuuKyCanTin.WinForms.Administration;
@@ -21,6 +22,13 @@ public sealed class CreateAccountPresenter
         _view.CreateClicked += OnCreateClicked;
     }
 
+    private static CreateAccountField? ToField(string propertyName) => propertyName switch
+    {
+        nameof(CreateAccountRequest.UserName) => CreateAccountField.UserName,
+        nameof(CreateAccountRequest.OfficerId) => CreateAccountField.Officer,
+        _ => null,
+    };
+
     private async Task LoadListsAsync()
     {
         using var scope = _scopes.CreateScope();
@@ -33,18 +41,27 @@ public sealed class CreateAccountPresenter
     private async void OnCreateClicked(object? sender, EventArgs e)
     {
         // A second click while the first save is still running would create the account twice.
-        if (_isSaving || _view.OfficerId is not { } officerId)
+        if (_isSaving)
             return;
 
         _isSaving = true;
         try
         {
-            var request = new CreateAccountRequest(_view.UserName, officerId, _view.SelectedRoleIds);
+            // No officer selected still goes to the service, so its validator produces the message under the field.
+            var request = new CreateAccountRequest(_view.UserName, _view.OfficerId ?? 0, _view.SelectedRoleIds);
             using var scope = _scopes.CreateScope();
             var result = await scope.ServiceProvider.GetRequiredService<IAccountService>().CreateAsync(request);
             // The temporary password is shown once, then only its hash exists.
             _showTemporaryPassword(result.TemporaryPassword);
             _view.CloseAsSaved();
+        }
+        catch (RequestValidationException ex)
+        {
+            var (fieldErrors, otherMessages) = FieldMessages.Split(ex.Errors, ToField);
+            if (fieldErrors.Count > 0)
+                _view.ShowFieldErrors(fieldErrors);
+            if (otherMessages.Count > 0)
+                _view.ShowError(string.Join('\n', otherMessages));
         }
         catch (BusinessRuleException ex)
         {

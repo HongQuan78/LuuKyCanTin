@@ -55,7 +55,11 @@ internal sealed class Navigator(IServiceScopeFactory scopes, IContentHost host) 
             scopes,
             () => new CreateAccountForm(),
             () => new AccountRolesForm(),
-            temporaryPassword => new TemporaryPasswordForm(temporaryPassword).ShowDialog(host));
+            temporaryPassword =>
+            {
+                using var form = new TemporaryPasswordForm(temporaryPassword);
+                form.ShowDialog(host);
+            });
         return page;
     });
 

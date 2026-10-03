@@ -45,7 +45,7 @@ public class UserModelTests
     [Fact]
     public void OnlyTheBuiltInAdmin_MayHaveNoOfficerRecord()
     {
-        var check = User.GetCheckConstraints().ShouldHaveSingleItem();
+        var check = User.GetCheckConstraints().Single(c => c.ModelName == "CK_User_OfficerId");
 
         check.Sql.ShouldBe("[OfficerId] IS NOT NULL OR [UserName] = 'admin'");
     }

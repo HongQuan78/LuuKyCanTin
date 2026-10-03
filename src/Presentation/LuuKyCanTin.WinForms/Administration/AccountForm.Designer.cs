@@ -115,7 +115,7 @@ partial class AccountForm
         btnResetPassword.Margin = new Padding(0, 0, AppTheme.GapSmall, 0);
         btnResetPassword.Name = "btnResetPassword";
         btnResetPassword.TabIndex = 3;
-        btnResetPassword.Text = "Đặt lại &mật khẩu";
+        btnResetPassword.Text = "Đặt &lại mật khẩu";
         AppTheme.StyleSecondary(btnResetPassword);
         AppTheme.SetGlyph(btnResetPassword, Glyphs.Refresh);
 

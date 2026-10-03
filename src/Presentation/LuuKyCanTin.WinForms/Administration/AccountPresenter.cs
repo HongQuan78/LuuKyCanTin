@@ -103,8 +103,9 @@ public sealed class AccountPresenter
             using var scope = _scopes.CreateScope();
             var temporaryPassword = await scope.ServiceProvider.GetRequiredService<IAccountService>()
                 .ResetPasswordAsync(account.Id);
-            await ReloadAsync();
+            // The password is committed already; show it before the reload, so a reload failure loses nothing.
             _showTemporaryPassword(temporaryPassword);
+            await ReloadAsync();
             _view.ShowMessage("Đã đặt lại mật khẩu.");
         }
         catch (BusinessRuleException ex)

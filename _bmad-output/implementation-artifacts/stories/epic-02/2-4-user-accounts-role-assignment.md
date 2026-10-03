@@ -2,7 +2,7 @@
 story: "2.4"
 epic: 2
 title: User accounts linked to staff and role assignment
-status: in-progress
+status: done
 size: M
 backlogItems: [HT-02, NEN-09]
 frsCovered: [FR2]
@@ -13,7 +13,7 @@ baseline_commit: f286d3112a7b2ce40182e77ee0f236d3d3bfbec8
 
 # Story 2.4: User accounts linked to staff and role assignment
 
-Status: in-progress
+Status: done
 
 ## Story
 
@@ -197,6 +197,34 @@ values.
 - `tests/LuuKyCanTin.WinForms.UnitTests/Administration/{AccountPresenterTests,CreateAccountPresenterTests,AccountRolesPresenterTests}.cs` (new)
 - `tests/LuuKyCanTin.WinForms.UnitTests/Shell/{ShellNavigationTests,MainPresenterTests}.cs` (modified)
 - `docs/install.md`, `_bmad-output/implementation-artifacts/deferred-work.md` (modified)
+
+## Review Triage Log
+
+| # | Finding | Verdict | Evidence / Resolution |
+|---|---|---|---|
+| 1 | Story status regressed to `in-progress` while notes claim done | false | The review step owns the transition; `739bfd0` was the correct pre-review state and the status is now `review`. |
+| 2 | Create dialog's `errUserName`/`errOfficer` FieldError controls never receive text; validation goes only to the banner | medium — patch | Verified in `CreateAccountForm.Designer.cs` + `ICreateAccountView` (no field API) + `CreateAccountPresenter.cs:49-51`; `RequestValidationException.Errors` carries property names, and `OfficerEditPresenter` already maps them. Patch to wire the fields. |
+| 3 | Account list misses the search/filter row other catalogues have | low — reject | T5 specifies a fixed grid for a small list; adding a debounced search row is a new feature, not a correction (reject rule for low findings). |
+| 4 | `GetAllAsync`/`GetOfficersForAccountCreationAsync` have no permission check | false | T2 scopes `HT.Sua` to write methods; AC 5 is about writes ("nothing is written"); menu-level hiding belongs to Story 2.5. |
+| 5 | Initial role grants are not part of the create audit row | false | AC 3 enumerates deactivate/unlock/reset/role-change; account creation is AC 1 and the interceptor writes the create row. The pre-merge implementation behaved the same. |
+| 6 | `AddUserOfficer` cannot apply to a database that already has non-admin accounts; no backfill (also the verification-gap "other" finding) | low — reject | No production database exists (R0.5 unreleased); `OfficerId` cannot be inferred for old rows; the CHECK is an explicit story requirement and `install.md` documents recreating dev databases. |
+| 7 | `ResetPasswordAsync` reads the account before opening the transaction | low — patch | Verified at `AccountService.cs:220-224`; the read-check-write should be one unit like Deactivate/UpdateRoles. |
+| 8 | `ReactivateAsync` never re-checks that the linked officer is still active | medium — patch | Verified at `AccountService.cs:179-203`; Create closes the same hole. Add the `Officer.IsActive` check with `InvalidOfficerMessage`. |
+| 9 | `Clipboard.SetText` throws when another process holds the clipboard | low — reject | Rare on a workstation; the fix adds a branch and a message (reject rule). |
+| 10 | Duplicate `&M` mnemonic ("&Mở khoá" vs "Đặt lại &mật khẩu") | low — patch | Verified in `AccountForm.Designer.cs`; give the reset button a free letter (`Đặt &lại mật khẩu`). The runtime toggle uses N/K, both free. |
+| 11 | Create with no officer selected returns silently; an empty picker looks broken (also the two "other" findings) | medium — patch | Verified at `CreateAccountPresenter.cs:36-37` and `CreateAccountForm.ShowOfficers`; show the validator's officer message instead of returning. |
+| 12 | Coverage gaps: no Reactivate success, invalid officer/role, unknown-account Unlock/Reset, inactive-officer exclusion | low — patch | Add the listed integration tests next to the existing `AccountServiceTests` cases. |
+| 13 | The concurrent-demotion race and the `TransactionIsolation` → `IsolationLevel` mapping are untested | low — patch | Add a `[SqlServerFact]` asserting `Database.CurrentTransaction.GetDbTransaction().IsolationLevel` after the guarded call. |
+| 14 | `UpdateRolesAsync` writes an audit row when the role set is unchanged; `UnlockAsync` saves a no-op | low — patch | Verified at `AccountService.cs:151-159` and `:205-214`; skip the no-op audit and log an explicit unlock event. |
+| 15 | `UserModelTests.OnlyTheBuiltInAdmin_MayHaveNoOfficerRecord` asserts a single check constraint | low — patch | Make the test find its constraint by name instead of `ShouldHaveSingleItem()`. |
+| 16 | `LastAdministratorRequiredMessage` has no trailing period | low — patch | Verified at `LastAdministratorGuard.cs:15-16`; `CannotDeactivateSelfMessage` already ends with one, so that half of the finding is false. |
+| 17 | New glossary terms are not added to `naming-conventions.md` | low — defer | The fix edits a rules file, which the workflow defers; recorded in `deferred-work.md`. |
+| 18 | `TemporaryPasswordForm` is shown without `using`, so the form and plaintext password are not disposed | low — patch | Verified at `Navigator.cs:58`; use `using var form = ...; form.ShowDialog(host);`. |
+| 19 | Reset shows the temporary password only after `ReloadAsync`; a reload failure loses the committed password | medium — patch | Verified at `AccountPresenter.cs:104-108`; show the password before the reload. |
+| 20 | Unlocking an already-unlocked account writes no audit row while the UI reports success | low — patch | Verified at `AccountService.cs:205-214`; the explicit unlock event (row 14) covers it. |
+| 21 | Empty role set in `UpdateRolesAsync` is rejected but untested | low — patch | Verified `AccountService.cs:122-124`; add `UpdateRoles_EmptyRoleSet_IsRejected`. |
+| 22 | The new `IAccountService`/`LastAdministratorGuard` DI registrations are pinned by no test | low — patch | Add a resolvability test over a provider built with `.AddApplication().AddInfrastructure(...)`. |
+| 23 | `UniqueConstraintException` → `BusinessRuleException` mapping in Create/Reactivate is never executed by a test | low — defer | Timing-dependent race; the index/constraint itself is covered by a raw-context test. Recorded in `deferred-work.md`. |
 
 ## Change Log
 

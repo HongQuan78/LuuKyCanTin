@@ -1,5 +1,6 @@
 using LuuKyCanTin.Application.Administration;
 using LuuKyCanTin.Application.MasterData;
+using LuuKyCanTin.WinForms.Common;
 
 namespace LuuKyCanTin.WinForms.Administration;
 
@@ -22,6 +23,9 @@ public interface ICreateAccountView : IDisposable
 
     /// <summary>Shows the dialog modally; true if it closed after a successful create.</summary>
     bool ShowModal();
+
+    /// <summary>Marks each field invalid with its message under it and focuses the first; the dialog stays open.</summary>
+    void ShowFieldErrors(IReadOnlyList<FieldMessage<CreateAccountField>> errors);
 
     void ShowError(string message);
 

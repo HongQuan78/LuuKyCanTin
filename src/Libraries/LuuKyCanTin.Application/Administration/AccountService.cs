@@ -151,11 +151,13 @@ public sealed class AccountService(
         var newCodes = newRoleIds.Select(id => codeById[id]).Order(StringComparer.Ordinal).ToList();
         await db.SaveChangesAsync(ct);
 
-        // The join rows are not IAuditable, so the role change is logged explicitly with its before/after values.
-        await auditLog.WriteAsync(
-            AuditAction.Update, "User", userId,
-            new { Roles = oldCodes },
-            new { Roles = newCodes }, ct);
+        // The join rows are not IAuditable, so a real role change is logged explicitly with its before/after values.
+        // Saving the same set is a no-op and must not leave a row that claims a change.
+        if (!oldCodes.SequenceEqual(newCodes, StringComparer.Ordinal))
+            await auditLog.WriteAsync(
+                AuditAction.Update, "User", userId,
+                new { Roles = oldCodes },
+                new { Roles = newCodes }, ct);
         await transaction.CommitAsync(ct);
     }
 
@@ -184,10 +186,16 @@ public sealed class AccountService(
         var user = await userStore.FindByIdAsync(userId, ct)
             ?? throw new BusinessRuleException(AccountNotFoundMessage);
 
-        // The person may have received a newer active account while this one was off.
-        if (user.OfficerId is { } officerId
-            && await userStore.HasActiveAccountAsync(officerId, excludedUserId: userId, ct: ct))
-            throw new BusinessRuleException(OfficerAlreadyHasActiveAccountMessage);
+        if (user.OfficerId is { } officerId)
+        {
+            // The officer may have left while the account was off.
+            if (!await db.Officer.AnyAsync(officer => officer.Id == officerId && officer.IsActive, ct))
+                throw new BusinessRuleException(InvalidOfficerMessage);
+
+            // The person may have received a newer active account while this one was off.
+            if (await userStore.HasActiveAccountAsync(officerId, excludedUserId: userId, ct: ct))
+                throw new BusinessRuleException(OfficerAlreadyHasActiveAccountMessage);
+        }
 
         user.IsActive = true;
         try
@@ -211,17 +219,24 @@ public sealed class AccountService(
 
         user.RecordSuccessfulSignIn();
         await db.SaveChangesAsync(ct);
+
+        // An already-unlocked account changes no column, so the interceptor writes nothing; this row makes every
+        // unlock action visible in the audit log.
+        await auditLog.WriteAsync(
+            AuditAction.Update, "User", userId,
+            new { Event = AccountEvent.Unlock }, ct);
     }
 
     public async Task<string> ResetPasswordAsync(int userId, CancellationToken ct = default)
     {
         await permissionChecker.RequireAsync(PermissionCodes.Administration.Update, ct);
 
+        // The transaction starts before the first read, so the read, the write and the audit row are one unit.
+        await using var transaction = await db.BeginTransactionAsync(ct);
         var user = await userStore.FindByIdAsync(userId, ct)
             ?? throw new BusinessRuleException(AccountNotFoundMessage);
 
         var temporaryPassword = TemporaryPassword.Generate();
-        await using var transaction = await db.BeginTransactionAsync(ct);
         user.PasswordHash = passwordHasher.Hash(temporaryPassword);
         user.MustChangePassword = true;
         user.RecordSuccessfulSignIn();
