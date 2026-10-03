@@ -13,6 +13,7 @@ public sealed class MainPresenter
     private readonly IServiceScopeFactory _scopes;
     private readonly IClock _clock;
     private readonly WorkstationInfo _workstation;
+    private readonly ICurrentUser _currentUser;
     private readonly NavigationModel _navigation;
     private string _displayName = "";
     private bool _isSignedOut;
@@ -23,13 +24,15 @@ public sealed class MainPresenter
         INavigator navigator,
         IServiceScopeFactory scopes,
         IClock clock,
-        WorkstationInfo workstation)
+        WorkstationInfo workstation,
+        ICurrentUser currentUser)
     {
         _view = view;
         _options = options.Value;
         _scopes = scopes;
         _clock = clock;
         _workstation = workstation;
+        _currentUser = currentUser;
         _navigation = ShellNavigation.Create(navigator, ShowHome, OnSignOut);
         _view.Loaded += OnLoaded;
         _view.NavigationRequested += OnNavigationRequested;
@@ -41,7 +44,8 @@ public sealed class MainPresenter
     private async void OnLoaded(object? sender, EventArgs e)
     {
         _view.Title = _options.Title;
-        _view.ShowNavigation(_navigation);
+        // The cached permissions decide what the sidebar and the Trang chủ tiles show; writes re-check the database.
+        _view.ShowNavigation(ShellNavigation.BuildVisible(_navigation, _currentUser.HasPermission));
         _view.ShowWorkstation(_workstation);
 
         try

@@ -1,7 +1,11 @@
+using LuuKyCanTin.Application.Abstractions;
+using LuuKyCanTin.Application.Administration;
 using LuuKyCanTin.Application.MasterData;
 using LuuKyCanTin.Application.UnitTests.TestUtilities;
+using LuuKyCanTin.Domain.Administration;
 using LuuKyCanTin.Domain.MasterData;
 using NSubstitute;
+using NSubstitute.ExceptionExtensions;
 using Shouldly;
 
 namespace LuuKyCanTin.Application.UnitTests.MasterData;
@@ -9,17 +13,30 @@ namespace LuuKyCanTin.Application.UnitTests.MasterData;
 public class AddInmateServiceTests
 {
     private readonly IInmateStore _store = Substitute.For<IInmateStore>();
+    private readonly IPermissionChecker _checker = Substitute.For<IPermissionChecker>();
     private readonly FakeClock _clock = new(new DateTime(2026, 10, 1, 8, 0, 0));
     private readonly AddInmateService _service;
 
     public AddInmateServiceTests()
     {
         _store.AddAsync(Arg.Any<Inmate>(), Arg.Any<CancellationToken>()).Returns(true);
-        _service = new AddInmateService(_store, _clock);
+        _service = new AddInmateService(_store, _checker, _clock);
     }
 
     private static AddInmateRequest Request(string inmateCode = "DT-0001") =>
         new(inmateCode, "Nguyễn Văn A", 1990, InmateType.PreTrialDetainee, new DateOnly(2026, 9, 30), "A3");
+
+    [Fact]
+    public async Task WithoutPermission_IsRefusedBeforeTouchingTheStore()
+    {
+        _checker.RequireAsync(PermissionCodes.MasterData.Create, Arg.Any<CancellationToken>())
+            .ThrowsAsync(new PermissionDeniedException(PermissionCodes.MasterData.Create));
+
+        await Should.ThrowAsync<PermissionDeniedException>(() => _service.AddAsync(Request()));
+
+        await _store.DidNotReceive().CodeExistsAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
+        await _store.DidNotReceive().AddAsync(Arg.Any<Inmate>(), Arg.Any<CancellationToken>());
+    }
 
     [Fact]
     public async Task HappyPath_SavesAManagedDetaineeWithAZeroBalance()

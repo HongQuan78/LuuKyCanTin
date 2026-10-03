@@ -1,7 +1,9 @@
 using LuuKyCanTin.Application.Abstractions;
+using LuuKyCanTin.Application.Administration;
 using LuuKyCanTin.Application.Custody;
 using LuuKyCanTin.Application.MasterData;
 using LuuKyCanTin.Application.UnitTests.TestUtilities;
+using LuuKyCanTin.Domain.Administration;
 using LuuKyCanTin.Domain.Common;
 using LuuKyCanTin.Domain.Custody;
 using LuuKyCanTin.Domain.MasterData;
@@ -18,6 +20,7 @@ public class CustodyLedgerServiceTests
     private readonly IAppDbContext _db = Substitute.For<IAppDbContext>();
     private readonly INumberingService _numbering = Substitute.For<INumberingService>();
     private readonly ICustodyBalanceWriter _balanceWriter = Substitute.For<ICustodyBalanceWriter>();
+    private readonly IPermissionChecker _checker = Substitute.For<IPermissionChecker>();
     private readonly IAppTransaction _transaction = Substitute.For<IAppTransaction>();
     private readonly FakeClock _clock = new(new DateTime(2026, 10, 1, 8, 0, 0));
 
@@ -27,7 +30,7 @@ public class CustodyLedgerServiceTests
     {
         _db.BeginTransactionAsync(Arg.Any<CancellationToken>()).Returns(_transaction);
         _db.SaveChangesAsync(Arg.Any<CancellationToken>()).Returns(1);
-        _service = new CustodyLedgerService(_inmateStore, _voucherStore, _db, _numbering, _balanceWriter, _clock);
+        _service = new CustodyLedgerService(_inmateStore, _voucherStore, _db, _numbering, _balanceWriter, _checker, _clock);
 
         _inmateStore.FindByIdAsync(7, Arg.Any<CancellationToken>()).Returns(new Inmate
         {
@@ -76,6 +79,19 @@ public class CustodyLedgerServiceTests
 
         await _db.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
         await _transaction.Received(1).CommitAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task WithoutPermission_IsRefusedBeforeTheTransactionOpens()
+    {
+        _checker.RequireAsync(PermissionCodes.CustodyIncrease.Create, Arg.Any<CancellationToken>())
+            .ThrowsAsync(new PermissionDeniedException(PermissionCodes.CustodyIncrease.Create));
+
+        await Should.ThrowAsync<PermissionDeniedException>(() => _service.PostDepositReceiptAsync(Request()));
+
+        await _db.DidNotReceive().BeginTransactionAsync(Arg.Any<CancellationToken>());
+        await _numbering.DidNotReceive().AllocateNumberAsync(Arg.Any<string>(), Arg.Any<int>(), Arg.Any<CancellationToken>());
+        await _db.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
     }
 
     [Fact]

@@ -1,3 +1,4 @@
+using LuuKyCanTin.Application.Abstractions;
 using LuuKyCanTin.Application.Common;
 using LuuKyCanTin.Application.Administration;
 using LuuKyCanTin.Domain.Administration;
@@ -19,13 +20,16 @@ public sealed class AccountPresenter
         IServiceScopeFactory scopes,
         Func<ICreateAccountView> createAccountDialog,
         Func<IAccountRolesView> accountRolesDialog,
-        Action<string> showTemporaryPassword)
+        Action<string> showTemporaryPassword,
+        ICurrentUser currentUser)
     {
         _view = view;
         _scopes = scopes;
         _createAccountDialog = createAccountDialog;
         _accountRolesDialog = accountRolesDialog;
         _showTemporaryPassword = showTemporaryPassword;
+        // Cosmetic only: the service re-checks the database before any write.
+        _view.SetEditingEnabled(currentUser.HasPermission(PermissionCodes.Administration.Update));
         _view.Loaded += async (_, _) => await ReloadAsync();
         _view.AddClicked += async (_, _) => await OpenCreateAccountAsync();
         _view.RolesClicked += async (_, _) => await OpenRolesAsync();

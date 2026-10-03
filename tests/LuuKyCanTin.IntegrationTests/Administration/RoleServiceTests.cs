@@ -50,7 +50,7 @@ public sealed class RoleServiceTests : IClassFixture<AppDatabaseFixture>, IAsync
     {
         await using var db = _fixture.Database.CreateDbContext();
         var user = await db.User.SingleAsync(u => u.UserName == userName);
-        _fixture.User.SignIn(user.Id, user.UserName, user.OfficerId, user.UserName);
+        await _fixture.SignInAsync(user);
     }
 
     private async Task<User> CreateUserAsync(string? roleCode)
@@ -228,7 +228,7 @@ public sealed class RoleServiceTests : IClassFixture<AppDatabaseFixture>, IAsync
     public async Task UpdatePermissions_WithoutPermission_WritesNothing()
     {
         var user = await CreateUserAsync(roleCode: null);
-        _fixture.User.SignIn(user.Id, user.UserName, user.OfficerId, user.UserName);
+        await _fixture.SignInAsync(user);
 
         await using var db = NewContext();
         var service = CreateService(db);
@@ -272,7 +272,7 @@ public sealed class RoleServiceTests : IClassFixture<AppDatabaseFixture>, IAsync
     public async Task Require_WithoutRole_IsDenied()
     {
         var user = await CreateUserAsync(roleCode: null);
-        _fixture.User.SignIn(user.Id, user.UserName, user.OfficerId, user.UserName);
+        await _fixture.SignInAsync(user);
         await using var db = NewContext();
 
         await Should.ThrowAsync<PermissionDeniedException>(() => CreatePermissionChecker(db).RequireAsync(PermissionCodes.Administration.Update));
@@ -290,7 +290,7 @@ public sealed class RoleServiceTests : IClassFixture<AppDatabaseFixture>, IAsync
             await db.SaveChangesAsync();
         }
 
-        _fixture.User.SignIn(user.Id, user.UserName, user.OfficerId, user.UserName);
+        await _fixture.SignInAsync(user);
         await using var checkDb = NewContext();
 
         await Should.ThrowAsync<PermissionDeniedException>(() => CreatePermissionChecker(checkDb).RequireAsync(PermissionCodes.Administration.Update));
@@ -301,7 +301,7 @@ public sealed class RoleServiceTests : IClassFixture<AppDatabaseFixture>, IAsync
     public async Task Require_RoleRevoked_LosesPermissionImmediately()
     {
         var user = await CreateUserAsync(RoleCodes.Administrator);
-        _fixture.User.SignIn(user.Id, user.UserName, user.OfficerId, user.UserName);
+        await _fixture.SignInAsync(user);
         await using (var db = NewContext())
             await Should.NotThrowAsync(() => CreatePermissionChecker(db).RequireAsync(PermissionCodes.Administration.Update));
 

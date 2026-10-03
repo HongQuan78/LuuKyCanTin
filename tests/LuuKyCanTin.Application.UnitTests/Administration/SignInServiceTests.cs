@@ -42,6 +42,7 @@ public class SignInServiceTests
         };
         _store.FindByUserNameAsync("admin", Arg.Any<CancellationToken>()).Returns(_user);
         _store.SaveAsync(_user, Arg.Any<CancellationToken>()).Returns(Task.CompletedTask);
+        _store.GetPermissionCodesAsync(3, Arg.Any<CancellationToken>()).Returns([PermissionCodes.Administration.Update]);
     }
 
     [Fact]
@@ -57,7 +58,11 @@ public class SignInServiceTests
         _user.FailedAttemptCount.ShouldBe((byte)0);
         _user.LockedUntil.ShouldBeNull();
         await _store.Received(1).SaveAsync(_user, Arg.Any<CancellationToken>());
-        _session.Received(1).SignIn(3, "admin", null, "admin");
+        // The permission codes come from the one query and travel with the session snapshot.
+        await _store.Received(1).GetPermissionCodesAsync(3, Arg.Any<CancellationToken>());
+        _session.Received(1).SignIn(
+            3, "admin", null, "admin",
+            Arg.Is<IReadOnlyCollection<string>>(codes => codes.Count == 1 && codes.Contains(PermissionCodes.Administration.Update)));
         await _auditLog.Received(1).WriteAsync(
             AuditAction.SignIn, "User", 3, Arg.Any<object?>(), Arg.Any<CancellationToken>());
     }
@@ -72,7 +77,7 @@ public class SignInServiceTests
 
         await _service.SignInAsync("admin", "LuuKy@2026");
 
-        _session.Received(1).SignIn(3, "admin", 7, "Nguyễn Văn Thủ Quỹ");
+        _session.Received(1).SignIn(3, "admin", 7, "Nguyễn Văn Thủ Quỹ", Arg.Any<IReadOnlyCollection<string>>());
     }
 
     [Fact]
@@ -85,7 +90,7 @@ public class SignInServiceTests
 
         result.Succeeded.ShouldBeTrue();
         result.MustChangePassword.ShouldBeTrue();
-        _session.Received(1).SignIn(3, "admin", null, "admin");
+        _session.Received(1).SignIn(3, "admin", null, "admin", Arg.Any<IReadOnlyCollection<string>>());
     }
 
     [Fact]
@@ -100,7 +105,8 @@ public class SignInServiceTests
         result.Message.ShouldBe(SignInService.InvalidCredentialsMessage);
         _user.FailedAttemptCount.ShouldBe((byte)1);
         await _store.Received(1).SaveAsync(_user, Arg.Any<CancellationToken>());
-        _session.DidNotReceive().SignIn(Arg.Any<int>(), Arg.Any<string>(), Arg.Any<int?>(), Arg.Any<string?>());
+        _session.DidNotReceive().SignIn(
+            Arg.Any<int>(), Arg.Any<string>(), Arg.Any<int?>(), Arg.Any<string?>(), Arg.Any<IReadOnlyCollection<string>>());
         await _auditLog.Received(1).WriteAsync(
             AuditAction.SignIn, "User", 3,
             Arg.Is<object?>(o => o!.ToString()!.Contains($"Event = {SignInEvent.FailedSignIn}")),

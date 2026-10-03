@@ -227,6 +227,8 @@ public sealed class SignInServiceTests : IClassFixture<AppDatabaseFixture>, IAsy
             var result = await CreateSignInService(db).SignInAsync("admin", InitialPassword);
             result.Succeeded.ShouldBeTrue();
             result.MustChangePassword.ShouldBeTrue();
+            // The session snapshot carries the administrator role's grants from the one permission query.
+            _fixture.User.HasPermission(PermissionCodes.MasterData.Create).ShouldBeTrue();
         }
 
         await using (var db = NewContext())

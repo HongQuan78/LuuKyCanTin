@@ -22,6 +22,9 @@ public interface IAccountView
 
     void ShowAccounts(IReadOnlyList<AccountDto> items);
 
+    /// <summary>Read-only by permission: every write action is disabled, the list still opens.</summary>
+    void SetEditingEnabled(bool canEdit);
+
     /// <summary>Asks the user to confirm a destructive action; true means go ahead.</summary>
     bool Confirm(string message);
 

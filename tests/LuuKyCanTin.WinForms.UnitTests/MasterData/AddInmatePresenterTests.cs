@@ -1,3 +1,4 @@
+using LuuKyCanTin.Application.Abstractions;
 using LuuKyCanTin.Application.MasterData;
 using LuuKyCanTin.Domain.MasterData;
 using LuuKyCanTin.WinForms.Common;
@@ -11,6 +12,7 @@ namespace LuuKyCanTin.WinForms.UnitTests.MasterData;
 public class AddInmatePresenterTests
 {
     private readonly IInmateStore _store = Substitute.For<IInmateStore>();
+    private readonly IPermissionChecker _checker = Substitute.For<IPermissionChecker>();
     private readonly IAddInmateView _view = Substitute.For<IAddInmateView>();
 
     public AddInmatePresenterTests()
@@ -26,7 +28,7 @@ public class AddInmatePresenterTests
     private AddInmatePresenter CreatePresenter()
     {
         var clock = new FakeClock(new DateTime(2026, 10, 1, 8, 0, 0));
-        var service = new AddInmateService(_store, clock);
+        var service = new AddInmateService(_store, _checker, clock);
         return new AddInmatePresenter(_view, FakeScopeFactory.Create(service));
     }
 

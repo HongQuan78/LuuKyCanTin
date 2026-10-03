@@ -10,6 +10,9 @@ public partial class OfficerForm : UserControl, IOfficerView
     private const string InactiveText = "Đã nghỉ";
     private const int AllStatusesIndex = 1;
 
+    private bool _canAdd = true;
+    private bool _canEdit = true;
+
     public OfficerForm()
     {
         InitializeComponent();
@@ -35,7 +38,7 @@ public partial class OfficerForm : UserControl, IOfficerView
         btnEdit.Click += (_, _) => EditClicked?.Invoke(this, EventArgs.Empty);
         grdOfficers.CellDoubleClick += (_, e) =>
         {
-            if (e.RowIndex >= 0)
+            if (e.RowIndex >= 0 && _canEdit)
                 EditClicked?.Invoke(this, EventArgs.Empty);
         };
         grdOfficers.CellFormatting += OnCellFormatting;
@@ -62,6 +65,14 @@ public partial class OfficerForm : UserControl, IOfficerView
         lblCount.Text = $"{items.Count} cán bộ";
     }
 
+    public void SetEditingEnabled(bool canAdd, bool canEdit)
+    {
+        _canAdd = canAdd;
+        _canEdit = canEdit;
+        btnAdd.Enabled = canAdd;
+        btnEdit.Enabled = canEdit;
+    }
+
     // A cached screen loads once, the first time the shell shows it.
     protected override void OnLoad(EventArgs e)
     {
@@ -73,13 +84,13 @@ public partial class OfficerForm : UserControl, IOfficerView
     // The grid would otherwise use Enter to move down a row, so it is taken before the grid sees it.
     protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
     {
-        if (keyData == Keys.Insert)
+        if (keyData == Keys.Insert && _canAdd)
         {
             AddClicked?.Invoke(this, EventArgs.Empty);
             return true;
         }
 
-        if (keyData == Keys.Enter && grdOfficers.ContainsFocus)
+        if (keyData == Keys.Enter && grdOfficers.ContainsFocus && _canEdit)
         {
             EditClicked?.Invoke(this, EventArgs.Empty);
             return true;

@@ -1,3 +1,5 @@
+using LuuKyCanTin.Application.Abstractions;
+using LuuKyCanTin.Application.Administration;
 using LuuKyCanTin.Application.MasterData;
 using LuuKyCanTin.WinForms.MasterData;
 using Microsoft.Extensions.DependencyInjection;
@@ -13,6 +15,7 @@ public class OfficerPresenterTests
     private readonly IOfficerView _view = Substitute.For<IOfficerView>();
     private readonly IOfficerEditView _dialog = Substitute.For<IOfficerEditView>();
     private readonly IOfficerService _service = Substitute.For<IOfficerService>();
+    private readonly ICurrentUser _currentUser = Substitute.For<ICurrentUser>();
     private readonly IServiceScopeFactory _scopes;
     private int _dialogsOpened;
 
@@ -20,13 +23,54 @@ public class OfficerPresenterTests
     {
         _scopes = new ServiceCollection().AddScoped(_ => _service).BuildServiceProvider().GetRequiredService<IServiceScopeFactory>();
         _service.SearchAsync(Arg.Any<string?>(), Arg.Any<bool>(), Arg.Any<CancellationToken>()).Returns([An]);
+        _currentUser.HasPermission(Arg.Any<string>()).Returns(true);
     }
 
     private OfficerPresenter NewPresenter() => new(_view, _scopes, () =>
     {
         _dialogsOpened++;
         return _dialog;
-    });
+    }, _currentUser);
+
+    [Fact]
+    public void Constructor_WithBothWritePermissions_EnablesAddAndEdit()
+    {
+        NewPresenter();
+
+        _view.Received(1).SetEditingEnabled(true, true);
+    }
+
+    [Fact]
+    public void Constructor_WithViewOnly_DisablesAddAndEdit()
+    {
+        _currentUser.HasPermission(Arg.Any<string>()).Returns(false);
+
+        NewPresenter();
+
+        _view.Received(1).SetEditingEnabled(false, false);
+    }
+
+    [Fact]
+    public void Constructor_WithOnlyMasterDataCreate_EnablesAddButNotEdit()
+    {
+        _currentUser.HasPermission(Arg.Any<string>()).Returns(false);
+        _currentUser.HasPermission(PermissionCodes.MasterData.Create).Returns(true);
+
+        NewPresenter();
+
+        _view.Received(1).SetEditingEnabled(true, false);
+    }
+
+    [Fact]
+    public void Constructor_WithOnlyMasterDataUpdate_EnablesEditButNotAdd()
+    {
+        _currentUser.HasPermission(Arg.Any<string>()).Returns(false);
+        _currentUser.HasPermission(PermissionCodes.MasterData.Update).Returns(true);
+
+        NewPresenter();
+
+        _view.Received(1).SetEditingEnabled(false, true);
+    }
 
     [Fact]
     public void Loaded_ShowsActiveStaffMatchingTheKeyword()

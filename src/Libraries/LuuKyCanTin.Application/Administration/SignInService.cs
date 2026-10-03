@@ -53,7 +53,9 @@ public sealed class SignInService(
         var officerFullName = user.OfficerId is { } officerId
             ? await userStore.GetOfficerFullNameAsync(officerId, ct)
             : null;
-        session.SignIn(user.Id, user.UserName, user.OfficerId, officerFullName ?? user.UserName);
+        // The one permission read of the session: the shell's UI uses this cache, writes re-check the database.
+        var permissionCodes = await userStore.GetPermissionCodesAsync(user.Id, ct);
+        session.SignIn(user.Id, user.UserName, user.OfficerId, officerFullName ?? user.UserName, permissionCodes);
         await auditLog.WriteAsync(
             AuditAction.SignIn, "User", user.Id,
             new { Event = SignInEvent.SignIn, UserName = user.UserName }, ct);

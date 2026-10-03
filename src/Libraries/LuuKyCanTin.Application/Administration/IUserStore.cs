@@ -29,4 +29,10 @@ public interface IUserStore
 
     /// <summary>The officer's full name, loaded at sign-in for the session.</summary>
     Task<string?> GetOfficerFullNameAsync(int officerId, CancellationToken ct = default);
+
+    /// <summary>
+    /// The permission codes the account's roles grant, in one query; empty for an inactive account. Loaded at
+    /// sign-in for the session's UI checks; writes still re-check against the database.
+    /// </summary>
+    Task<IReadOnlyList<string>> GetPermissionCodesAsync(int userId, CancellationToken ct = default);
 }

@@ -21,6 +21,7 @@ public class DepositReceiptPresenterTests
     private readonly IAppDbContext _db = Substitute.For<IAppDbContext>();
     private readonly INumberingService _numbering = Substitute.For<INumberingService>();
     private readonly ICustodyBalanceWriter _balanceWriter = Substitute.For<ICustodyBalanceWriter>();
+    private readonly IPermissionChecker _checker = Substitute.For<IPermissionChecker>();
     private readonly IFacilityInfoStore _facilityInfoStore = Substitute.For<IFacilityInfoStore>();
     private readonly IReportRenderer _renderer = Substitute.For<IReportRenderer>();
     private readonly IDepositReceiptView _view = Substitute.For<IDepositReceiptView>();
@@ -55,7 +56,7 @@ public class DepositReceiptPresenterTests
     private DepositReceiptPresenter CreatePresenter()
     {
         var clock = new FakeClock(new DateTime(2026, 10, 1, 8, 0, 0));
-        var ledger = new CustodyLedgerService(_inmateStore, _voucherStore, _db, _numbering, _balanceWriter, clock);
+        var ledger = new CustodyLedgerService(_inmateStore, _voucherStore, _db, _numbering, _balanceWriter, _checker, clock);
         var printQuery = new DepositReceiptPrintQuery(_voucherStore, _facilityInfoStore);
         var items = new InmatesInCustodyQuery(_inmateStore);
         return new DepositReceiptPresenter(_view, FakeScopeFactory.Create(ledger, printQuery, items, _renderer));

@@ -80,6 +80,14 @@ public partial class RoleForm : UserControl, IRoleView
         OnRoleSelectionChanged();
     }
 
+    public void SetEditingEnabled(bool canEdit)
+    {
+        btnSave.Enabled = canEdit;
+        btnCancel.Enabled = canEdit;
+        grdPermissions.ReadOnly = !canEdit;
+        lstSpecialPermissions.Enabled = canEdit;
+    }
+
     public void ShowPermissions(IReadOnlyList<string> permissionCode)
     {
         var granted = permissionCode.ToHashSet(StringComparer.Ordinal);

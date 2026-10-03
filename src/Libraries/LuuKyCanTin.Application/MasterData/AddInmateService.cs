@@ -1,4 +1,5 @@
 using LuuKyCanTin.Application.Abstractions;
+using LuuKyCanTin.Application.Administration;
 using LuuKyCanTin.Domain.MasterData;
 
 namespace LuuKyCanTin.Application.MasterData;
@@ -6,7 +7,7 @@ namespace LuuKyCanTin.Application.MasterData;
 /// <summary>
 /// The walking skeleton's minimal "add a detainee". Search, edit and the type history are Epic 3.
 /// </summary>
-public sealed class AddInmateService(IInmateStore inmateStore, IClock clock)
+public sealed class AddInmateService(IInmateStore inmateStore, IPermissionChecker permissionChecker, IClock clock)
 {
     public const string DuplicateCodeMessage = "Mã số đã tồn tại.";
 
@@ -14,6 +15,9 @@ public sealed class AddInmateService(IInmateStore inmateStore, IClock clock)
 
     public async Task<AddInmateResult> AddAsync(AddInmateRequest request, CancellationToken ct = default)
     {
+        // Authorization first, before any read or write, so a refused call changes nothing.
+        await permissionChecker.RequireAsync(PermissionCodes.MasterData.Create, ct);
+
         var validation = await _validator.ValidateAsync(request, ct);
         if (!validation.IsValid)
             return AddInmateResult.Fail(validation.Errors);

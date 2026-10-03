@@ -1,3 +1,4 @@
+using System.Reflection;
 using LuuKyCanTin.WinForms.Common;
 using LuuKyCanTin.WinForms.MasterData;
 using LuuKyCanTin.WinForms.UnitTests.TestUtilities;
@@ -35,6 +36,56 @@ public class MasterDataScreenTests
             screen.PressKey(Keys.Insert).ShouldBeTrue();
 
             addCount.ShouldBe(1);
+        });
+    }
+
+    [Fact]
+    public void OfficerForm_ReadOnlyByPermission_DisablesAddEditAndInsert()
+    {
+        StaThread.Run(() =>
+        {
+            using var screen = new TestableOfficerForm();
+            IOfficerView view = screen;
+            var addCount = 0;
+            view.AddClicked += (_, _) => addCount++;
+
+            view.SetEditingEnabled(canAdd: false, canEdit: false);
+
+            Find<Button>(screen, "btnAdd").Enabled.ShouldBeFalse();
+            Find<Button>(screen, "btnEdit").Enabled.ShouldBeFalse();
+            screen.PressKey(Keys.Insert).ShouldBeFalse();
+            addCount.ShouldBe(0);
+        });
+    }
+
+    [Fact]
+    public void OfficerForm_ReadOnlyByPermission_EnterAndDoubleClickDoNotOpenTheEditor()
+    {
+        StaThread.Run(() =>
+        {
+            using var host = new Form { Opacity = 0, ShowInTaskbar = false };
+            var screen = new TestableOfficerForm();
+            host.Controls.Add(screen);
+            host.Show();
+            IOfficerView view = screen;
+            var editCount = 0;
+            view.EditClicked += (_, _) => editCount++;
+            var grid = Find<DataGridView>(screen, "grdOfficers");
+
+            view.SetEditingEnabled(canAdd: false, canEdit: false);
+
+            // Enter on the grid.
+            grid.Focus();
+            grid.Focused.ShouldBeTrue();
+            screen.PressKey(Keys.Enter).ShouldBeFalse();
+
+            // Double-click a row.
+            grid.Rows.Add();
+            typeof(DataGridView)
+                .GetMethod("OnCellDoubleClick", BindingFlags.NonPublic | BindingFlags.Instance)!
+                .Invoke(grid, [new DataGridViewCellEventArgs(0, 0)]);
+
+            editCount.ShouldBe(0);
         });
     }
 

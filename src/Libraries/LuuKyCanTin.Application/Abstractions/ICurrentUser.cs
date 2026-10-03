@@ -14,4 +14,11 @@ public interface ICurrentUser
     string? FullName { get; }
 
     bool IsSignedIn { get; }
+
+    /// <summary>
+    /// True when the signed-in user's roles granted the permission at sign-in. <b>For the UI only</b>: menu
+    /// entries and button states. A service that writes must call <see cref="IPermissionChecker"/>, which reads
+    /// the database, so a revoked permission stops working immediately even when this cached answer is stale.
+    /// </summary>
+    bool HasPermission(string permissionCode);
 }

@@ -56,3 +56,7 @@
 - source_spec: `_bmad-output/implementation-artifacts/stories/epic-02/2-4-user-accounts-role-assignment.md`
   summary: The UniqueConstraintException to BusinessRuleException mapping in AccountService.CreateAsync and ReactivateAsync has no deterministic test.
   evidence: Forcing the database, rather than the service pre-check, to reject needs a timing-dependent concurrent create; the filtered index itself is covered by a raw-context test. A deterministic two-session harness would settle it.
+
+- source_spec: `_bmad-output/implementation-artifacts/stories/epic-02/2-5-permission-driven-shell-service-authorization.md`
+  summary: A refused permission caught by a presenter is not logged, and the top-level refusal log has no service identity.
+  evidence: T4 asks Serilog to record user, permission code and service, but permission denials are caught in the presenters and the global handler cannot know the calling service. A logging seam (decorator or checker callback) would settle it.

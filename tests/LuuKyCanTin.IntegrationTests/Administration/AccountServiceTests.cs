@@ -55,7 +55,7 @@ public sealed class AccountServiceTests : IClassFixture<AppDatabaseFixture>, IAs
     {
         await using var db = _fixture.Database.CreateDbContext();
         var user = await db.User.SingleAsync(u => u.UserName == userName);
-        _fixture.User.SignIn(user.Id, user.UserName, user.OfficerId, user.UserName);
+        await _fixture.SignInAsync(user);
     }
 
     private static string NewUserName() => "u" + Guid.NewGuid().ToString("N")[..12];
@@ -612,7 +612,7 @@ public sealed class AccountServiceTests : IClassFixture<AppDatabaseFixture>, IAs
         await database.MigrateAsync();
         await using var db = database.CreateDbContext();
         var admin = await db.User.SingleAsync(u => u.UserName == "admin");
-        _fixture.User.SignIn(admin.Id, admin.UserName, admin.OfficerId, admin.UserName);
+        await _fixture.SignInAsync(admin);
 
         var accountantRoleId = await db.Role.Where(v => v.Code == RoleCodes.Accountant).Select(v => v.Id).SingleAsync();
         var service = CreateService(db);
@@ -651,7 +651,7 @@ public sealed class AccountServiceTests : IClassFixture<AppDatabaseFixture>, IAs
         await database.MigrateAsync();
         await using var db = database.CreateDbContext();
         var admin = await db.User.SingleAsync(u => u.UserName == "admin");
-        _fixture.User.SignIn(admin.Id, admin.UserName, admin.OfficerId, admin.UserName);
+        await _fixture.SignInAsync(admin);
 
         var guard = new LastAdministratorGuard(db, new UserStore(db));
         var auditLog = new AuditLogWriter(db, new AuditLogFactory(_fixture.Clock, _fixture.User));
@@ -691,7 +691,12 @@ public sealed class AccountServiceTests : IClassFixture<AppDatabaseFixture>, IAs
             await db.SaveChangesAsync();
         }
 
-        _fixture.User.SignIn(userId, userName, officer.Id, officer.FullName);
+        await using (var signInDb = NewContext())
+        {
+            var signedInUser = await signInDb.User.AsNoTracking().SingleAsync(u => u.Id == userId);
+            await _fixture.SignInAsync(signedInUser);
+        }
+
         var usersBefore = await CountUsersAsync();
         var auditLogsBefore = await CountAuditLogsAsync();
 

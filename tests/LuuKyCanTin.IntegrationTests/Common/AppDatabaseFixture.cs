@@ -1,3 +1,4 @@
+using LuuKyCanTin.Domain.Administration;
 using LuuKyCanTin.Infrastructure.Administration;
 using LuuKyCanTin.Infrastructure.Persistence;
 using LuuKyCanTin.Infrastructure.Persistence.Interceptors;
@@ -23,6 +24,14 @@ public sealed class AppDatabaseFixture : IAsyncLifetime
         .UseSqlServer(Database.ConnectionString)
         .AddInterceptors(new AuditInterceptor(Clock, User, new AuditLogFactory(Clock, User)))
         .Options);
+
+    /// <summary>Signs the account in with the codes its roles grant, exactly as SignInService loads them.</summary>
+    public async Task SignInAsync(User user, CancellationToken ct = default)
+    {
+        await using var db = Database.CreateDbContext();
+        var permissionCodes = await new UserStore(db).GetPermissionCodesAsync(user.Id, ct);
+        User.SignIn(user.Id, user.UserName, user.OfficerId, user.UserName, permissionCodes);
+    }
 
     public Task InitializeAsync() => SqlServerFactAttribute.CanRun ? Database.MigrateAsync() : Task.CompletedTask;
 

@@ -1,4 +1,5 @@
 using LuuKyCanTin.Application.Abstractions;
+using LuuKyCanTin.Application.Administration;
 using LuuKyCanTin.Application.MasterData;
 using LuuKyCanTin.Domain.Common;
 using LuuKyCanTin.Domain.Custody;
@@ -16,6 +17,7 @@ public sealed class CustodyLedgerService(
     IAppDbContext db,
     INumberingService numberingService,
     ICustodyBalanceWriter balanceWriter,
+    IPermissionChecker permissionChecker,
     IClock clock)
 {
     public const string ReceiptVoucherTypeCode = "BNT";
@@ -28,6 +30,9 @@ public sealed class CustodyLedgerService(
     /// </summary>
     public async Task<PostingResult> PostDepositReceiptAsync(PostDepositReceiptRequest request, CancellationToken ct = default)
     {
+        // Authorization first, before the transaction, so a refused call consumes no document number.
+        await permissionChecker.RequireAsync(PermissionCodes.CustodyIncrease.Create, ct);
+
         var validation = await _validator.ValidateAsync(request, ct);
         if (!validation.IsValid)
             return PostingResult.Fail(validation.Errors);

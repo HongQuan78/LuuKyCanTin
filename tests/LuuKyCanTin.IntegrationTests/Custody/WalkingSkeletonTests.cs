@@ -49,6 +49,19 @@ public class WalkingSkeletonTests(WalkingSkeletonFixture fixture) : IClassFixtur
 
     private async Task<int> SignInAdminAsync()
     {
+        // The built-in admin only holds HT and DM; posting a receipt needs LK-T.Them, so grant the custody role
+        // as a unit would for the person running the counter.
+        await using (var db = fixture.Database.CreateDbContext())
+        {
+            var admin = await db.User.SingleAsync(u => u.UserName == "admin");
+            var custodyRoleId = await db.Role.Where(r => r.Code == RoleCodes.CustodyOfficer).Select(r => r.Id).SingleAsync();
+            if (!await db.UserRole.AnyAsync(ur => ur.UserId == admin.Id && ur.RoleId == custodyRoleId))
+            {
+                db.UserRole.Add(new UserRole { UserId = admin.Id, RoleId = custodyRoleId });
+                await db.SaveChangesAsync();
+            }
+        }
+
         await using var scope = fixture.Services.CreateAsyncScope();
         var result = await scope.ServiceProvider.GetRequiredService<SignInService>().SignInAsync("admin", AdminPassword);
         result.Succeeded.ShouldBeTrue(result.Message);
@@ -163,6 +176,7 @@ public class WalkingSkeletonTests(WalkingSkeletonFixture fixture) : IClassFixtur
             sp.GetRequiredService<IAppDbContext>(),
             sp.GetRequiredService<INumberingService>(),
             writer,
+            sp.GetRequiredService<IPermissionChecker>(),
             sp.GetRequiredService<IClock>());
 
         var result = await ledger.PostDepositReceiptAsync(Receipt(inmateId));

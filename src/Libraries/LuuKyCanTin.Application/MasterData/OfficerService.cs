@@ -1,13 +1,17 @@
 using System.Linq.Expressions;
 using FluentValidation;
 using LuuKyCanTin.Application.Abstractions;
+using LuuKyCanTin.Application.Administration;
 using LuuKyCanTin.Application.Common;
 using LuuKyCanTin.Domain.MasterData;
 using Microsoft.EntityFrameworkCore;
 
 namespace LuuKyCanTin.Application.MasterData;
 
-public sealed class OfficerService(IAppDbContext db, IValidator<SaveOfficerRequest> validator) : IOfficerService
+public sealed class OfficerService(
+    IAppDbContext db,
+    IPermissionChecker permissionChecker,
+    IValidator<SaveOfficerRequest> validator) : IOfficerService
 {
     public const string DuplicateCodeMessage = "Mã cán bộ đã tồn tại";
     public const string NotFoundMessage = "Không tìm thấy cán bộ.";
@@ -19,7 +23,8 @@ public sealed class OfficerService(IAppDbContext db, IValidator<SaveOfficerReque
 
     public async Task<OfficerDto> AddAsync(SaveOfficerRequest request, CancellationToken ct = default)
     {
-        // TODO: require permission PermissionCodes.MasterData.Create once IPermissionChecker exists.
+        // Authorization first, before any read or write, so a refused call changes nothing.
+        await permissionChecker.RequireAsync(PermissionCodes.MasterData.Create, ct);
         await ValidateAsync(request, ct);
         var officer = new Officer(request.OfficerCode, request.FullName, request.Position, request.IsSupervisingOfficer)
         {
@@ -34,7 +39,8 @@ public sealed class OfficerService(IAppDbContext db, IValidator<SaveOfficerReque
 
     public async Task<OfficerDto> UpdateAsync(int id, SaveOfficerRequest request, CancellationToken ct = default)
     {
-        // TODO: require permission PermissionCodes.MasterData.Update once IPermissionChecker exists.
+        // Authorization first, before any read or write, so a refused call changes nothing.
+        await permissionChecker.RequireAsync(PermissionCodes.MasterData.Update, ct);
         if (request.RowVer is null)
             throw new ArgumentException("An edit must carry the row version the user loaded.", nameof(request));
         await ValidateAsync(request, ct);

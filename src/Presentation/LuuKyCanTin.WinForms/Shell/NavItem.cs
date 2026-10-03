@@ -5,6 +5,9 @@ namespace LuuKyCanTin.WinForms.Shell;
 /// <param name="Caption">Sidebar text, with its <c>&amp;</c> mnemonic.</param>
 public sealed record NavItem(string Key, string Caption, Action Open)
 {
+    /// <summary>The permission the entry needs, or null when every signed-in user may see it.</summary>
+    public string? PermissionCode { get; init; }
+
     /// <summary>Icon-font glyph; top-level entries have one, sub-items don't.</summary>
     public string Glyph { get; init; } = "";
 

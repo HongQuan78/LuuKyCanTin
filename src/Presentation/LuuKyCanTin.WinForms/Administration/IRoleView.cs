@@ -24,6 +24,9 @@ public interface IRoleView
 
     void ShowPermissions(IReadOnlyList<string> permissionCode);
 
+    /// <summary>Read-only by permission: Lưu/Huỷ are disabled and the matrix can't be ticked.</summary>
+    void SetEditingEnabled(bool canEdit);
+
     void ShowMessage(string message);
 
     void ShowError(string message);

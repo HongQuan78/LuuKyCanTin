@@ -1,8 +1,13 @@
+using LuuKyCanTin.Application.Abstractions;
+using LuuKyCanTin.Application.Administration;
 using LuuKyCanTin.Application.Common;
 using LuuKyCanTin.Application.MasterData;
 using LuuKyCanTin.Application.UnitTests.TestUtilities;
+using LuuKyCanTin.Domain.Administration;
 using LuuKyCanTin.Domain.MasterData;
 using Microsoft.EntityFrameworkCore;
+using NSubstitute;
+using NSubstitute.ExceptionExtensions;
 using Shouldly;
 
 namespace LuuKyCanTin.Application.UnitTests.MasterData;
@@ -10,11 +15,12 @@ namespace LuuKyCanTin.Application.UnitTests.MasterData;
 public sealed class OfficerServiceTests : IDisposable
 {
     private readonly InMemoryAppDbContext _db = new();
+    private readonly IPermissionChecker _checker = Substitute.For<IPermissionChecker>();
     private readonly OfficerService _service;
 
     public OfficerServiceTests()
     {
-        _service = new OfficerService(_db, new SaveOfficerRequestValidator());
+        _service = new OfficerService(_db, _checker, new SaveOfficerRequestValidator());
     }
 
     public void Dispose() => _db.Dispose();
@@ -44,6 +50,32 @@ public sealed class OfficerServiceTests : IDisposable
         dto.IsSupervisingOfficer.ShouldBeTrue();
         dto.IsActive.ShouldBeTrue();
         (await _db.Officer.SingleAsync()).Id.ShouldBe(dto.Id);
+    }
+
+    [Fact]
+    public async Task Add_WithoutPermission_IsRefusedBeforeAnythingIsSaved()
+    {
+        _checker.RequireAsync(PermissionCodes.MasterData.Create, Arg.Any<CancellationToken>())
+            .ThrowsAsync(new PermissionDeniedException(PermissionCodes.MasterData.Create));
+
+        await Should.ThrowAsync<PermissionDeniedException>(() => _service.AddAsync(Request()));
+
+        _db.SaveCount.ShouldBe(0);
+        (await CountAsync()).ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task Update_WithoutPermission_IsRefusedBeforeAnythingIsSaved()
+    {
+        var officer = await SeedAsync("CB01");
+        _checker.RequireAsync(PermissionCodes.MasterData.Update, Arg.Any<CancellationToken>())
+            .ThrowsAsync(new PermissionDeniedException(PermissionCodes.MasterData.Update));
+
+        await Should.ThrowAsync<PermissionDeniedException>(
+            () => _service.UpdateAsync(officer.Id, Request("CB01", "Tên mới")));
+
+        _db.SaveCount.ShouldBe(0);
+        (await _db.Officer.AsNoTracking().SingleAsync()).FullName.ShouldBe("Lê Thị Bình");
     }
 
     [Fact]

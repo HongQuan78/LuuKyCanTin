@@ -52,4 +52,13 @@ internal sealed class UserStore(AppDbContext db) : IUserStore
 
     public Task<string?> GetOfficerFullNameAsync(int officerId, CancellationToken ct = default) =>
         db.Officer.Where(o => o.Id == officerId).Select(o => o.FullName).FirstOrDefaultAsync(ct);
+
+    public async Task<IReadOnlyList<string>> GetPermissionCodesAsync(int userId, CancellationToken ct = default) =>
+        await (from user in db.User
+               join userRole in db.UserRole on user.Id equals userRole.UserId
+               join rolePermission in db.RolePermission on userRole.RoleId equals rolePermission.RoleId
+               join permission in db.Permission on rolePermission.PermissionId equals permission.Id
+               where user.Id == userId && user.IsActive
+               orderby permission.Id
+               select permission.Code).Distinct().ToListAsync(ct);
 }

@@ -1,3 +1,5 @@
+using LuuKyCanTin.Application.Abstractions;
+using LuuKyCanTin.Application.Administration;
 using LuuKyCanTin.Application.MasterData;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -10,11 +12,19 @@ public sealed class OfficerPresenter
     private readonly Func<IOfficerEditView> _createDialog;
     private int _searchVersion;
 
-    public OfficerPresenter(IOfficerView view, IServiceScopeFactory scopes, Func<IOfficerEditView> createDialog)
+    public OfficerPresenter(
+        IOfficerView view,
+        IServiceScopeFactory scopes,
+        Func<IOfficerEditView> createDialog,
+        ICurrentUser currentUser)
     {
         _view = view;
         _scopes = scopes;
         _createDialog = createDialog;
+        // Cosmetic only: the service re-checks the database before any write.
+        _view.SetEditingEnabled(
+            currentUser.HasPermission(PermissionCodes.MasterData.Create),
+            currentUser.HasPermission(PermissionCodes.MasterData.Update));
         _view.Loaded += async (_, _) => await ReloadAsync();
         _view.SearchChanged += async (_, _) => await ReloadAsync();
         _view.AddClicked += async (_, _) => await OpenDialogAsync(officer: null);

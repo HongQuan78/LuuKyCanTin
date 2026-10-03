@@ -1,3 +1,4 @@
+using LuuKyCanTin.Application.Abstractions;
 using LuuKyCanTin.WinForms.Administration;
 using LuuKyCanTin.WinForms.Custody;
 using LuuKyCanTin.WinForms.MasterData;
@@ -9,7 +10,7 @@ namespace LuuKyCanTin.WinForms.Shell;
 /// Composes each screen with its presenter, for one shell session. Module screens are hosted in the content area and
 /// cached by the host; dialogs open modally over the shell. Presenters get the scope factory, never a scope or a DbContext.
 /// </summary>
-internal sealed class Navigator(IServiceScopeFactory scopes, IContentHost host) : INavigator
+internal sealed class Navigator(IServiceScopeFactory scopes, IContentHost host, ICurrentUser currentUser) : INavigator
 {
     public const string OfficersTitle = "Danh mục cán bộ";
     public const string DepositReceiptTitle = "Lập biên nhận thu";
@@ -21,7 +22,7 @@ internal sealed class Navigator(IServiceScopeFactory scopes, IContentHost host) 
     public void OpenOfficers() => host.ShowPage(ShellNavigation.OfficersKey, OfficersTitle, () =>
     {
         var page = new OfficerForm();
-        _ = new OfficerPresenter(page, scopes, () => new OfficerEditForm());
+        _ = new OfficerPresenter(page, scopes, () => new OfficerEditForm(), currentUser);
         return page;
     });
 
@@ -59,14 +60,15 @@ internal sealed class Navigator(IServiceScopeFactory scopes, IContentHost host) 
             {
                 using var form = new TemporaryPasswordForm(temporaryPassword);
                 form.ShowDialog(host);
-            });
+            },
+            currentUser);
         return page;
     });
 
     public void OpenRoles() => host.ShowPage(ShellNavigation.RolesKey, RolesTitle, () =>
     {
         var page = new RoleForm();
-        _ = new RolePresenter(page, scopes);
+        _ = new RolePresenter(page, scopes, currentUser);
         return page;
     });
 }

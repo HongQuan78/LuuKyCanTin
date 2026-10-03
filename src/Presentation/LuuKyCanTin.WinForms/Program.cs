@@ -1,5 +1,6 @@
 using System.Text;
 using LuuKyCanTin.Application;
+using LuuKyCanTin.Application.Abstractions;
 using LuuKyCanTin.Application.Administration;
 using LuuKyCanTin.Infrastructure;
 using LuuKyCanTin.Infrastructure.Common;
@@ -102,6 +103,9 @@ internal static class Program
     private static int RunApplication(IHost host)
     {
         Log.Information("LuuKyCanTin starting");
+        // A business error that escapes to the top logs who hit it; the handler is installed before DI exists.
+        GlobalExceptionHandler.CurrentUser = host.Services.GetRequiredService<ICurrentUser>();
+
         // Workstations never migrate: they only check, and refuse to run against a different schema.
         if (!IsDatabaseVersionCurrent(host.Services))
             return 1;

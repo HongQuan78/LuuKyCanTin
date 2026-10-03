@@ -46,6 +46,7 @@ Mỗi lần triển khai bản mới có migration, quản trị viên chạy `-
   | `lanhdao` | Chỉ huy phụ trách / Lãnh đạo đơn vị |
   | `ketoan` | Kế toán đơn vị |
 
+- Menu và các nút thao tác chỉ hiện theo quyền của người dùng; màn hình có `Xem` nhưng không có quyền ghi sẽ mở ở dạng chỉ đọc (các nút ghi bị vô hiệu hoá). Mỗi lần ghi, dịch vụ vẫn kiểm tra lại quyền trong cơ sở dữ liệu, nên quyền bị thu hồi có hiệu lực ngay cả khi phiên đang mở.
 - Màn hình **Hệ thống › Vai trò** cho phép quản trị viên bật/tắt quyền của từng vai trò; thay đổi được ghi vào nhật ký kèm danh sách quyền trước/sau.
 - Màn hình **Hệ thống › Tài khoản** cho phép quản trị viên tạo tài khoản cho cán bộ, phân vai trò, ngừng/kích hoạt, mở khoá và đặt lại mật khẩu. Tài khoản mới nhận một mật khẩu tạm thời hiện một lần và **bắt buộc đổi ở lần đăng nhập đầu tiên**. Mỗi cán bộ chỉ có một tài khoản đang hoạt động; tài khoản cũ được giữ lại làm lịch sử.
 - Tài khoản `admin` dựng sẵn không gắn với cán bộ nào, nên chỉ dành cho tình huống khẩn cấp: nó không thể duyệt phiếu và không có `OfficerId` trên chứng từ. Đơn vị nên tạo một tài khoản quản trị riêng cho cán bộ phụ trách IT.

@@ -1,3 +1,4 @@
+using LuuKyCanTin.Application.Abstractions;
 using LuuKyCanTin.Application.Administration;
 using LuuKyCanTin.WinForms.Administration;
 using LuuKyCanTin.WinForms.UnitTests.TestUtilities;
@@ -10,6 +11,7 @@ public class AccountPresenterTests
 {
     private readonly IAccountView _view = Substitute.For<IAccountView>();
     private readonly IAccountService _service = Substitute.For<IAccountService>();
+    private readonly ICurrentUser _currentUser = Substitute.For<ICurrentUser>();
     private readonly List<string> _temporaryPasswords = [];
 
     private static AccountDto Account(bool isActive) =>
@@ -21,7 +23,28 @@ public class AccountPresenterTests
             FakeScopeFactory.Create(_service),
             () => Substitute.For<ICreateAccountView>(),
             () => Substitute.For<IAccountRolesView>(),
-            _temporaryPasswords.Add);
+            _temporaryPasswords.Add,
+            _currentUser);
+
+    [Fact]
+    public void Constructor_WithoutAdministrationUpdate_OpensReadOnly()
+    {
+        _currentUser.HasPermission(Arg.Any<string>()).Returns(false);
+
+        CreatePresenter();
+
+        _view.Received(1).SetEditingEnabled(false);
+    }
+
+    [Fact]
+    public void Constructor_WithAdministrationUpdate_EnablesEditing()
+    {
+        _currentUser.HasPermission(PermissionCodes.Administration.Update).Returns(true);
+
+        CreatePresenter();
+
+        _view.Received(1).SetEditingEnabled(true);
+    }
 
     private async Task LoadAsync()
     {

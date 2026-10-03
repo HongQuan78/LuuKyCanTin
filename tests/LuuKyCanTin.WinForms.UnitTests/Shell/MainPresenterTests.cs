@@ -30,6 +30,8 @@ public class MainPresenterTests
         _view.When(v => v.ShowNavigation(Arg.Any<NavigationModel>())).Do(c => _navigation = c.Arg<NavigationModel>());
         _signedInUser.GetAsync(Arg.Any<CancellationToken>())
             .Returns(new SignedInUserDto("lan.nt", "Nguyễn Thị Lan", "Kế toán", "TRẠI TẠM GIAM SỐ 1"));
+        // Most tests care about the shell, not the menu: grant every permission unless a test narrows it.
+        _session.HasPermission(Arg.Any<string>()).Returns(true);
     }
 
     private MainPresenter NewPresenter(string title = "X")
@@ -38,7 +40,7 @@ public class MainPresenterTests
         var signIn = new SignInService(_store, _hasher, _session, _auditLog, _clock, failedSignIns);
         return new MainPresenter(
             _view, Options.Create(new AppOptions { Title = title }), _navigator,
-            FakeScopeFactory.Create(signIn, _signedInUser), _clock, Workstation);
+            FakeScopeFactory.Create(signIn, _signedInUser), _clock, Workstation, _session);
     }
 
     private async Task LoadAsync()
@@ -60,6 +62,22 @@ public class MainPresenterTests
         await LoadAsync();
 
         _view.Received(1).Title = "Tiêu đề từ cấu hình";
+    }
+
+    [Fact]
+    public async Task OnLoaded_UserWithOnlyMasterDataView_SeesStaffButNotAccountsOrRoles()
+    {
+        _session.HasPermission(Arg.Any<string>())
+            .Returns(call => call.Arg<string>() == PermissionCodes.MasterData.View);
+        NewPresenter();
+
+        await LoadAsync();
+
+        _navigation.ShouldNotBeNull();
+        _navigation.AllItems.ShouldContain(i => i.Key == ShellNavigation.OfficersKey && i.Caption.Contains("Cán bộ"));
+        _navigation.AllItems.ShouldNotContain(i => i.Key == ShellNavigation.AccountsKey);
+        _navigation.AllItems.ShouldNotContain(i => i.Key == ShellNavigation.RolesKey);
+        _navigation.Home.ShouldNotBeNull();
     }
 
     [Fact]

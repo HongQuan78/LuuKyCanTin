@@ -19,6 +19,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="LuuKyCanTin.IntegrationTests" />
+    <InternalsVisibleTo Include="LuuKyCanTin.WinForms.UnitTests" />
   </ItemGroup>
 
   <ItemGroup>

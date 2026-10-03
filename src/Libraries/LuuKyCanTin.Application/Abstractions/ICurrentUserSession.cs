@@ -6,7 +6,8 @@ namespace LuuKyCanTin.Application.Abstractions;
 /// </summary>
 public interface ICurrentUserSession : ICurrentUser
 {
-    void SignIn(int userId, string userName, int? officerId, string? fullName);
+    /// <param name="permissionCodes">The codes the user's roles grant, loaded once at sign-in for UI checks.</param>
+    void SignIn(int userId, string userName, int? officerId, string? fullName, IReadOnlyCollection<string> permissionCodes);
 
     void SignOut();
 }

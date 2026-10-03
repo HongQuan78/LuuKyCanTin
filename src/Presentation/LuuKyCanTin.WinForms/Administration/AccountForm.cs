@@ -10,6 +10,8 @@ public partial class AccountForm : UserControl, IAccountView
     private const string InactiveText = "Đã ngừng";
     private const string LockedText = "Đang khoá";
 
+    private bool _canEdit = true;
+
     public AccountForm()
     {
         InitializeComponent();
@@ -23,7 +25,7 @@ public partial class AccountForm : UserControl, IAccountView
         btnResetPassword.Click += (_, _) => ResetPasswordClicked?.Invoke(this, EventArgs.Empty);
         grdAccounts.CellDoubleClick += (_, e) =>
         {
-            if (e.RowIndex >= 0)
+            if (e.RowIndex >= 0 && _canEdit)
                 RolesClicked?.Invoke(this, EventArgs.Empty);
         };
         grdAccounts.SelectionChanged += (_, _) => UpdateActionCaptions();
@@ -53,6 +55,16 @@ public partial class AccountForm : UserControl, IAccountView
         UpdateActionCaptions();
     }
 
+    public void SetEditingEnabled(bool canEdit)
+    {
+        _canEdit = canEdit;
+        btnAdd.Enabled = canEdit;
+        btnRoles.Enabled = canEdit;
+        btnToggleActive.Enabled = canEdit;
+        btnUnlock.Enabled = canEdit;
+        btnResetPassword.Enabled = canEdit;
+    }
+
     public bool Confirm(string message) =>
         MessageBox.Show(this, message, "Xác nhận", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes;
 
@@ -79,13 +91,13 @@ public partial class AccountForm : UserControl, IAccountView
     // The grid would otherwise use Enter to move down a row, so it is taken before the grid sees it.
     protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
     {
-        if (keyData == Keys.Insert)
+        if (keyData == Keys.Insert && _canEdit)
         {
             AddClicked?.Invoke(this, EventArgs.Empty);
             return true;
         }
 
-        if (keyData == Keys.Enter && grdAccounts.ContainsFocus)
+        if (keyData == Keys.Enter && grdAccounts.ContainsFocus && _canEdit)
         {
             RolesClicked?.Invoke(this, EventArgs.Empty);
             return true;

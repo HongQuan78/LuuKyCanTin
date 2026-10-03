@@ -1,3 +1,4 @@
+using LuuKyCanTin.Application.Abstractions;
 using LuuKyCanTin.Domain.Administration;
 using LuuKyCanTin.WinForms.Administration;
 using LuuKyCanTin.WinForms.Custody;
@@ -157,7 +158,7 @@ public class ShellScreenTests
         var host = Substitute.For<IContentHost>();
         Func<Control> create = () => throw new InvalidOperationException("not called by the navigator");
 
-        new Navigator(Substitute.For<Microsoft.Extensions.DependencyInjection.IServiceScopeFactory>(), host)
+        new Navigator(Substitute.For<Microsoft.Extensions.DependencyInjection.IServiceScopeFactory>(), host, Substitute.For<ICurrentUser>())
             .ShowPage("k", "Tiêu đề", create);
 
         host.Received(1).ShowPage("k", "Tiêu đề", create);
@@ -174,7 +175,8 @@ public class ShellScreenTests
             var host = Substitute.For<IContentHost>();
             Func<Control>? create = null;
             host.ShowPage(key, title, Arg.Do<Func<Control>>(f => create = f));
-            var navigator = new Navigator(Substitute.For<Microsoft.Extensions.DependencyInjection.IServiceScopeFactory>(), host);
+            var navigator = new Navigator(
+                Substitute.For<Microsoft.Extensions.DependencyInjection.IServiceScopeFactory>(), host, Substitute.For<ICurrentUser>());
 
             Action open = key switch
             {

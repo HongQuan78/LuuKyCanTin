@@ -47,6 +47,22 @@ public class RoleScreenTests
     }
 
     [Fact]
+    public void RoleForm_ReadOnlyByPermission_DisablesSaveCancelAndTheMatrix()
+    {
+        StaThread.Run(() =>
+        {
+            using var screen = new RoleForm();
+            IRoleView view = screen;
+
+            view.SetEditingEnabled(canEdit: false);
+
+            Find<Button>(screen, "btnSave").Enabled.ShouldBeFalse();
+            Find<Button>(screen, "btnCancel").Enabled.ShouldBeFalse();
+            Find<DataGridView>(screen, "grdPermissions").ReadOnly.ShouldBeTrue();
+        });
+    }
+
+    [Fact]
     public void RoleForm_ShowRoles_SelectsTheFirstAndHeadsTheMatrixWithItsName()
     {
         StaThread.Run(() =>

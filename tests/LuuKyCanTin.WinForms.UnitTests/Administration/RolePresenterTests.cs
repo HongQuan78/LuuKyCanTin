@@ -1,3 +1,4 @@
+using LuuKyCanTin.Application.Abstractions;
 using LuuKyCanTin.Application.Administration;
 using LuuKyCanTin.Application.Common;
 using LuuKyCanTin.Domain.Administration;
@@ -14,8 +15,29 @@ public class RolePresenterTests
 
     private readonly IRoleView _view = Substitute.For<IRoleView>();
     private readonly IRoleService _service = Substitute.For<IRoleService>();
+    private readonly ICurrentUser _currentUser = Substitute.For<ICurrentUser>();
 
-    private RolePresenter CreatePresenter() => new(_view, FakeScopeFactory.Create(_service));
+    private RolePresenter CreatePresenter() => new(_view, FakeScopeFactory.Create(_service), _currentUser);
+
+    [Fact]
+    public void Constructor_WithoutAdministrationUpdate_OpensReadOnly()
+    {
+        _currentUser.HasPermission(Arg.Any<string>()).Returns(false);
+
+        CreatePresenter();
+
+        _view.Received(1).SetEditingEnabled(false);
+    }
+
+    [Fact]
+    public void Constructor_WithAdministrationUpdate_EnablesEditing()
+    {
+        _currentUser.HasPermission(PermissionCodes.Administration.Update).Returns(true);
+
+        CreatePresenter();
+
+        _view.Received(1).SetEditingEnabled(true);
+    }
 
     private void SeedOneRole(params string[] permissionCode)
     {

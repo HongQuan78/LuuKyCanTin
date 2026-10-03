@@ -3,6 +3,7 @@ using LuuKyCanTin.Application.Common;
 using LuuKyCanTin.Application.MasterData;
 using LuuKyCanTin.Domain.Administration;
 using LuuKyCanTin.Domain.MasterData;
+using LuuKyCanTin.Infrastructure.Administration;
 using LuuKyCanTin.Infrastructure.Persistence;
 using LuuKyCanTin.IntegrationTests.Common;
 using Microsoft.EntityFrameworkCore;
@@ -12,17 +13,20 @@ namespace LuuKyCanTin.IntegrationTests.MasterData;
 
 public sealed class OfficerServiceTests : IClassFixture<AppDatabaseFixture>, IAsyncLifetime
 {
-    private const int UserId = 3;
     private readonly AppDatabaseFixture _fixture;
     private readonly List<AppDbContext> _contexts = [];
+    private int _userId;
 
-    public OfficerServiceTests(AppDatabaseFixture fixture)
+    public OfficerServiceTests(AppDatabaseFixture fixture) => _fixture = fixture;
+
+    // The staff register needs DM.Them/DM.Sua: sign in the seeded admin, whose role grants them.
+    public async Task InitializeAsync()
     {
-        _fixture = fixture;
-        _fixture.User.SignIn(UserId, "admin", null, "admin");
+        await using var db = _fixture.Database.CreateDbContext();
+        var admin = await db.User.SingleAsync(u => u.UserName == "admin");
+        _userId = admin.Id;
+        await _fixture.SignInAsync(admin);
     }
-
-    public Task InitializeAsync() => Task.CompletedTask;
 
     public async Task DisposeAsync()
     {
@@ -35,7 +39,7 @@ public sealed class OfficerServiceTests : IClassFixture<AppDatabaseFixture>, IAs
     {
         var context = _fixture.CreateAuditedContext();
         _contexts.Add(context);
-        return new OfficerService(context, new SaveOfficerRequestValidator());
+        return new OfficerService(context, new PermissionChecker(context, _fixture.User), new SaveOfficerRequestValidator());
     }
 
     // The database is shared by the class, so every test picks codes nobody else uses.
@@ -184,7 +188,7 @@ public sealed class OfficerServiceTests : IClassFixture<AppDatabaseFixture>, IAs
         var log = await LogOfAsync(dto.Id);
 
         log.Select(n => n.Action).ShouldBe([AuditAction.Create, AuditAction.Update]);
-        log.ShouldAllBe(n => n.UserId == UserId);
+        log.ShouldAllBe(n => n.UserId == _userId);
         log[1].OldValues.ShouldBe("""{"Position":"Cán bộ quản giáo"}""");
         log[1].NewValues.ShouldBe("""{"Position":"Chỉ huy phụ trách"}""");
     }

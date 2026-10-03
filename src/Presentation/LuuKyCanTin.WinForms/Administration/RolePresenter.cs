@@ -1,3 +1,4 @@
+using LuuKyCanTin.Application.Abstractions;
 using LuuKyCanTin.Application.Administration;
 using LuuKyCanTin.Application.Common;
 using LuuKyCanTin.Domain.Administration;
@@ -13,10 +14,12 @@ public sealed class RolePresenter
     private byte[]? _selectedRowVer;
     private bool _isSaving;
 
-    public RolePresenter(IRoleView view, IServiceScopeFactory scopes)
+    public RolePresenter(IRoleView view, IServiceScopeFactory scopes, ICurrentUser currentUser)
     {
         _view = view;
         _scopes = scopes;
+        // Cosmetic only: the service re-checks the database before any write.
+        _view.SetEditingEnabled(currentUser.HasPermission(PermissionCodes.Administration.Update));
         _view.Loaded += async (_, _) => await LoadRolesAsync();
         _view.RoleChanged += async (_, _) => await LoadPermissionsAsync();
         _view.SaveClicked += OnSaveClicked;

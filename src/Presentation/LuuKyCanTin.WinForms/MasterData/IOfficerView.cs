@@ -22,4 +22,7 @@ public interface IOfficerView
     OfficerDto? SelectedOfficer { get; }
 
     void ShowList(IReadOnlyList<OfficerDto> items);
+
+    /// <summary>Read-only by permission: Thêm and Sửa are disabled, the list still opens.</summary>
+    void SetEditingEnabled(bool canAdd, bool canEdit);
 }
