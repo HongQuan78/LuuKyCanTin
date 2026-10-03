@@ -30,12 +30,14 @@ internal static class Program
         }
         else
         {
-            GlobalExceptionHandler.Install();
+            GlobalExceptionHandler.CaiDat();
             ApplicationConfiguration.Initialize();
         }
 
         try
         {
+            // Until the host has read its configuration, a startup failure still needs a file to land in.
+            Log.Logger = TaoLogger(configuration: null);
             using var host = CreateHost(command.HostArgs);
             return command.IsAdminCommand ? RunAdminCommand(host, command) : RunApplication(host);
         }
@@ -66,7 +68,9 @@ internal static class Program
             ContentRootPath = AppContext.BaseDirectory,
         });
 
-        Log.Logger = CreateLogger(builder.Configuration);
+        // Release the bootstrap logger's file before the configured logger opens the same one.
+        Log.CloseAndFlush();
+        Log.Logger = TaoLogger(builder.Configuration);
         builder.Services.AddSerilog();
 
         builder.Services.Configure<AppOptions>(builder.Configuration.GetSection(AppOptions.SectionName));
@@ -124,15 +128,18 @@ internal static class Program
         return false;
     }
 
-    private static Serilog.ILogger CreateLogger(IConfiguration configuration)
+    private static Serilog.ILogger TaoLogger(IConfiguration? configuration)
     {
         // %ProgramData% is resolved here; Serilog does not expand environment variables in paths.
         var logDirectory = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "LuuKyCanTin", "logs");
         Directory.CreateDirectory(logDirectory);
 
-        return new LoggerConfiguration()
-            .ReadFrom.Configuration(configuration)
+        var loggerConfiguration = new LoggerConfiguration();
+        if (configuration is not null)
+            loggerConfiguration.ReadFrom.Configuration(configuration);
+
+        return loggerConfiguration
             .Enrich.FromLogContext()
             .WriteTo.File(
                 Path.Combine(logDirectory, "log-.txt"),

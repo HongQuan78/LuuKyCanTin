@@ -3,10 +3,10 @@ using Shouldly;
 
 namespace LuuKyCanTin.Application.UnitTests;
 
-public class DependencyInjectionTests
+public class ApplicationServiceCollectionExtensionsTests
 {
     [Fact]
-    public void AddApplication_ReturnsSameCollectionForChaining()
+    public void AddApplication_AnyCollection_ReturnsSameInstance()
     {
         var services = new ServiceCollection();
 

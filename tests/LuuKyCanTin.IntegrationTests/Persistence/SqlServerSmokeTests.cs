@@ -7,7 +7,7 @@ namespace LuuKyCanTin.IntegrationTests.Persistence;
 public class SqlServerSmokeTests
 {
     [SqlServerFact]
-    public async Task Server_AcceptsConnectionAndQuery()
+    public async Task OpenAsync_ConfiguredServer_AcceptsSelectQuery()
     {
         await using var connection = new SqlConnection(SqlServerFactAttribute.ConnectionString);
         await connection.OpenAsync();

@@ -23,7 +23,7 @@ public sealed class SqlServerFactAttribute : FactAttribute
 
     /// <summary>False only when the tests are going to be skipped, so fixtures can avoid touching a server.</summary>
     public static bool ShouldRun { get; } =
-        ConfiguredServer is not null || Environment.GetEnvironmentVariable("CI") is not null || IsLocalDbInstalled();
+        ConfiguredServer is not null || Environment.GetEnvironmentVariable("CI") is not null || DaCaiLocalDb();
 
     public SqlServerFactAttribute()
     {
@@ -38,7 +38,7 @@ public sealed class SqlServerFactAttribute : FactAttribute
         return string.IsNullOrWhiteSpace(value) ? null : value;
     }
 
-    private static bool IsLocalDbInstalled()
+    private static bool DaCaiLocalDb()
     {
         if (!OperatingSystem.IsWindows())
             return false;

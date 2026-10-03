@@ -13,16 +13,16 @@ public class ProjectReferenceTests
     public static TheoryData<string> ProjectNames => [.. ProjectReferenceRules.KnownProjects];
 
     [Fact]
-    public void EverySourceProject_HasARule()
+    public void KiemTra_EverySourceProject_HasARule()
     {
         SourceProjects.Keys.ShouldBe(ProjectReferenceRules.KnownProjects, ignoreOrder: true);
     }
 
     [Theory]
     [MemberData(nameof(ProjectNames))]
-    public void SourceProject_FollowsTheDependencyRule(string projectName)
+    public void KiemTra_SourceProject_FollowsTheDependencyRule(string projectName)
     {
-        var violations = ProjectReferenceRules.Check(projectName, File.ReadAllText(SourceProjects[projectName]));
+        var violations = ProjectReferenceRules.KiemTra(projectName, File.ReadAllText(SourceProjects[projectName]));
 
         violations.ShouldBeEmpty();
     }

@@ -31,17 +31,17 @@ public class MainPresenterTests
     }
 
     [Fact]
-    public void Loaded_SetsTitleFromOptions()
+    public void OnLoaded_ViewLoaded_SetsTieuDeFromOptions()
     {
-        NewPresenter("Lưu ký – Căn tin");
+        NewPresenter("Tiêu đề từ cấu hình");
 
         _view.Loaded += Raise.Event();
 
-        _view.Received(1).TieuDe = "Lưu ký – Căn tin";
+        _view.Received(1).TieuDe = "Tiêu đề từ cấu hình";
     }
 
     [Fact]
-    public void BeforeLoaded_DoesNotTouchView()
+    public void Constructor_BeforeLoaded_DoesNotTouchView()
     {
         NewPresenter();
 

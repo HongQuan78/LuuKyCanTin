@@ -13,3 +13,15 @@
   summary: The "Vai trò" form (module × action checkbox grid) is not covered by any UI test.
   evidence: `VaiTroPresenterTests` substitute `IVaiTroView`; building the actual `DataGridView` rows/columns and reading ticked cells is only exercised by hand.
 
+
+## Deferred from: code review of 1-1-solution-skeleton-host-ci (2026-10-02)
+
+- source_spec: `_bmad-output/implementation-artifacts/stories/epic-01/1-1-solution-skeleton-host-ci.md`
+  summary: The architecture test reads raw `.csproj` only, so references injected through `Directory.Build.props`/`Directory.Packages.props` (`GlobalPackageReference`), or any package marked `PrivateAssets="all"`, get past the "Domain has no NuGet package" rule.
+  evidence: `ProjectReferenceRules.Check` parses the XML text it is given; `IsAnalyzerOnly` trusts `PrivateAssets="all"`. Nothing violates the rule today: the only shared reference is the BannedApiAnalyzers analyzer in `src/Directory.Build.props`.
+- source_spec: `_bmad-output/implementation-artifacts/stories/epic-01/1-1-solution-skeleton-host-ci.md`
+  summary: Nothing tests the composition root (the `App` section binds to `AppOptions`, the presenter attaches to the form).
+  evidence: `Program.CreateHost` is untested; removing `Configure<AppOptions>` leaves every test green because the Designer text, the `AppOptions` default and `appsettings.json` all give the same title.
+- source_spec: `_bmad-output/implementation-artifacts/stories/epic-01/1-1-solution-skeleton-host-ci.md`
+  summary: The host is built but never started, so a future `IHostedService` (for example scheduled backup) would silently never run.
+  evidence: `Program.Main` calls `CreateHost` and then `WinFormsApp.Run`, with no `host.Start()`/`StopAsync()`. No hosted service is registered yet.

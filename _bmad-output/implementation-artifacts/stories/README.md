@@ -8,7 +8,7 @@ Source of the stories: `_bmad-output/planning-artifacts/epics/epic-NN-*.md`. Eac
 
 | Story | File | Size | Depends on | Status |
 |---|---|---|---|---|
-| 1.1 Solution skeleton, host and CI | [1-1-solution-skeleton-host-ci.md](epic-01/1-1-solution-skeleton-host-ci.md) | M | — | review |
+| 1.1 Solution skeleton, host and CI | [1-1-solution-skeleton-host-ci.md](epic-01/1-1-solution-skeleton-host-ci.md) | M | — | done |
 | 1.2 Database migrations, schema-version check, enum ↔ CHECK test | [1-2-database-migrations-schema-version-enum-check.md](epic-01/1-2-database-migrations-schema-version-enum-check.md) | M | 1.1 | review |
 | 1.3 IClock and automatic audit-log interceptor | [1-3-iclock-audit-log-interceptor.md](epic-01/1-3-iclock-audit-log-interceptor.md) | M | 1.2 | review |
 | 1.4 Amount in Vietnamese words | [1-4-amount-in-vietnamese-words.md](epic-01/1-4-amount-in-vietnamese-words.md) | S | 1.1 | review |
@@ -24,6 +24,7 @@ Source of the stories: `_bmad-output/planning-artifacts/epics/epic-NN-*.md`. Eac
 1. Can Application reference `Microsoft.EntityFrameworkCore` (core, no provider)? — **Settled: yes** (Epic 2.1 and the merge; the architecture test allows EF Core core and still forbids every provider). See 1.1 Dev Notes and the 1.8 T0 note.
 2. Document number format `BNT-2026-00001` (epics.md Open Question 1).
 3. 24 → "hai mươi bốn" or "hai mươi tư" (1.4, non-blocking).
+4. Application may reference `Microsoft.Extensions.DependencyInjection.Abstractions` (for `AddApplication`) beyond AC 2's "plus FluentValidation". **Settled: accepted deviation** (1.1 code review, 2026-10-02).
 
 **Sprint 0 gate:** CI green, spike notes merged, and DEC-02, DEC-05 and DEC-09 decided by the PO.
 

@@ -1,4 +1,9 @@
 <Solution>
+  <Folder Name="/spikes/">
+    <Project Path="spikes/SP-01-QuestPdf/SP-01-QuestPdf.csproj" />
+    <Project Path="spikes/SP-02-Velopack/SP-02-Velopack.csproj" />
+    <Project Path="spikes/SP-03-Search/SP-03-Search.csproj" />
+  </Folder>
   <Folder Name="/src/" />
   <Folder Name="/src/Libraries/">
     <Project Path="src/Libraries/LuuKyCanTin.Application/LuuKyCanTin.Application.csproj" />
