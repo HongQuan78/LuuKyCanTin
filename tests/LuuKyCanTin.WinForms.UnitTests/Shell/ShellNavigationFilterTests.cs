@@ -48,6 +48,18 @@ public class ShellNavigationFilterTests
     }
 
     [Fact]
+    public void BuildVisible_FacilityInfo_RequiresAdministrationView()
+    {
+        Model().AllItems.Single(i => i.Key == ShellNavigation.FacilityInfoKey).PermissionCode
+            .ShouldBe(PermissionCodes.Administration.View);
+
+        Visible(PermissionCodes.Administration.View).AllItems
+            .ShouldContain(i => i.Key == ShellNavigation.FacilityInfoKey);
+        Visible(PermissionCodes.MasterData.View).AllItems
+            .ShouldNotContain(i => i.Key == ShellNavigation.FacilityInfoKey);
+    }
+
+    [Fact]
     public void BuildVisible_TilesAndShortcuts_FollowTheVisibleItems()
     {
         var withoutReceipt = Visible(PermissionCodes.MasterData.View);

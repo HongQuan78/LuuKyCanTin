@@ -16,6 +16,7 @@ internal sealed class Navigator(IServiceScopeFactory scopes, IContentHost host, 
     public const string DepositReceiptTitle = "Lập biên nhận thu";
     public const string AccountsTitle = "Tài khoản";
     public const string RolesTitle = "Vai trò và phân quyền";
+    public const string FacilityInfoTitle = "Thông tin đơn vị";
 
     public void ShowPage(string key, string title, Func<Control> create) => host.ShowPage(key, title, create);
 
@@ -69,6 +70,13 @@ internal sealed class Navigator(IServiceScopeFactory scopes, IContentHost host, 
     {
         var page = new RoleForm();
         _ = new RolePresenter(page, scopes, currentUser);
+        return page;
+    });
+
+    public void OpenFacilityInfo() => host.ShowPage(ShellNavigation.FacilityInfoKey, FacilityInfoTitle, () =>
+    {
+        var page = new FacilityInfoForm();
+        _ = new FacilityInfoPresenter(page, scopes, currentUser);
         return page;
     });
 

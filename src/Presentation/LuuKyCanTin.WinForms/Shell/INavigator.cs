@@ -24,6 +24,9 @@ public interface INavigator
     /// <summary>Shows the role and permission screen in the content area.</summary>
     void OpenRoles();
 
+    /// <summary>Shows the unit-information screen in the content area.</summary>
+    void OpenFacilityInfo();
+
     /// <summary>Opens the voluntary change-password dialog for the signed-in user.</summary>
     void OpenChangePassword();
 

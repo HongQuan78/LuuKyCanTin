@@ -16,6 +16,8 @@ public sealed class InMemoryAppDbContext() : DbContext(
 
     public DbSet<User> User => Set<User>();
 
+    public DbSet<FacilityInfo> FacilityInfo => Set<FacilityInfo>();
+
     public DbSet<Role> Role => Set<Role>();
 
     public DbSet<Permission> Permission => Set<Permission>();

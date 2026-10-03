@@ -15,6 +15,7 @@ public static class ShellNavigation
     public const string AddInmateKey = "master-data.add-inmate";
     public const string AccountsKey = "administration.accounts";
     public const string RolesKey = "administration.roles";
+    public const string FacilityInfoKey = "administration.facility-info";
     public const string ChangePasswordKey = "administration.change-password";
     public const string LockSessionKey = "administration.lock-session";
     public const string SignOutKey = "administration.sign-out";
@@ -52,6 +53,10 @@ public static class ShellNavigation
                     PermissionCode = PermissionCodes.Administration.View,
                 },
                 new NavItem(RolesKey, "&Vai trò", navigator.OpenRoles)
+                {
+                    PermissionCode = PermissionCodes.Administration.View,
+                },
+                new NavItem(FacilityInfoKey, "Thông tin đơ&n vị", navigator.OpenFacilityInfo)
                 {
                     PermissionCode = PermissionCodes.Administration.View,
                 },

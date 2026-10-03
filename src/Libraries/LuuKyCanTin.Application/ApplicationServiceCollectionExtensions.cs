@@ -13,8 +13,10 @@ public static class ApplicationServiceCollectionExtensions
     {
         services.AddSingleton<IValidator<SaveOfficerRequest>, SaveOfficerRequestValidator>();
         services.AddSingleton<IValidator<CreateAccountRequest>, CreateAccountRequestValidator>();
+        services.AddSingleton<IValidator<SaveFacilityInfoRequest>, SaveFacilityInfoRequestValidator>();
         services.AddScoped<IOfficerService, OfficerService>();
         services.AddScoped<IRoleService, RoleService>();
+        services.AddScoped<IFacilityInfoService, FacilityInfoService>();
         services.AddScoped<LastAdministratorGuard>();
         services.AddScoped<IAccountService, AccountService>();
 

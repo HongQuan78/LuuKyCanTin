@@ -1,3 +1,4 @@
+using FluentValidation;
 using LuuKyCanTin.Application;
 using LuuKyCanTin.Application.Abstractions;
 using LuuKyCanTin.Application.Administration;
@@ -68,6 +69,8 @@ public sealed class InfrastructureRegistrationTests
     [Theory]
     [InlineData(typeof(IAccountService))]
     [InlineData(typeof(LastAdministratorGuard))]
+    [InlineData(typeof(IFacilityInfoService))]
+    [InlineData(typeof(IValidator<SaveFacilityInfoRequest>))]
     public void AddApplicationAndInfrastructure_AccountServices_AreResolvable(Type service)
     {
         using var provider = CreateProvider(ConnectionString, includeApplication: true);

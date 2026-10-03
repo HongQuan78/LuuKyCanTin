@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using LuuKyCanTin.Application.Abstractions;
+using LuuKyCanTin.Application.Administration;
 using LuuKyCanTin.Application.Custody;
 using LuuKyCanTin.Application.MasterData;
 using LuuKyCanTin.Application.Reporting;
@@ -73,19 +74,19 @@ internal sealed class DepositReceiptTemplate(IClock clock) : IReportTemplate<Dep
                 column.Item().Text(text =>
                 {
                     text.AlignCenter();
-                    text.Span(Nfc(model.ParentAgencyName)).Style(TextStyle.Default.Bold());
+                    text.Span(Nfc(FacilityHeaderLines.FormatParentAgency(model.ParentAgencyName))).Style(TextStyle.Default.Bold());
                 });
             }
 
             column.Item().Text(text =>
             {
                 text.AlignCenter();
-                text.Span(Nfc(model.FacilityName)).Style(TextStyle.Default.Bold());
+                text.Span(Nfc(FacilityHeaderLines.FormatFacilityName(model.FacilityName))).Style(TextStyle.Default.Bold());
             });
             column.Item().Text(text =>
             {
                 text.AlignCenter();
-                text.Span($"Địa chỉ: {Nfc(model.Address)}").FontSize(9).FontColor(GreyText);
+                text.Span(Nfc(FacilityHeaderLines.FormatAddressLine(model.Address))).FontSize(9).FontColor(GreyText);
             });
         });
     }

@@ -132,6 +132,7 @@ public class MainPresenterTests : IDisposable
     [InlineData(ShellNavigation.DepositReceiptKey, nameof(INavigator.OpenDepositReceipt))]
     [InlineData(ShellNavigation.AccountsKey, nameof(INavigator.OpenAccounts))]
     [InlineData(ShellNavigation.RolesKey, nameof(INavigator.OpenRoles))]
+    [InlineData(ShellNavigation.FacilityInfoKey, nameof(INavigator.OpenFacilityInfo))]
     [InlineData(ShellNavigation.ChangePasswordKey, nameof(INavigator.OpenChangePassword))]
     public async Task NavigationRequested_AScreenItem_OpensTheSameScreenAsTheOldMenu(string key, string navigatorMethod)
     {
