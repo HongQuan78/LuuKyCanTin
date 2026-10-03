@@ -60,15 +60,18 @@ internal sealed class DemoDataSeeder(AppDbContext db, IMatKhauHasher matKhauHash
             if (await db.NguoiDung.AnyAsync(u => u.TenDangNhap == taiKhoan.TenDangNhap, cancellationToken))
                 continue;
 
-            if (!await db.CanBo.AnyAsync(c => c.MaCanBo == taiKhoan.MaCanBo, cancellationToken))
+            var canBo = await db.CanBo.FirstOrDefaultAsync(c => c.MaCanBo == taiKhoan.MaCanBo, cancellationToken);
+            if (canBo is null)
             {
-                db.CanBo.Add(new CanBo(taiKhoan.MaCanBo, taiKhoan.HoTen, taiKhoan.ChucVu, taiKhoan.LaQuanGiao));
+                canBo = new CanBo(taiKhoan.MaCanBo, taiKhoan.HoTen, taiKhoan.ChucVu, taiKhoan.LaQuanGiao);
+                db.CanBo.Add(canBo);
                 await db.SaveChangesAsync(cancellationToken);
             }
 
             var nguoiDung = new NguoiDung
             {
                 TenDangNhap = taiKhoan.TenDangNhap,
+                CanBoId = canBo.Id,
                 MatKhauHash = matKhauHasher.Hash(MatKhauDemo),
                 DangHoatDong = true,
                 PhaiDoiMatKhau = false,

@@ -6,6 +6,9 @@ public interface IMainView
 
     event EventHandler DanhMucCanBoClicked;
 
+    /// <summary>The "Hệ thống › Tài khoản" menu item.</summary>
+    event EventHandler TaiKhoanClicked;
+
     /// <summary>The "Hệ thống › Vai trò" menu item.</summary>
     event EventHandler VaiTroClicked;
 

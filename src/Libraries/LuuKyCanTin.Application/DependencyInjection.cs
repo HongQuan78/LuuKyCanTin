@@ -12,8 +12,11 @@ public static class DependencyInjection
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
         services.AddSingleton<IValidator<LuuCanBoRequest>, LuuCanBoRequestValidator>();
+        services.AddSingleton<IValidator<TaoTaiKhoanRequest>, TaoTaiKhoanRequestValidator>();
         services.AddScoped<ICanBoService, CanBoService>();
         services.AddScoped<IVaiTroService, VaiTroService>();
+        services.AddScoped<KiemTraConQuanTri>();
+        services.AddScoped<ITaiKhoanService, TaiKhoanService>();
 
         services.AddScoped<GhiNhanDangNhapSaiService>();
         services.AddScoped<DangNhapService>();

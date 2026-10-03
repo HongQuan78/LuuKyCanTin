@@ -220,6 +220,9 @@ namespace LuuKyCanTin.Infrastructure.Persistence.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<int?>("CanBoId")
+                        .HasColumnType("int");
+
                     b.Property<bool>("DangHoatDong")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
@@ -273,10 +276,18 @@ namespace LuuKyCanTin.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CanBoId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_NguoiDung_CanBoId_DangHoatDong")
+                        .HasFilter("[DangHoatDong] = 1 AND [CanBoId] IS NOT NULL");
+
                     b.HasIndex("TenDangNhap")
                         .IsUnique();
 
-                    b.ToTable("NguoiDung", (string)null);
+                    b.ToTable("NguoiDung", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_NguoiDung_CanBoId", "[CanBoId] IS NOT NULL OR [TenDangNhap] = 'admin'");
+                        });
                 });
 
             modelBuilder.Entity("LuuKyCanTin.Domain.HeThong.NguoiDungVaiTro", b =>
@@ -1335,6 +1346,14 @@ namespace LuuKyCanTin.Infrastructure.Persistence.Migrations
 
                             t.HasCheckConstraint("CK_ChungTuLuuKy_TrangThai", "[TrangThai] IN (1, 2, 3)");
                         });
+                });
+
+            modelBuilder.Entity("LuuKyCanTin.Domain.HeThong.NguoiDung", b =>
+                {
+                    b.HasOne("LuuKyCanTin.Domain.DanhMuc.CanBo", null)
+                        .WithMany()
+                        .HasForeignKey("CanBoId")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("LuuKyCanTin.Domain.HeThong.NguoiDungVaiTro", b =>

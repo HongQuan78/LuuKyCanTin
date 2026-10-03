@@ -1,3 +1,4 @@
+using System.Data;
 using LuuKyCanTin.Application.Abstractions;
 using LuuKyCanTin.Application.Common;
 using LuuKyCanTin.Domain.DanhMuc;
@@ -62,6 +63,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
     async Task<IAppTransaction> IAppDbContext.BeginTransactionAsync(CancellationToken ct)
         => new AppTransaction(await Database.BeginTransactionAsync(ct));
+
+    async Task<IAppTransaction> IAppDbContext.BeginTransactionAsync(MucDoCoLapGiaoDich mucDoCoLap, CancellationToken ct)
+        => mucDoCoLap == MucDoCoLapGiaoDich.TuanTu
+            ? new AppTransaction(await Database.BeginTransactionAsync(IsolationLevel.Serializable, ct))
+            : new AppTransaction(await Database.BeginTransactionAsync(ct));
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -1,5 +1,6 @@
 using LuuKyCanTin.Application.Abstractions;
 using LuuKyCanTin.Application.HeThong;
+using LuuKyCanTin.Domain.DanhMuc;
 using LuuKyCanTin.Domain.HeThong;
 using LuuKyCanTin.Infrastructure.HeThong;
 using LuuKyCanTin.Infrastructure.Persistence;
@@ -55,9 +56,19 @@ public sealed class DangNhapServiceTests : IClassFixture<AppDatabaseFixture>, IA
     private async Task<NguoiDung> TaoTaiKhoanAsync(bool phaiDoiMatKhau = false)
     {
         await using var db = NewContext();
+        // Every account except the built-in admin must link to a staff member (CK_NguoiDung_CanBoId).
+        var canBo = new CanBo(
+            "T" + Guid.NewGuid().ToString("N")[..12].ToUpperInvariant(),
+            "Cán bộ " + Guid.NewGuid().ToString("N")[..6],
+            "Cán bộ",
+            laQuanGiao: false);
+        db.CanBo.Add(canBo);
+        await db.SaveChangesAsync();
+
         var nguoiDung = new NguoiDung
         {
             TenDangNhap = "u" + Guid.NewGuid().ToString("N")[..12],
+            CanBoId = canBo.Id,
             MatKhauHash = _hasher.Hash(MatKhauBanDau),
             DangHoatDong = true,
             PhaiDoiMatKhau = phaiDoiMatKhau,

@@ -1,3 +1,4 @@
+using LuuKyCanTin.Domain.DanhMuc;
 using LuuKyCanTin.Domain.HeThong;
 using LuuKyCanTin.Infrastructure.Persistence.Configurations.Common;
 using Microsoft.EntityFrameworkCore;
@@ -9,10 +10,20 @@ internal sealed class NguoiDungConfiguration : AuditableEntityConfiguration<Nguo
 {
     protected override void ConfigureEntity(EntityTypeBuilder<NguoiDung> builder)
     {
-        builder.ToTable("NguoiDung");
+        // Only the built-in admin may exist without a staff record; every real person works under their own account.
+        builder.ToTable("NguoiDung", t => t.HasCheckConstraint(
+            "CK_NguoiDung_CanBoId", "[CanBoId] IS NOT NULL OR [TenDangNhap] = 'admin'"));
 
         builder.Property(e => e.TenDangNhap).HasMaxLength(50).IsRequired();
         builder.HasIndex(e => e.TenDangNhap).IsUnique();
+
+        builder.HasOne<CanBo>().WithMany().HasForeignKey(e => e.CanBoId).OnDelete(DeleteBehavior.Restrict);
+
+        // One active account per person (NEN-09); inactive history is kept, so the filter allows it.
+        builder.HasIndex(e => e.CanBoId)
+            .IsUnique()
+            .HasFilter("[DangHoatDong] = 1 AND [CanBoId] IS NOT NULL")
+            .HasDatabaseName("UX_NguoiDung_CanBoId_DangHoatDong");
 
         // The hash is ASCII base64; KhongGhiNhatKy keeps it out of the audit-log JSON.
         builder.Property(e => e.MatKhauHash).HasMaxLength(200).IsUnicode(false).IsRequired();

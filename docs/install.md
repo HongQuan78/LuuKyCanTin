@@ -45,6 +45,9 @@ LuuKyCanTin.WinForms.exe --migrate --seed-demo --environment Development
   | `ketoan` | Kế toán đơn vị |
 
 - Màn hình **Hệ thống › Vai trò** cho phép quản trị viên bật/tắt quyền của từng vai trò; thay đổi được ghi vào nhật ký kèm danh sách quyền trước/sau.
+- Màn hình **Hệ thống › Tài khoản** cho phép quản trị viên tạo tài khoản cho cán bộ, phân vai trò, ngừng/kích hoạt, mở khoá và đặt lại mật khẩu. Tài khoản mới nhận một mật khẩu tạm thời hiện một lần và **bắt buộc đổi ở lần đăng nhập đầu tiên**. Mỗi cán bộ chỉ có một tài khoản đang hoạt động; tài khoản cũ được giữ lại làm lịch sử.
+- Tài khoản `admin` dựng sẵn không gắn với cán bộ nào, nên chỉ dành cho tình huống khẩn cấp: nó không thể duyệt phiếu và không có `CanBoLapId` trên chứng từ. Đơn vị nên tạo một tài khoản quản trị riêng cho cán bộ phụ trách IT.
+- **Lưu ý khi nâng cấp:** từ migration `AddNguoiDungCanBo`, mọi tài khoản ngoài `admin` phải gắn với một cán bộ. Cơ sở dữ liệu cũ đã chạy `--seed-demo` (các tài khoản mẫu chưa gắn cán bộ) sẽ không qua được migration này; hãy tạo lại cơ sở dữ liệu phát triển rồi chạy lại `--migrate --seed-demo`.
 
 
 ## Điều kiện máy trạm

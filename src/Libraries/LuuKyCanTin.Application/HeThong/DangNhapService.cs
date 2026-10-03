@@ -49,7 +49,10 @@ public sealed class DangNhapService(
         // The session is set even when a change is forced: the shell stays closed until the change succeeds.
         nguoiDung.GhiNhanDangNhapDung();
         await nguoiDungStore.LuuAsync(nguoiDung, ct);
-        phien.DangNhap(nguoiDung.Id, nguoiDung.TenDangNhap);
+
+        // The built-in admin has no staff record; everywhere else HoTen is never null, so the fallback is rare.
+        var hoTen = nguoiDung.CanBoId is { } canBoId ? await nguoiDungStore.LayHoTenCanBoAsync(canBoId, ct) : null;
+        phien.DangNhap(nguoiDung.Id, nguoiDung.TenDangNhap, nguoiDung.CanBoId, hoTen ?? nguoiDung.TenDangNhap);
         await ghiNhatKy.GhiAsync(
             HanhDong.DangNhap, "NguoiDung", nguoiDung.Id,
             new { SuKien = SuKienDangNhap.DangNhap, TenDangNhap = nguoiDung.TenDangNhap }, ct);

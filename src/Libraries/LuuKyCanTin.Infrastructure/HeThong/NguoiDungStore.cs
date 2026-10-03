@@ -15,6 +15,9 @@ internal sealed class NguoiDungStore(AppDbContext db) : INguoiDungStore
     public Task<NguoiDung?> TimTheoIdAsync(int nguoiDungId, CancellationToken ct = default) =>
         db.NguoiDung.FirstOrDefaultAsync(u => u.Id == nguoiDungId, ct);
 
+    public Task<string?> LayHoTenCanBoAsync(int canBoId, CancellationToken ct = default) =>
+        db.CanBo.Where(c => c.Id == canBoId).Select(c => c.HoTen).FirstOrDefaultAsync(ct);
+
     public Task LuuAsync(NguoiDung nguoiDung, CancellationToken ct = default) =>
         ((IAppDbContext)db).SaveChangesAsync(ct);
 

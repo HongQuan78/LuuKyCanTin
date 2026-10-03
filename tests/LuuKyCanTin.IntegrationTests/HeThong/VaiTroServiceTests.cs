@@ -1,6 +1,7 @@
 using LuuKyCanTin.Application.Abstractions;
 using LuuKyCanTin.Application.Common;
 using LuuKyCanTin.Application.HeThong;
+using LuuKyCanTin.Domain.DanhMuc;
 using LuuKyCanTin.Domain.HeThong;
 using LuuKyCanTin.Infrastructure.HeThong;
 using LuuKyCanTin.Infrastructure.Persistence;
@@ -35,7 +36,8 @@ public sealed class VaiTroServiceTests : IClassFixture<AppDatabaseFixture>, IAsy
     private VaiTroService TaoService(AppDbContext db)
     {
         var ghiNhatKy = new GhiNhatKy(db, new NhatKyFactory(_fixture.Clock, _fixture.User));
-        return new VaiTroService(db, new KiemTraQuyen(db, _fixture.User), ghiNhatKy);
+        return new VaiTroService(
+            db, new KiemTraQuyen(db, _fixture.User), ghiNhatKy, new KiemTraConQuanTri(db));
     }
 
     private IKiemTraQuyen TaoKiemTraQuyen(AppDbContext db) => new KiemTraQuyen(db, _fixture.User);
@@ -44,15 +46,25 @@ public sealed class VaiTroServiceTests : IClassFixture<AppDatabaseFixture>, IAsy
     {
         await using var db = _fixture.Database.CreateDbContext();
         var nguoiDung = await db.NguoiDung.SingleAsync(u => u.TenDangNhap == tenDangNhap);
-        _fixture.User.DangNhap(nguoiDung.Id, nguoiDung.TenDangNhap);
+        _fixture.User.DangNhap(nguoiDung.Id, nguoiDung.TenDangNhap, nguoiDung.CanBoId, nguoiDung.TenDangNhap);
     }
 
     private async Task<NguoiDung> TaoNguoiDungAsync(string? vaiTroMa)
     {
         await using var db = NewContext();
+        // Every account except the built-in admin must link to a staff member (CK_NguoiDung_CanBoId).
+        var canBo = new CanBo(
+            "T" + Guid.NewGuid().ToString("N")[..12].ToUpperInvariant(),
+            "Cán bộ " + Guid.NewGuid().ToString("N")[..6],
+            "Cán bộ",
+            laQuanGiao: false);
+        db.CanBo.Add(canBo);
+        await db.SaveChangesAsync();
+
         var nguoiDung = new NguoiDung
         {
             TenDangNhap = "u" + Guid.NewGuid().ToString("N")[..12],
+            CanBoId = canBo.Id,
             MatKhauHash = "PBKDF2-SHA256$1$abc$def",
             DangHoatDong = true,
         };
@@ -212,7 +224,7 @@ public sealed class VaiTroServiceTests : IClassFixture<AppDatabaseFixture>, IAsy
     public async Task CapNhatQuyen_KhongCoQuyen_KhongGhiGiCa()
     {
         var nguoiDung = await TaoNguoiDungAsync(vaiTroMa: null);
-        _fixture.User.DangNhap(nguoiDung.Id, nguoiDung.TenDangNhap);
+        _fixture.User.DangNhap(nguoiDung.Id, nguoiDung.TenDangNhap, nguoiDung.CanBoId, nguoiDung.TenDangNhap);
 
         await using var db = NewContext();
         var service = TaoService(db);
@@ -256,7 +268,7 @@ public sealed class VaiTroServiceTests : IClassFixture<AppDatabaseFixture>, IAsy
     public async Task KiemTraQuyen_KhongCoVaiTro_BiTuChoi()
     {
         var nguoiDung = await TaoNguoiDungAsync(vaiTroMa: null);
-        _fixture.User.DangNhap(nguoiDung.Id, nguoiDung.TenDangNhap);
+        _fixture.User.DangNhap(nguoiDung.Id, nguoiDung.TenDangNhap, nguoiDung.CanBoId, nguoiDung.TenDangNhap);
         await using var db = NewContext();
 
         await Should.ThrowAsync<KhongCoQuyenException>(() => TaoKiemTraQuyen(db).YeuCauAsync(MaQuyen.HT.Sua));
@@ -274,7 +286,7 @@ public sealed class VaiTroServiceTests : IClassFixture<AppDatabaseFixture>, IAsy
             await db.SaveChangesAsync();
         }
 
-        _fixture.User.DangNhap(nguoiDung.Id, nguoiDung.TenDangNhap);
+        _fixture.User.DangNhap(nguoiDung.Id, nguoiDung.TenDangNhap, nguoiDung.CanBoId, nguoiDung.TenDangNhap);
         await using var checkDb = NewContext();
 
         await Should.ThrowAsync<KhongCoQuyenException>(() => TaoKiemTraQuyen(checkDb).YeuCauAsync(MaQuyen.HT.Sua));
@@ -285,7 +297,7 @@ public sealed class VaiTroServiceTests : IClassFixture<AppDatabaseFixture>, IAsy
     public async Task KiemTraQuyen_ThuHoiVaiTro_MatQuyenNgay()
     {
         var nguoiDung = await TaoNguoiDungAsync(MaVaiTro.QuanTri);
-        _fixture.User.DangNhap(nguoiDung.Id, nguoiDung.TenDangNhap);
+        _fixture.User.DangNhap(nguoiDung.Id, nguoiDung.TenDangNhap, nguoiDung.CanBoId, nguoiDung.TenDangNhap);
         await using (var db = NewContext())
             await Should.NotThrowAsync(() => TaoKiemTraQuyen(db).YeuCauAsync(MaQuyen.HT.Sua));
 

@@ -69,6 +69,16 @@ public class MainPresenterTests
     }
 
     [Fact]
+    public void AccountMenu_OpensTheAccountScreen()
+    {
+        NewPresenter();
+
+        _view.TaiKhoanClicked += Raise.Event();
+
+        _dieuHuong.Received(1).MoTaiKhoan();
+    }
+
+    [Fact]
     public void ChangePasswordMenu_OpensTheDialog()
     {
         NewPresenter();

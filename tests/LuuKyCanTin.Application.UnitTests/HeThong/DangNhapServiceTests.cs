@@ -57,9 +57,22 @@ public class DangNhapServiceTests
         _nguoiDung.SoLanSai.ShouldBe((byte)0);
         _nguoiDung.KhoaDen.ShouldBeNull();
         await _store.Received(1).LuuAsync(_nguoiDung, Arg.Any<CancellationToken>());
-        _phien.Received(1).DangNhap(3, "admin");
+        _phien.Received(1).DangNhap(3, "admin", null, "admin");
         await _ghiNhatKy.Received(1).GhiAsync(
             HanhDong.DangNhap, "NguoiDung", 3, Arg.Any<object?>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task CorrectPasswordForAStaffAccount_LoadsTheStaffNameIntoTheSession()
+    {
+        SeedTaiKhoan();
+        _nguoiDung.CanBoId = 7;
+        _hasher.Verify("LuuKy@2026", HashHopLe).Returns(true);
+        _store.LayHoTenCanBoAsync(7, Arg.Any<CancellationToken>()).Returns("Nguyễn Văn Thủ Quỹ");
+
+        await _service.DangNhapAsync("admin", "LuuKy@2026");
+
+        _phien.Received(1).DangNhap(3, "admin", 7, "Nguyễn Văn Thủ Quỹ");
     }
 
     [Fact]
@@ -72,7 +85,7 @@ public class DangNhapServiceTests
 
         ketQua.ThanhCong.ShouldBeTrue();
         ketQua.PhaiDoiMatKhau.ShouldBeTrue();
-        _phien.Received(1).DangNhap(3, "admin");
+        _phien.Received(1).DangNhap(3, "admin", null, "admin");
     }
 
     [Fact]
@@ -87,7 +100,7 @@ public class DangNhapServiceTests
         ketQua.ThongBao.ShouldBe(DangNhapService.SaiThongTin);
         _nguoiDung.SoLanSai.ShouldBe((byte)1);
         await _store.Received(1).LuuAsync(_nguoiDung, Arg.Any<CancellationToken>());
-        _phien.DidNotReceive().DangNhap(Arg.Any<int>(), Arg.Any<string>());
+        _phien.DidNotReceive().DangNhap(Arg.Any<int>(), Arg.Any<string>(), Arg.Any<int?>(), Arg.Any<string?>());
         await _ghiNhatKy.Received(1).GhiAsync(
             HanhDong.DangNhap, "NguoiDung", 3,
             Arg.Is<object?>(o => o!.ToString()!.Contains($"SuKien = {SuKienDangNhap.DangNhapSai}")),

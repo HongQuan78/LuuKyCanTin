@@ -8,6 +8,9 @@ public interface IDieuHuong
     /// <summary>Opens the role and permission screen.</summary>
     void MoVaiTro();
 
+    /// <summary>Opens the account-administration screen.</summary>
+    void MoTaiKhoan();
+
     /// <summary>Opens the voluntary change-password dialog for the signed-in user.</summary>
     void MoDoiMatKhau();
 }

@@ -16,7 +16,7 @@ public class AuditInterceptorTests : IClassFixture<AuditDatabaseFixture>
     public AuditInterceptorTests(AuditDatabaseFixture fixture)
     {
         _fixture = fixture;
-        _fixture.User.DangNhap(NguoiDungId, "thuquy");
+            _fixture.User.DangNhap(NguoiDungId, "thuquy", canBoId: null, hoTen: "thuquy");
     }
 
     private static MauChungTu NewVoucher(string noiDung = "Nộp tiền lưu ký") => new()
@@ -133,7 +133,7 @@ public class AuditInterceptorTests : IClassFixture<AuditDatabaseFixture>
         var voucher = await InsertAsync(NewVoucher());
         var createdAt = _fixture.Clock.Now;
         _fixture.Clock.Advance(TimeSpan.FromMinutes(5));
-        _fixture.User.DangNhap(NguoiDungId + 1, "ketoan");
+        _fixture.User.DangNhap(NguoiDungId + 1, "ketoan", canBoId: null, hoTen: "ketoan");
         try
         {
             await UpdateAsync(voucher.Id, v =>
@@ -144,7 +144,7 @@ public class AuditInterceptorTests : IClassFixture<AuditDatabaseFixture>
         }
         finally
         {
-            _fixture.User.DangNhap(NguoiDungId, "thuquy");
+        _fixture.User.DangNhap(NguoiDungId, "thuquy", canBoId: null, hoTen: "thuquy");
         }
 
         await using var db = _fixture.CreatePlainContext();

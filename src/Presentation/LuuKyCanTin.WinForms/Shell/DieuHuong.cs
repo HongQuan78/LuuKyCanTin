@@ -9,6 +9,7 @@ internal sealed class DieuHuong(IServiceScopeFactory scopes) : IDieuHuong
 {
     private CanBoForm? _canBo;
     private VaiTroForm? _vaiTro;
+    private TaiKhoanForm? _taiKhoan;
 
     // One staff window at a time: a second menu click brings the open one forward.
     public void MoDanhMucCanBo()
@@ -43,5 +44,30 @@ internal sealed class DieuHuong(IServiceScopeFactory scopes) : IDieuHuong
         _vaiTro = new VaiTroForm();
         _ = new VaiTroPresenter(_vaiTro, scopes);
         _vaiTro.Show();
+    }
+
+    // One account window at a time. The temporary password dialog belongs to the account screen, not the shell.
+    public void MoTaiKhoan()
+    {
+        if (_taiKhoan is { IsDisposed: false })
+        {
+            _taiKhoan.Activate();
+            return;
+        }
+
+        _taiKhoan = new TaiKhoanForm();
+        _ = new TaiKhoanPresenter(
+            _taiKhoan,
+            scopes,
+            () => new TaoTaiKhoanForm(),
+            () => new TaiKhoanVaiTroForm(),
+            HienMatKhauTam);
+        _taiKhoan.Show();
+    }
+
+    private static void HienMatKhauTam(string matKhauTam)
+    {
+        using var hopThoai = new MatKhauTamForm(matKhauTam);
+        hopThoai.ShowDialog();
     }
 }

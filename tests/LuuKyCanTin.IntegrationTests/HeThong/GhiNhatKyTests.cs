@@ -13,7 +13,7 @@ public class GhiNhatKyTests(AuditDatabaseFixture fixture) : IClassFixture<AuditD
     [SqlServerFact]
     public async Task GhiAsync_WritesBusinessEventWithUserMachineAndClockTime()
     {
-        fixture.User.DangNhap(42, "admin");
+        fixture.User.DangNhap(42, "admin", canBoId: null, hoTen: "admin");
         fixture.Clock.Now = new DateTime(2026, 10, 2, 7, 15, 30);
 
         await using (var db = fixture.CreateAuditedContext())

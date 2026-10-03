@@ -19,7 +19,7 @@ public sealed class CanBoServiceTests : IClassFixture<AppDatabaseFixture>, IAsyn
     public CanBoServiceTests(AppDatabaseFixture fixture)
     {
         _fixture = fixture;
-        _fixture.User.DangNhap(NguoiDungId, "admin");
+        _fixture.User.DangNhap(NguoiDungId, "admin", canBoId: null, hoTen: "admin");
     }
 
     public Task InitializeAsync() => Task.CompletedTask;

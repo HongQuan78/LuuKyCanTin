@@ -15,6 +15,12 @@ public sealed class NguoiDung : AuditableEntity, IAuditable
 
     public string TenDangNhap { get; set; } = "";
 
+    /// <summary>
+    /// The staff member this account belongs to. Null only for the built-in <c>admin</c>, which has no staff
+    /// record; one person may have several accounts over time but only one active one (NEN-09).
+    /// </summary>
+    public int? CanBoId { get; set; }
+
     /// <summary>Self-describing PBKDF2 string; never appears in the audit log JSON.</summary>
     [KhongGhiNhatKy]
     public string MatKhauHash { get; set; } = "";

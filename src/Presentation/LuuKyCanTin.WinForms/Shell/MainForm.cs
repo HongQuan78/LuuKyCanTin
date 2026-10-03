@@ -20,6 +20,7 @@ public partial class MainForm : Form, IMainView
         _scopeFactory = scopeFactory;
         InitializeComponent();
         mnuCanBo.Click += (_, _) => DanhMucCanBoClicked?.Invoke(this, EventArgs.Empty);
+        mnuTaiKhoan.Click += (_, _) => TaiKhoanClicked?.Invoke(this, EventArgs.Empty);
         mnuVaiTro.Click += (_, _) => VaiTroClicked?.Invoke(this, EventArgs.Empty);
         mnuDoiMatKhau.Click += (_, _) => DoiMatKhauClicked?.Invoke(this, EventArgs.Empty);
         mnuDangXuat.Click += (_, _) => DangXuatClicked?.Invoke(this, EventArgs.Empty);
@@ -28,6 +29,8 @@ public partial class MainForm : Form, IMainView
     public event EventHandler? Loaded;
 
     public event EventHandler? DanhMucCanBoClicked;
+
+    public event EventHandler? TaiKhoanClicked;
 
     public event EventHandler? VaiTroClicked;
 

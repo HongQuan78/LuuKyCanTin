@@ -13,6 +13,7 @@ partial class MainForm
     private ToolStripMenuItem mnuLuuKy = null!;
     private ToolStripMenuItem mnuLapBienNhanThu = null!;
     private ToolStripMenuItem mnuHeThong = null!;
+    private ToolStripMenuItem mnuTaiKhoan = null!;
     private ToolStripMenuItem mnuVaiTro = null!;
     private ToolStripMenuItem mnuDoiMatKhau = null!;
     private ToolStripMenuItem mnuDangXuat = null!;
@@ -46,6 +47,7 @@ partial class MainForm
         mnuLuuKy = new ToolStripMenuItem();
         mnuLapBienNhanThu = new ToolStripMenuItem();
         mnuHeThong = new ToolStripMenuItem();
+        mnuTaiKhoan = new ToolStripMenuItem();
         mnuVaiTro = new ToolStripMenuItem();
         mnuDoiMatKhau = new ToolStripMenuItem();
         mnuDangXuat = new ToolStripMenuItem();
@@ -68,13 +70,15 @@ partial class MainForm
         mnuLuuKy.Name = "mnuLuuKy";
         mnuLuuKy.Text = "Lưu ký";
 
+        mnuTaiKhoan.Name = "mnuTaiKhoan";
+        mnuTaiKhoan.Text = "Tài khoản…";
         mnuVaiTro.Name = "mnuVaiTro";
         mnuVaiTro.Text = "Vai trò…";
         mnuDoiMatKhau.Name = "mnuDoiMatKhau";
         mnuDoiMatKhau.Text = "Đổi mật khẩu…";
         mnuDangXuat.Name = "mnuDangXuat";
         mnuDangXuat.Text = "Đăng xuất";
-        mnuHeThong.DropDownItems.AddRange([mnuVaiTro, mnuDoiMatKhau, mnuDangXuat]);
+        mnuHeThong.DropDownItems.AddRange([mnuTaiKhoan, mnuVaiTro, mnuDoiMatKhau, mnuDangXuat]);
         mnuHeThong.Name = "mnuHeThong";
         mnuHeThong.Text = "Hệ thống";
 

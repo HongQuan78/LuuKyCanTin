@@ -5,7 +5,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LuuKyCanTin.Application.HeThong;
 
-public sealed class VaiTroService(IAppDbContext db, IKiemTraQuyen kiemTraQuyen, IGhiNhatKy ghiNhatKy) : IVaiTroService
+public sealed class VaiTroService(
+    IAppDbContext db,
+    IKiemTraQuyen kiemTraQuyen,
+    IGhiNhatKy ghiNhatKy,
+    KiemTraConQuanTri kiemTraConQuanTri) : IVaiTroService
 {
     public const string LoiKhongTimThayVaiTro = "Không tìm thấy vai trò.";
     public const string LoiMaQuyenKhongHopLe = "Mã quyền không hợp lệ: ";
@@ -30,12 +34,13 @@ public sealed class VaiTroService(IAppDbContext db, IKiemTraQuyen kiemTraQuyen, 
         // Authorization first, before any read or transaction, so a refused call writes nothing at all.
         await kiemTraQuyen.YeuCauAsync(MaQuyen.HT.Sua, ct);
 
-        // TODO: last-admin guard once Story 2.4 builds it: removing HT.Sua from the last administrator role
-        // must be refused.
-
         var maKhongHopLe = maQuyen.Where(ma => MaQuyen.TatCa.All(q => q.Ma != ma)).ToList();
         if (maKhongHopLe.Count > 0)
             throw new LoiNghiepVuException(LoiMaQuyenKhongHopLe + string.Join(", ", maKhongHopLe));
+
+        // Serializable, started before the first read: the last-administrator guard and the write are one atomic
+        // unit, so removing HT.Sua from the only role that grants it can never slip through.
+        await using var giaoDich = await db.BeginTransactionAsync(MucDoCoLapGiaoDich.TuanTu, ct);
 
         var vaiTro = await db.VaiTro.SingleOrDefaultAsync(v => v.Id == vaiTroId, ct)
             ?? throw new LoiNghiepVuException(LoiKhongTimThayVaiTro);
@@ -46,7 +51,7 @@ public sealed class VaiTroService(IAppDbContext db, IKiemTraQuyen kiemTraQuyen, 
         var maMoi = maQuyen.ToHashSet(StringComparer.Ordinal);
         var quyenTheoMa = MaQuyen.TatCa.ToDictionary(q => q.Ma, q => q.Id, StringComparer.Ordinal);
 
-        await using var giaoDich = await db.BeginTransactionAsync(ct);
+        await kiemTraConQuanTri.YeuCauKhiDoiQuyenVaiTroAsync(vaiTroId, maMoi, ct);
 
         db.VaiTroQuyen.RemoveRange(hienTai.Where(v => !maMoi.Contains(maTheoId[v.QuyenId])));
         foreach (var ma in maMoi.Where(ma => hienTai.All(v => maTheoId[v.QuyenId] != ma)))

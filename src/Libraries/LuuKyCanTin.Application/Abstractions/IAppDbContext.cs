@@ -15,6 +15,8 @@ public interface IAppDbContext
 {
     DbSet<CanBo> CanBo { get; }
 
+    DbSet<NguoiDung> NguoiDung { get; }
+
     DbSet<VaiTro> VaiTro { get; }
 
     DbSet<Quyen> Quyen { get; }
@@ -31,4 +33,7 @@ public interface IAppDbContext
     Task<int> SaveChangesAsync(CancellationToken ct = default);
 
     Task<IAppTransaction> BeginTransactionAsync(CancellationToken ct = default);
+
+    /// <summary>Starts a transaction with an explicit isolation level, for the last-administrator guard.</summary>
+    Task<IAppTransaction> BeginTransactionAsync(MucDoCoLapGiaoDich mucDoCoLap, CancellationToken ct = default);
 }

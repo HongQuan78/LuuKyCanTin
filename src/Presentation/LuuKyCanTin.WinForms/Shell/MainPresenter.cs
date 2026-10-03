@@ -19,6 +19,7 @@ public sealed class MainPresenter
         _scopes = scopes;
         _view.Loaded += OnLoaded;
         _view.DanhMucCanBoClicked += (_, _) => dieuHuong.MoDanhMucCanBo();
+        _view.TaiKhoanClicked += (_, _) => dieuHuong.MoTaiKhoan();
         _view.VaiTroClicked += (_, _) => dieuHuong.MoVaiTro();
         _view.DoiMatKhauClicked += (_, _) => dieuHuong.MoDoiMatKhau();
         _view.DangXuatClicked += OnDangXuatClicked;

@@ -14,6 +14,8 @@ public sealed class InMemoryAppDbContext() : DbContext(
 {
     public DbSet<CanBo> CanBo => Set<CanBo>();
 
+    public DbSet<NguoiDung> NguoiDung => Set<NguoiDung>();
+
     public DbSet<VaiTro> VaiTro => Set<VaiTro>();
 
     public DbSet<Quyen> Quyen => Set<Quyen>();
@@ -42,5 +44,8 @@ public sealed class InMemoryAppDbContext() : DbContext(
     }
 
     Task<IAppTransaction> IAppDbContext.BeginTransactionAsync(CancellationToken ct) =>
+        throw new NotSupportedException("The in-memory test context has no transactions.");
+
+    Task<IAppTransaction> IAppDbContext.BeginTransactionAsync(MucDoCoLapGiaoDich mucDoCoLap, CancellationToken ct) =>
         throw new NotSupportedException("The in-memory test context has no transactions.");
 }
