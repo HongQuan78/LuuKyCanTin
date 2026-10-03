@@ -1,4 +1,4 @@
-using LuuKyCanTin.Application.HeThong;
+using LuuKyCanTin.Application.Administration;
 using LuuKyCanTin.WinForms.Common;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -10,43 +10,43 @@ public sealed class MainPresenter
     private readonly IMainView _view;
     private readonly AppOptions _options;
     private readonly IServiceScopeFactory _scopes;
-    private bool _dangXuat;
+    private bool _isSignedOut;
 
-    public MainPresenter(IMainView view, IOptions<AppOptions> options, IDieuHuong dieuHuong, IServiceScopeFactory scopes)
+    public MainPresenter(IMainView view, IOptions<AppOptions> options, INavigator navigator, IServiceScopeFactory scopes)
     {
         _view = view;
         _options = options.Value;
         _scopes = scopes;
         _view.Loaded += OnLoaded;
-        _view.DanhMucCanBoClicked += (_, _) => dieuHuong.MoDanhMucCanBo();
-        _view.VaiTroClicked += (_, _) => dieuHuong.MoVaiTro();
-        _view.DoiMatKhauClicked += (_, _) => dieuHuong.MoDoiMatKhau();
-        _view.DangXuatClicked += OnDangXuatClicked;
+        _view.OfficersClicked += (_, _) => navigator.OpenOfficers();
+        _view.RolesClicked += (_, _) => navigator.OpenRoles();
+        _view.ChangePasswordClicked += (_, _) => navigator.OpenChangePassword();
+        _view.SignOutClicked += OnSignOutClicked;
     }
 
     /// <summary>True after a successful sign-out, so the application context returns to the login form.</summary>
-    public bool DaDangXuat => _dangXuat;
+    public bool IsSignedOut => _isSignedOut;
 
     private void OnLoaded(object? sender, EventArgs e)
     {
-        _view.TieuDe = _options.TieuDe;
+        _view.Title = _options.Title;
     }
 
-    private async void OnDangXuatClicked(object? sender, EventArgs e)
+    private async void OnSignOutClicked(object? sender, EventArgs e)
     {
-        if (_dangXuat)
+        if (_isSignedOut)
             return;
 
         try
         {
             using var scope = _scopes.CreateScope();
-            await scope.ServiceProvider.GetRequiredService<DangNhapService>().DangXuatAsync();
-            _dangXuat = true;
-            _view.Dong();
+            await scope.ServiceProvider.GetRequiredService<SignInService>().SignOutAsync();
+            _isSignedOut = true;
+            _view.CloseShell();
         }
         catch (Exception ex)
         {
-            _view.HienLoi($"Không đăng xuất được: {ex.Message}");
+            _view.ShowError($"Không đăng xuất được: {ex.Message}");
         }
     }
 }

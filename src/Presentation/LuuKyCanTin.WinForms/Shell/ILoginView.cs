@@ -2,17 +2,17 @@ namespace LuuKyCanTin.WinForms.Shell;
 
 public interface ILoginView
 {
-    event EventHandler? DangNhapBam;
+    event EventHandler? SignInClicked;
 
-    string TenDangNhap { get; }
+    string UserName { get; }
 
-    string MatKhau { get; }
+    string Password { get; }
 
-    void HienLoi(string thongBao);
+    void ShowError(string message);
 
     /// <summary>Clears the password box, for a locked account: retyping the same password can't help.</summary>
-    void XoaMatKhau();
+    void ClearPassword();
 
     /// <summary>Closes the form; true sets <see cref="DialogResult.OK"/> so the shell may open.</summary>
-    void DongVoiKetQua(bool thanhCong);
+    void CloseWithResult(bool succeeded);
 }

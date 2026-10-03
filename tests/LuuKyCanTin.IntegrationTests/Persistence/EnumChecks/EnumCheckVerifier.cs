@@ -5,7 +5,7 @@ namespace LuuKyCanTin.IntegrationTests.Persistence.EnumChecks;
 
 public static class EnumCheckVerifier
 {
-    public static IReadOnlyList<string> KiemTra(IEnumerable<EnumColumn> columns, IReadOnlyList<DeployedCheck> checks)
+    public static IReadOnlyList<string> Verify(IEnumerable<EnumColumn> columns, IReadOnlyList<DeployedCheck> checks)
     {
         var problems = new List<string>();
 
@@ -13,8 +13,8 @@ public static class EnumCheckVerifier
         {
             var location = $"{column.Schema}.{column.Table}.{column.Column}";
             var allowedSets = checks
-                .Where(c => LaGiongNhau(c.Schema, column.Schema) && LaGiongNhau(c.Table, column.Table))
-                .Select(c => LayGiaTriChoPhep(c.Definition, column.Column))
+                .Where(c => AreSame(c.Schema, column.Schema) && AreSame(c.Table, column.Table))
+                .Select(c => GetAllowedValues(c.Definition, column.Column))
                 .OfType<HashSet<string>>()
                 .ToList();
 
@@ -27,8 +27,10 @@ public static class EnumCheckVerifier
             // Every constraint on the column has to hold, so only values they all accept are allowed.
             var allowed = allowedSets.Aggregate((a, b) => [.. a.Intersect(b)]);
             // Stored value -> how to name it in a message.
-            var enumValues = column.LaLuuTheoTen
-                ? Enum.GetNames(column.EnumType).ToDictionary(n => ThemDauNhay(n), n => n)
+            var enumValues = column.IsStoredAsText
+                ? Enum.GetValues(column.EnumType).Cast<object>().ToDictionary(
+                    v => Quote(column.ToStoredText?.Invoke(v) ?? v.ToString()!),
+                    v => v.ToString()!)
                 : Enum.GetValues(column.EnumType).Cast<object>().ToDictionary(
                     v => Convert.ToInt64(v, CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture),
                     v => $"{v}={Convert.ToInt64(v, CultureInfo.InvariantCulture)}");
@@ -47,14 +49,14 @@ public static class EnumCheckVerifier
     /// <c>[Col] IN (1,2)</c> normalized as <c>([Col]=(1) OR [Col]=(2))</c> and <c>[Col] IN ('A')</c> as
     /// <c>([Col]='A')</c>; both forms are accepted. Numbers come back bare, text quoted (<c>'A'</c>).
     /// </summary>
-    private static HashSet<string>? LayGiaTriChoPhep(string definition, string column)
+    private static HashSet<string>? GetAllowedValues(string definition, string column)
     {
         var name = Regex.Escape($"[{column}]");
         if (!Regex.IsMatch(definition, name))
             return null;
 
         // Only a constraint that talks about this column alone defines its allowed set. A business check that
-        // merely mentions the column (e.g. [TrangThai] = 1 OR [NgayRa] IS NOT NULL) is not an enum check.
+        // merely mentions the column (e.g. [Status] = 1 OR [ReleaseDate] IS NOT NULL) is not an enum check.
         var otherColumn = Regex.Matches(definition, @"\[([^\]]+)\]")
             .Select(m => m.Groups[1].Value)
             .Any(c => !string.Equals(c, column, StringComparison.OrdinalIgnoreCase));
@@ -66,23 +68,23 @@ public static class EnumCheckVerifier
             .Select(m => m.Groups[1].Value)
             .Concat(Regex.Matches(definition, name + @"\s+IN\s*\(((?:" + value + @"|[\s,])*)\)", RegexOptions.IgnoreCase)
                 .SelectMany(m => Regex.Matches(m.Groups[1].Value, value).Select(v => v.Value)))
-            .Select(ChuanHoa);
+            .Select(Normalize);
 
-        // A single-column check with no = or IN (e.g. [TrangThai] > 0) is not an enum list either; an empty set
+        // A single-column check with no = or IN (e.g. [Status] > 0) is not an enum list either; an empty set
         // here would wipe out the intersection and report every enum value as disallowed.
         HashSet<string> allowed = [.. values];
         return allowed.Count == 0 ? null : allowed;
     }
 
-    private static string ChuanHoa(string literal)
+    private static string Normalize(string literal)
     {
         var text = Regex.Match(literal, "'([^']*)'");
         return text.Success
-            ? ThemDauNhay(text.Groups[1].Value)
+            ? Quote(text.Groups[1].Value)
             : long.Parse(literal.Trim(' ', '(', ')'), CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture);
     }
 
-    private static string ThemDauNhay(string name) => $"'{name}'";
+    private static string Quote(string name) => $"'{name}'";
 
-    private static bool LaGiongNhau(string a, string b) => string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
+    private static bool AreSame(string a, string b) => string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
 }

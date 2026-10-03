@@ -8,52 +8,52 @@ namespace LuuKyCanTin.WinForms.Shell;
 /// </summary>
 internal sealed class ShellApplicationContext(IServiceProvider services) : ApplicationContext
 {
-    public void BatDau() => MoDangNhap();
+    public void Start() => ShowLogin();
 
-    private void MoDangNhap()
+    private void ShowLogin()
     {
         var login = services.GetRequiredService<LoginForm>();
         var presenter = ActivatorUtilities.CreateInstance<LoginPresenter>(services, login);
         login.FormClosed += (_, _) =>
         {
-            var thanhCong = login.DialogResult == DialogResult.OK;
+            var succeeded = login.DialogResult == DialogResult.OK;
             login.Dispose();
 
-            if (!thanhCong)
+            if (!succeeded)
             {
                 ExitThread();
                 return;
             }
 
-            if (presenter.PhaiDoiMatKhau)
-                MoDoiMatKhauBatBuoc();
+            if (presenter.MustChangePassword)
+                ShowForcedPasswordChange();
             else
-                MoMoShell();
+                ShowShell();
         };
         login.Show();
     }
 
-    private void MoDoiMatKhauBatBuoc()
+    private void ShowForcedPasswordChange()
     {
-        using var form = new DoiMatKhauForm();
-        _ = new DoiMatKhauPresenter(form, services.GetRequiredService<IServiceScopeFactory>(), batBuoc: true);
+        using var form = new ChangePasswordForm();
+        _ = new ChangePasswordPresenter(form, services.GetRequiredService<IServiceScopeFactory>(), isForced: true);
         if (form.ShowDialog() == DialogResult.OK)
-            MoMoShell();
+            ShowShell();
         else
-            MoDangNhap();
+            ShowLogin();
     }
 
-    private void MoMoShell()
+    private void ShowShell()
     {
         var main = services.GetRequiredService<MainForm>();
         var presenter = ActivatorUtilities.CreateInstance<MainPresenter>(services, main);
         main.FormClosed += (_, _) =>
         {
-            var daDangXuat = presenter.DaDangXuat;
+            var isSignedOut = presenter.IsSignedOut;
             main.Dispose();
 
-            if (daDangXuat)
-                MoDangNhap();
+            if (isSignedOut)
+                ShowLogin();
             else
                 ExitThread();
         };

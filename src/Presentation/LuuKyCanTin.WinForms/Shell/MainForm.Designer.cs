@@ -7,15 +7,15 @@ partial class MainForm
     /// </summary>
     private System.ComponentModel.IContainer components = null!;
     private MenuStrip menuStrip = null!;
-    private ToolStripMenuItem mnuDanhMuc = null!;
-    private ToolStripMenuItem mnuCanBo = null!;
-    private ToolStripMenuItem mnuThemDoiTuong = null!;
-    private ToolStripMenuItem mnuLuuKy = null!;
-    private ToolStripMenuItem mnuLapBienNhanThu = null!;
-    private ToolStripMenuItem mnuHeThong = null!;
-    private ToolStripMenuItem mnuVaiTro = null!;
-    private ToolStripMenuItem mnuDoiMatKhau = null!;
-    private ToolStripMenuItem mnuDangXuat = null!;
+    private ToolStripMenuItem mnuMasterData = null!;
+    private ToolStripMenuItem mnuOfficers = null!;
+    private ToolStripMenuItem mnuAddInmate = null!;
+    private ToolStripMenuItem mnuCustody = null!;
+    private ToolStripMenuItem mnuDepositReceipt = null!;
+    private ToolStripMenuItem mnuAdministration = null!;
+    private ToolStripMenuItem mnuRoles = null!;
+    private ToolStripMenuItem mnuChangePassword = null!;
+    private ToolStripMenuItem mnuSignOut = null!;
 
     /// <summary>
     ///  Clean up any resources being used.
@@ -40,45 +40,45 @@ partial class MainForm
     {
         components = new System.ComponentModel.Container();
         menuStrip = new MenuStrip();
-        mnuDanhMuc = new ToolStripMenuItem();
-        mnuCanBo = new ToolStripMenuItem();
-        mnuThemDoiTuong = new ToolStripMenuItem();
-        mnuLuuKy = new ToolStripMenuItem();
-        mnuLapBienNhanThu = new ToolStripMenuItem();
-        mnuHeThong = new ToolStripMenuItem();
-        mnuVaiTro = new ToolStripMenuItem();
-        mnuDoiMatKhau = new ToolStripMenuItem();
-        mnuDangXuat = new ToolStripMenuItem();
+        mnuMasterData = new ToolStripMenuItem();
+        mnuOfficers = new ToolStripMenuItem();
+        mnuAddInmate = new ToolStripMenuItem();
+        mnuCustody = new ToolStripMenuItem();
+        mnuDepositReceipt = new ToolStripMenuItem();
+        mnuAdministration = new ToolStripMenuItem();
+        mnuRoles = new ToolStripMenuItem();
+        mnuChangePassword = new ToolStripMenuItem();
+        mnuSignOut = new ToolStripMenuItem();
         menuStrip.SuspendLayout();
         SuspendLayout();
 
-        mnuCanBo.Name = "mnuCanBo";
-        mnuCanBo.Text = "Cán bộ…";
-        mnuThemDoiTuong.Name = "mnuThemDoiTuong";
-        mnuThemDoiTuong.Text = "Thêm đối tượng…";
-        mnuThemDoiTuong.Click += OnThemDoiTuong;
-        mnuDanhMuc.DropDownItems.AddRange([mnuCanBo, mnuThemDoiTuong]);
-        mnuDanhMuc.Name = "mnuDanhMuc";
-        mnuDanhMuc.Text = "Danh mục";
+        mnuOfficers.Name = "mnuOfficers";
+        mnuOfficers.Text = "Cán bộ…";
+        mnuAddInmate.Name = "mnuAddInmate";
+        mnuAddInmate.Text = "Thêm đối tượng…";
+        mnuAddInmate.Click += OnAddInmate;
+        mnuMasterData.DropDownItems.AddRange([mnuOfficers, mnuAddInmate]);
+        mnuMasterData.Name = "mnuMasterData";
+        mnuMasterData.Text = "Danh mục";
 
-        mnuLapBienNhanThu.Name = "mnuLapBienNhanThu";
-        mnuLapBienNhanThu.Text = "Lập biên nhận thu…";
-        mnuLapBienNhanThu.Click += OnLapBienNhanThu;
-        mnuLuuKy.DropDownItems.AddRange([mnuLapBienNhanThu]);
-        mnuLuuKy.Name = "mnuLuuKy";
-        mnuLuuKy.Text = "Lưu ký";
+        mnuDepositReceipt.Name = "mnuDepositReceipt";
+        mnuDepositReceipt.Text = "Lập biên nhận thu…";
+        mnuDepositReceipt.Click += OnCreateDepositReceipt;
+        mnuCustody.DropDownItems.AddRange([mnuDepositReceipt]);
+        mnuCustody.Name = "mnuCustody";
+        mnuCustody.Text = "Lưu ký";
 
-        mnuVaiTro.Name = "mnuVaiTro";
-        mnuVaiTro.Text = "Vai trò…";
-        mnuDoiMatKhau.Name = "mnuDoiMatKhau";
-        mnuDoiMatKhau.Text = "Đổi mật khẩu…";
-        mnuDangXuat.Name = "mnuDangXuat";
-        mnuDangXuat.Text = "Đăng xuất";
-        mnuHeThong.DropDownItems.AddRange([mnuVaiTro, mnuDoiMatKhau, mnuDangXuat]);
-        mnuHeThong.Name = "mnuHeThong";
-        mnuHeThong.Text = "Hệ thống";
+        mnuRoles.Name = "mnuRoles";
+        mnuRoles.Text = "Vai trò…";
+        mnuChangePassword.Name = "mnuChangePassword";
+        mnuChangePassword.Text = "Đổi mật khẩu…";
+        mnuSignOut.Name = "mnuSignOut";
+        mnuSignOut.Text = "Đăng xuất";
+        mnuAdministration.DropDownItems.AddRange([mnuRoles, mnuChangePassword, mnuSignOut]);
+        mnuAdministration.Name = "mnuAdministration";
+        mnuAdministration.Text = "Hệ thống";
 
-        menuStrip.Items.AddRange([mnuDanhMuc, mnuLuuKy, mnuHeThong]);
+        menuStrip.Items.AddRange([mnuMasterData, mnuCustody, mnuAdministration]);
         menuStrip.Location = new Point(0, 0);
         menuStrip.Name = "menuStrip";
         menuStrip.Size = new Size(1024, 28);

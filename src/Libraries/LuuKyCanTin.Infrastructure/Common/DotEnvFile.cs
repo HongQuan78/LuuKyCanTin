@@ -13,12 +13,12 @@ public static class DotEnvFile
     /// Sets each variable that is not already set. A real environment variable wins, so an admin can
     /// override the file on one machine without editing it.
     /// </summary>
-    public static void Nap(string duongDan)
+    public static void Load(string path)
     {
-        if (!File.Exists(duongDan))
+        if (!File.Exists(path))
             return;
 
-        foreach (var (key, value) in PhanTich(File.ReadAllLines(duongDan)))
+        foreach (var (key, value) in Parse(File.ReadAllLines(path)))
         {
             if (Environment.GetEnvironmentVariable(key) is null)
                 Environment.SetEnvironmentVariable(key, value);
@@ -26,12 +26,12 @@ public static class DotEnvFile
     }
 
     /// <remarks>Values are literal: no escapes and no variable expansion, so <c>.\SQLEXPRESS</c> needs no doubling.</remarks>
-    public static IReadOnlyList<KeyValuePair<string, string>> PhanTich(IEnumerable<string> danhSachDong)
+    public static IReadOnlyList<KeyValuePair<string, string>> Parse(IEnumerable<string> lines)
     {
         var pairs = new List<KeyValuePair<string, string>>();
         var lineNumber = 0;
 
-        foreach (var rawLine in danhSachDong)
+        foreach (var rawLine in lines)
         {
             lineNumber++;
             var line = rawLine.Trim();
@@ -42,12 +42,12 @@ public static class DotEnvFile
             if (separator <= 0)
                 throw new FormatException($"{FileName}: line {lineNumber} is not in the form KEY=VALUE.");
 
-            pairs.Add(new(line[..separator].Trim(), BoDauNhay(line[(separator + 1)..].Trim())));
+            pairs.Add(new(line[..separator].Trim(), StripQuotes(line[(separator + 1)..].Trim())));
         }
 
         return pairs;
     }
 
-    private static string BoDauNhay(string value) =>
+    private static string StripQuotes(string value) =>
         value.Length >= 2 && (value[0] is '"' or '\'') && value[^1] == value[0] ? value[1..^1] : value;
 }

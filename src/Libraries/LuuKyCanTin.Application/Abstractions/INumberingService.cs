@@ -6,7 +6,7 @@ namespace LuuKyCanTin.Application.Abstractions;
 /// </summary>
 public interface INumberingService
 {
-    /// <param name="loaiChungTu">The counter key, e.g. <c>BNT</c>.</param>
+    /// <param name="voucherTypeCode">The counter key, e.g. <c>BNT</c>.</param>
     /// <returns>The full number, e.g. <c>BNT-2026-00001</c>.</returns>
-    Task<string> CapSoAsync(string loaiChungTu, int nam, CancellationToken ct = default);
+    Task<string> AllocateNumberAsync(string voucherTypeCode, int year, CancellationToken ct = default);
 }

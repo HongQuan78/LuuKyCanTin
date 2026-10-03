@@ -7,6 +7,9 @@
 - **References:** Story 1.7 (SP-03), Story 3.2 (detainee picker), Story 1.2 (database collation),
   `epics.md` › NFR10, UX-DR2, FR14; DB design PDF (conventions/collation, `DoiTuong` p.6–7,
   Indexes p.14–15)
+- **Names:** the spike and the DB design use the Vietnamese names (`DoiTuong`, `HoTen`, `MaSo`, `NamSinh`,
+  `BuongGiam`), and the measurements below keep them. Since refactor story R.1 the code names them `Inmate`,
+  `FullName`, `InmateCode`, `BirthYear` and `Cell`; the decision and the checklist use those names.
 - **Evidence:** [`benchmark-10000.txt`](0003/assets/benchmark-10000.txt) ·
   [`benchmark-50000.txt`](0003/assets/benchmark-50000.txt) ·
   [`ui-check-10000.txt`](0003/assets/ui-check-10000.txt). Spike code in `spikes/SP-03-Search`
@@ -162,19 +165,19 @@ the server command:
 
 ## Decision
 
-**Adopt option (a): a persisted `HoTenKhongDau` column filled by the Application layer, plus a
+**Adopt option (a): a persisted `FullNameWithoutDiacritics` column filled by the Application layer, plus a
 covering index, plus an Auto query cascade with a 300 ms debounce and cancel-previous.**
 "Search by name without diacritics" is implemented in the application, not by the collation;
 `Vietnamese_CI_AI` remains the database collation because it still gives case-insensitive,
 tone-mark-folding comparison and correct Vietnamese sorting.
 
-Reusable conventions (also for `HangHoa.TenHang` POS search, Epic 10, and Ctrl+K global search,
-Epic 13): name the stripped column `<Column>KhongDau`, fill it with the same
+Reusable conventions (also for `Product.Name` POS search, Epic 10, and Ctrl+K global search,
+Epic 13): name the stripped column `<Column>WithoutDiacritics`, fill it with the same
 `RemoveDiacritics(NormalizeForSearch(...))` helper, index it covering the columns the UI shows.
 
 ## What Story 3.2 (detainee picker) must adopt
 
-- [ ] Add `HoTenKhongDau nvarchar(100) NOT NULL`; fill on create/update; unit-test
+- [ ] Add `FullNameWithoutDiacritics nvarchar(100) NOT NULL`; fill on create/update; unit-test
       `RemoveDiacritics` with `đ/Đ`, NFD input and stray/duplicated spaces. Backfill existing rows
       during Story 3.1/3.2 (add nullable in the migration, backfill via the app, then set NOT NULL;
       or use a data migration). No import path may leave it null.
@@ -182,10 +185,10 @@ Epic 13): name the stripped column `<Column>KhongDau`, fill it with the same
       escape `\`, `%`, `_`, `[`, then `EF.Functions.Like(column, pattern, "\\")`.
 - [ ] Minimum term length: **names 2 characters, codes 1**; Auto = code-like if it starts with
       0–6 letters followed by a digit.
-- [ ] Query cascade prefix → word start → contains; `TOP (50)`, `ORDER BY HoTen, MaSo`; then
+- [ ] Query cascade prefix → word start → contains; `TOP (50)`, `ORDER BY FullName, InmateCode`; then
       Story 3.2's exact-code-first ranking on top.
-- [ ] Covering index `IX_DoiTuong_HoTenKhongDau (HoTenKhongDau) INCLUDE (HoTen, MaSo, NamSinh,
-      BuongGiam, …)`; keep the DB design's `IX_HoTen (HoTen)` unless a later review drops it.
+- [ ] Covering index `IX_Inmate_FullNameWithoutDiacritics (FullNameWithoutDiacritics) INCLUDE (FullName,
+      InmateCode, BirthYear, Cell, …)`; keep the name index `IX_Inmate_FullName` unless a later review drops it.
 - [ ] The debounce/cancellation snippet below, one fresh DI scope/DbContext per search, bind only
       the run whose version is current.
 - [ ] Address first-query EF compilation: the spike did not validate a warm-up query or
@@ -214,9 +217,9 @@ private async Task SearchAsync(string term, long version, CancellationTokenSourc
     {
         await Task.Delay(300, cts.Token);        // debounce; token aborts the wait
         var rows = await query
-            .OrderBy(x => x.HoTen).ThenBy(x => x.MaSo)
+            .OrderBy(x => x.FullName).ThenBy(x => x.InmateCode)
             .Take(50)
-            .Select(x => new PickerRow(x.Id, x.MaSo, x.HoTen, x.NamSinh, x.BuongGiam))
+            .Select(x => new PickerRow(x.Id, x.InmateCode, x.FullName, x.BirthYear, x.Cell))
             .ToListAsync(cts.Token);             // token reaches SqlCommand (proven above)
         if (version == _version)                 // bind only the current run
         {

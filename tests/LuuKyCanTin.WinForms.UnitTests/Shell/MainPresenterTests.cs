@@ -1,6 +1,6 @@
 using LuuKyCanTin.Application.Abstractions;
-using LuuKyCanTin.Application.HeThong;
-using LuuKyCanTin.Domain.HeThong;
+using LuuKyCanTin.Application.Administration;
+using LuuKyCanTin.Domain.Administration;
 using LuuKyCanTin.WinForms.Common;
 using LuuKyCanTin.WinForms.Shell;
 using LuuKyCanTin.WinForms.UnitTests.TestUtilities;
@@ -15,29 +15,29 @@ namespace LuuKyCanTin.WinForms.UnitTests.Shell;
 public class MainPresenterTests
 {
     private readonly IMainView _view = Substitute.For<IMainView>();
-    private readonly IDieuHuong _dieuHuong = Substitute.For<IDieuHuong>();
-    private readonly INguoiDungStore _store = Substitute.For<INguoiDungStore>();
-    private readonly IMatKhauHasher _hasher = Substitute.For<IMatKhauHasher>();
-    private readonly ICurrentUserSession _phien = Substitute.For<ICurrentUserSession>();
-    private readonly IGhiNhatKy _ghiNhatKy = Substitute.For<IGhiNhatKy>();
+    private readonly INavigator _navigator = Substitute.For<INavigator>();
+    private readonly IUserStore _store = Substitute.For<IUserStore>();
+    private readonly IPasswordHasher _hasher = Substitute.For<IPasswordHasher>();
+    private readonly ICurrentUserSession _session = Substitute.For<ICurrentUserSession>();
+    private readonly IAuditLogWriter _auditLog = Substitute.For<IAuditLogWriter>();
 
-    private MainPresenter NewPresenter(string tieuDe = "X")
+    private MainPresenter NewPresenter(string title = "X")
     {
         var clock = new FakeClock(new DateTime(2026, 10, 2, 9, 0, 0));
-        var ghiNhanSai = new GhiNhanDangNhapSaiService(_store, clock, new DangNhapOptions(), _ghiNhatKy);
-        var dangNhap = new DangNhapService(_store, _hasher, _phien, _ghiNhatKy, clock, ghiNhanSai);
+        var failedSignIns = new FailedSignInService(_store, clock, new SignInOptions(), _auditLog);
+        var signIn = new SignInService(_store, _hasher, _session, _auditLog, clock, failedSignIns);
         return new MainPresenter(
-            _view, Options.Create(new AppOptions { TieuDe = tieuDe }), _dieuHuong, ScopeFactoryGia.Tao(dangNhap));
+            _view, Options.Create(new AppOptions { Title = title }), _navigator, FakeScopeFactory.Create(signIn));
     }
 
     [Fact]
-    public void OnLoaded_ViewLoaded_SetsTieuDeFromOptions()
+    public void OnLoaded_ViewLoaded_SetsTitleFromOptions()
     {
         NewPresenter("Tiêu đề từ cấu hình");
 
         _view.Loaded += Raise.Event();
 
-        _view.Received(1).TieuDe = "Tiêu đề từ cấu hình";
+        _view.Received(1).Title = "Tiêu đề từ cấu hình";
     }
 
     [Fact]
@@ -45,7 +45,7 @@ public class MainPresenterTests
     {
         NewPresenter();
 
-        _view.DidNotReceive().TieuDe = Arg.Any<string>();
+        _view.DidNotReceive().Title = Arg.Any<string>();
     }
 
     [Fact]
@@ -53,9 +53,9 @@ public class MainPresenterTests
     {
         NewPresenter();
 
-        _view.DanhMucCanBoClicked += Raise.Event();
+        _view.OfficersClicked += Raise.Event();
 
-        _dieuHuong.Received(1).MoDanhMucCanBo();
+        _navigator.Received(1).OpenOfficers();
     }
 
     [Fact]
@@ -63,9 +63,9 @@ public class MainPresenterTests
     {
         NewPresenter();
 
-        _view.VaiTroClicked += Raise.Event();
+        _view.RolesClicked += Raise.Event();
 
-        _dieuHuong.Received(1).MoVaiTro();
+        _navigator.Received(1).OpenRoles();
     }
 
     [Fact]
@@ -73,27 +73,27 @@ public class MainPresenterTests
     {
         NewPresenter();
 
-        _view.DoiMatKhauClicked += Raise.Event();
+        _view.ChangePasswordClicked += Raise.Event();
 
-        _dieuHuong.Received(1).MoDoiMatKhau();
+        _navigator.Received(1).OpenChangePassword();
     }
 
     [Fact]
     public async Task SignOutMenu_ClearsTheSessionAndClosesTheShell()
     {
-        _phien.NguoiDungId.Returns(3);
-        _phien.TenDangNhap.Returns("admin");
-        var daDong = new TaskCompletionSource();
-        _view.When(v => v.Dong()).Do(_ => daDong.TrySetResult());
+        _session.UserId.Returns(3);
+        _session.UserName.Returns("admin");
+        var closed = new TaskCompletionSource();
+        _view.When(v => v.CloseShell()).Do(_ => closed.TrySetResult());
 
         var presenter = NewPresenter();
-        _view.DangXuatClicked += Raise.Event();
+        _view.SignOutClicked += Raise.Event();
 
-        await daDong.Task.WaitAsync(TimeSpan.FromSeconds(5));
-        presenter.DaDangXuat.ShouldBeTrue();
-        _phien.Received(1).DangXuat();
-        await _ghiNhatKy.Received(1).GhiAsync(
-            HanhDong.DangNhap, "NguoiDung", 3, Arg.Any<object?>(), Arg.Any<CancellationToken>());
+        await closed.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        presenter.IsSignedOut.ShouldBeTrue();
+        _session.Received(1).SignOut();
+        await _auditLog.Received(1).WriteAsync(
+            AuditAction.SignIn, "User", 3, Arg.Any<object?>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -101,6 +101,6 @@ public class MainPresenterTests
     {
         NewPresenter();
 
-        _dieuHuong.ReceivedCalls().ShouldBeEmpty();
+        _navigator.ReceivedCalls().ShouldBeEmpty();
     }
 }

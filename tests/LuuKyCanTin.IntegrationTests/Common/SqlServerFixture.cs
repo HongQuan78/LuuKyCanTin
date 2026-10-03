@@ -9,11 +9,11 @@ public sealed class SqlServerFixture : IAsyncLifetime
     public TestDatabase Database { get; } = new();
 
     // xUnit builds collection fixtures even when every test in the collection is skipped.
-    public Task InitializeAsync() => SqlServerFactAttribute.DuocPhepChay ? Database.ApDungMigrationAsync() : Task.CompletedTask;
+    public Task InitializeAsync() => SqlServerFactAttribute.CanRun ? Database.MigrateAsync() : Task.CompletedTask;
 
     public async Task DisposeAsync()
     {
-        if (SqlServerFactAttribute.DuocPhepChay)
+        if (SqlServerFactAttribute.CanRun)
             await Database.DisposeAsync();
     }
 }

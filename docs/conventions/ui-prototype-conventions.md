@@ -35,7 +35,7 @@ The mockups render 1:1 at 96 DPI, so 1 CSS px equals 1 WinForms px. Open them in
 ## Conflicts
 
 - `DESIGN.md` and `EXPERIENCE.md` win over a mockup. If the two disagree, report it and don't guess.
-- Existing screens built before these prototypes (for example `MainForm` and `CanBoForm`) are brought into line in a dedicated refactor story, not as a side effect of another story. That story also creates `AppTheme`, `CardPanel` and `InputFrame`.
+- Existing screens built before these prototypes (for example `MainForm` and `OfficerForm`) are brought into line in a dedicated refactor story, not as a side effect of another story. That story also creates `AppTheme`, `CardPanel` and `InputFrame`.
 
 ## Review checklist (code review must check)
 

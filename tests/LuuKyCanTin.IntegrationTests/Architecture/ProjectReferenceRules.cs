@@ -39,7 +39,7 @@ internal static class ProjectReferenceRules
 
     public static IReadOnlyCollection<string> KnownProjects => AllowedProjectReferences.Keys;
 
-    public static IReadOnlyList<string> KiemTra(string projectName, string csprojXml)
+    public static IReadOnlyList<string> Check(string projectName, string csprojXml)
     {
         if (!AllowedProjectReferences.TryGetValue(projectName, out var allowedProjects))
             return [$"{projectName}: no reference rule defined"];
@@ -47,7 +47,7 @@ internal static class ProjectReferenceRules
         var project = XDocument.Parse(csprojXml);
         var violations = new List<string>();
 
-        var projectReferences = LayPhanTu(project, "ProjectReference")
+        var projectReferences = GetElements(project, "ProjectReference")
             .Select(e => Path.GetFileNameWithoutExtension(((string?)e.Attribute("Include") ?? "").Replace('\\', '/')))
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
@@ -56,8 +56,8 @@ internal static class ProjectReferenceRules
         foreach (var missing in allowedProjects.Except(projectReferences, StringComparer.OrdinalIgnoreCase))
             violations.Add($"{projectName} must reference project {missing}");
 
-        var packages = LayPhanTu(project, "PackageReference")
-            .Where(e => !LaChiAnalyzer(e))
+        var packages = GetElements(project, "PackageReference")
+            .Where(e => !IsAnalyzerOnly(e))
             .Select(e => (string?)e.Attribute("Include") ?? "")
             .ToList();
 
@@ -75,19 +75,19 @@ internal static class ProjectReferenceRules
 
         if (projectName is Domain or Application)
         {
-            if (LayPhanTu(project, "UseWindowsForms").Any(e => e.Value.Trim().Equals("true", StringComparison.OrdinalIgnoreCase)))
+            if (GetElements(project, "UseWindowsForms").Any(e => e.Value.Trim().Equals("true", StringComparison.OrdinalIgnoreCase)))
                 violations.Add($"{projectName} must not use Windows Forms");
-            violations.AddRange(LayPhanTu(project, "FrameworkReference")
+            violations.AddRange(GetElements(project, "FrameworkReference")
                 .Select(e => $"{projectName} must not reference framework {(string?)e.Attribute("Include")}"));
         }
 
         return violations;
     }
 
-    private static IEnumerable<XElement> LayPhanTu(XDocument project, string localName) =>
+    private static IEnumerable<XElement> GetElements(XDocument project, string localName) =>
         project.Descendants().Where(e => e.Name.LocalName == localName);
 
-    private static bool LaChiAnalyzer(XElement packageReference)
+    private static bool IsAnalyzerOnly(XElement packageReference)
     {
         var privateAssets = (string?)packageReference.Attribute("PrivateAssets")
             ?? packageReference.Elements().FirstOrDefault(e => e.Name.LocalName == "PrivateAssets")?.Value;

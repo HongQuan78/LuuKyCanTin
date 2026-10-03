@@ -53,3 +53,11 @@ Source of the stories: `_bmad-output/planning-artifacts/epics/epic-NN-*.md`. Eac
 4. Leadership gets `HT.Xem` so the audit log (2.10) is usable by its intended user (epics.md alignment A22).
 
 **Epic 2 gate:** every seeded role signs in and sees only its own menus (2.5 theory test), the bypass test is green, and the unit header and the signers for all 12 templates are configured.
+
+## Refactor
+
+| Story | File | Size | Depends on | Status |
+|---|---|---|---|---|
+| R.1 Rename existing identifiers to English | [r-1-rename-identifiers-to-english.md](refactor/r-1-rename-identifiers-to-english.md) | L | 1.4, 2.1, 2.2, 2.3 | review |
+
+**Why:** on 2026-10-03 the naming convention changed to English identifiers with Vietnamese user-visible text (`docs/conventions/naming-conventions.md`). R.1 renames the code written before that. **Suggested timing:** before 2.4, so the rest of Epic 2 is built on English names.

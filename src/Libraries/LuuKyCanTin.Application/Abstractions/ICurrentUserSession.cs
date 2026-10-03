@@ -6,7 +6,7 @@ namespace LuuKyCanTin.Application.Abstractions;
 /// </summary>
 public interface ICurrentUserSession : ICurrentUser
 {
-    void DangNhap(int nguoiDungId, string tenDangNhap);
+    void SignIn(int userId, string userName);
 
-    void DangXuat();
+    void SignOut();
 }

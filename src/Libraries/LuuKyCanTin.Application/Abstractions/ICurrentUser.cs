@@ -3,9 +3,9 @@ namespace LuuKyCanTin.Application.Abstractions;
 /// <summary>The user signed in on this workstation, if any.</summary>
 public interface ICurrentUser
 {
-    int? NguoiDungId { get; }
+    int? UserId { get; }
 
-    string? TenDangNhap { get; }
+    string? UserName { get; }
 
-    bool DaDangNhap { get; }
+    bool IsSignedIn { get; }
 }

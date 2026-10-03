@@ -11,29 +11,29 @@ public sealed class MigrationTests(SqlServerFixture fixture)
     private const string CollationSql = "SELECT CONVERT(nvarchar(128), DATABASEPROPERTYEX(DB_NAME(), 'Collation'))";
 
     [SqlServerFact]
-    public async Task ApDungMigration_EmptyServer_CreatesDatabaseWithVietnameseCollation()
+    public async Task Migrate_EmptyServer_CreatesDatabaseWithVietnameseCollation()
     {
-        (await fixture.Database.LayGiaTriAsync(CollationSql)).ShouldBe(AppDbContext.Collation);
+        (await fixture.Database.GetScalarAsync(CollationSql)).ShouldBe(AppDbContext.Collation);
     }
 
     [SqlServerFact]
-    public async Task ApDungMigration_NewDatabase_AppliesEveryMigration()
+    public async Task Migrate_NewDatabase_AppliesEveryMigration()
     {
-        await using var db = fixture.Database.TaoDbContext();
+        await using var db = fixture.Database.CreateDbContext();
 
         (await db.Database.GetPendingMigrationsAsync()).ShouldBeEmpty();
         (await db.Database.GetAppliedMigrationsAsync()).ShouldBe(db.Database.GetMigrations());
     }
 
     [SqlServerFact]
-    public async Task ApDungMigration_DatabaseCreatedByAdmin_ChangesItsCollation()
+    public async Task Migrate_DatabaseCreatedByAdmin_ChangesItsCollation()
     {
         await using var database = new TestDatabase();
-        await database.TaoRongAsync();
-        (await database.LayGiaTriAsync(CollationSql)).ShouldNotBe(AppDbContext.Collation);
+        await database.CreateEmptyAsync();
+        (await database.GetScalarAsync(CollationSql)).ShouldNotBe(AppDbContext.Collation);
 
-        await database.ApDungMigrationAsync();
+        await database.MigrateAsync();
 
-        (await database.LayGiaTriAsync(CollationSql)).ShouldBe(AppDbContext.Collation);
+        (await database.GetScalarAsync(CollationSql)).ShouldBe(AppDbContext.Collation);
     }
 }

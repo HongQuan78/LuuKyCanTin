@@ -1,12 +1,12 @@
 using System.Text;
 using LuuKyCanTin.Application;
-using LuuKyCanTin.Application.HeThong;
+using LuuKyCanTin.Application.Administration;
 using LuuKyCanTin.Infrastructure;
 using LuuKyCanTin.Infrastructure.Common;
+using LuuKyCanTin.WinForms.Administration;
 using LuuKyCanTin.WinForms.Common;
-using LuuKyCanTin.WinForms.DanhMuc;
-using LuuKyCanTin.WinForms.HeThong;
-using LuuKyCanTin.WinForms.LuuKy;
+using LuuKyCanTin.WinForms.Custody;
+using LuuKyCanTin.WinForms.MasterData;
 using LuuKyCanTin.WinForms.Shell;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -22,29 +22,29 @@ internal static class Program
     [STAThread]
     private static int Main(string[] args)
     {
-        var lenh = AdminCommandLine.PhanTich(args);
-        if (lenh.LaLenhQuanTri)
+        var command = AdminCommandLine.Parse(args);
+        if (command.IsAdminCommand)
         {
-            if (ParentConsole.ThuGan())
+            if (ParentConsole.TryAttach())
                 Console.OutputEncoding = Encoding.UTF8;
         }
         else
         {
-            GlobalExceptionHandler.CaiDat();
+            GlobalExceptionHandler.Install();
             ApplicationConfiguration.Initialize();
         }
 
         try
         {
             // Until the host has read its configuration, a startup failure still needs a file to land in.
-            Log.Logger = TaoLogger(configuration: null);
-            using var host = TaoHost(lenh.HostArgs);
-            return lenh.LaLenhQuanTri ? ChayLenhQuanTri(host, lenh) : ChayUngDung(host);
+            Log.Logger = CreateLogger(configuration: null);
+            using var host = CreateHost(command.HostArgs);
+            return command.IsAdminCommand ? RunAdminCommand(host, command) : RunApplication(host);
         }
         catch (Exception ex)
         {
             Log.Fatal(ex, "LuuKyCanTin failed to start");
-            if (!lenh.LaLenhQuanTri)
+            if (!command.IsAdminCommand)
                 throw;
 
             Console.WriteLine($"Lỗi: {ex.Message} Chi tiết đã được ghi vào nhật ký.");
@@ -56,10 +56,10 @@ internal static class Program
         }
     }
 
-    private static IHost TaoHost(string[] args)
+    private static IHost CreateHost(string[] args)
     {
         // Before the builder exists, so the host's environment-variable provider sees the values.
-        DotEnvFile.Nap(Path.Combine(AppContext.BaseDirectory, DotEnvFile.FileName));
+        DotEnvFile.Load(Path.Combine(AppContext.BaseDirectory, DotEnvFile.FileName));
 
         var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings
         {
@@ -70,7 +70,7 @@ internal static class Program
 
         // Release the bootstrap logger's file before the configured logger opens the same one.
         Log.CloseAndFlush();
-        Log.Logger = TaoLogger(builder.Configuration);
+        Log.Logger = CreateLogger(builder.Configuration);
         builder.Services.AddSerilog();
 
         builder.Services.Configure<AppOptions>(builder.Configuration.GetSection(AppOptions.SectionName));
@@ -78,52 +78,52 @@ internal static class Program
         builder.Services.AddInfrastructure(builder.Configuration);
         builder.Services.AddTransient<LoginForm>();
         builder.Services.AddTransient(sp => new MainForm(sp.GetRequiredService<IServiceScopeFactory>()));
-        builder.Services.AddTransient<ThemDoiTuongForm>();
-        builder.Services.AddTransient<BienNhanThuForm>();
-        builder.Services.AddSingleton<IDieuHuong, DieuHuong>();
+        builder.Services.AddTransient<AddInmateForm>();
+        builder.Services.AddTransient<DepositReceiptForm>();
+        builder.Services.AddSingleton<INavigator, Navigator>();
 
         return builder.Build();
     }
 
     // No Form is resolved on this path, so it also works over a remote shell without a desktop.
-    private static int ChayLenhQuanTri(IHost host, AdminCommandLine lenh)
+    private static int RunAdminCommand(IHost host, AdminCommandLine command)
     {
-        Log.Information("LuuKyCanTin admin command: migrate={Migrate}, seed-demo={SeedDemo}", lenh.CoApDungMigration, lenh.CoNapDuLieuMau);
+        Log.Information("LuuKyCanTin admin command: migrate={Migrate}, seed-demo={SeedDemo}", command.MustMigrate, command.MustSeedDemo);
         var runner = new AdminCommandRunner(
             host.Services.GetRequiredService<IServiceScopeFactory>(),
             host.Services.GetRequiredService<IHostEnvironment>().IsDevelopment(),
             Console.Out,
             host.Services.GetRequiredService<ILogger<AdminCommandRunner>>());
 
-        return runner.ChayAsync(lenh).GetAwaiter().GetResult();
+        return runner.RunAsync(command).GetAwaiter().GetResult();
     }
 
-    private static int ChayUngDung(IHost host)
+    private static int RunApplication(IHost host)
     {
         Log.Information("LuuKyCanTin starting");
         // Workstations never migrate: they only check, and refuse to run against a different schema.
-        if (!LaPhienBanCoSoDuLieuKhop(host.Services))
+        if (!IsDatabaseVersionCurrent(host.Services))
             return 1;
 
         // Sign-in and sign-out loop without restarting: the context swaps login and shell as the user signs out.
         var context = new ShellApplicationContext(host.Services);
-        context.BatDau();
+        context.Start();
         WinFormsApp.Run(context);
         return 0;
     }
 
-    private static bool LaPhienBanCoSoDuLieuKhop(IServiceProvider services)
+    private static bool IsDatabaseVersionCurrent(IServiceProvider services)
     {
         using var scope = services.CreateScope();
         // Blocking is safe here: no SynchronizationContext exists before the message loop starts.
-        return SchemaVersionGate.DuocPhepMoAsync(
+        return SchemaVersionGate.CanOpenAsync(
                 scope.ServiceProvider.GetRequiredService<ISchemaVersionChecker>(),
-                thongBao => MessageBox.Show(thongBao, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error),
+                message => MessageBox.Show(message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error),
                 services.GetRequiredService<ILoggerFactory>().CreateLogger(typeof(SchemaVersionGate)))
             .GetAwaiter().GetResult();
     }
 
-    private static Serilog.ILogger TaoLogger(IConfiguration? configuration)
+    private static Serilog.ILogger CreateLogger(IConfiguration? configuration)
     {
         // %ProgramData% is resolved here; Serilog does not expand environment variables in paths.
         var logDirectory = Path.Combine(

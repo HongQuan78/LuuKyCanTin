@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **LuuKyCanTin**: a WinForms .NET 10 desktop app for a detention facility. It handles custodial deposits (*tiền gửi lưu ký*) for detainees and the canteen (*căn tin*) that sells against those balances. A few LAN workstations connect directly to one SQL Server 2022 Express instance. There is no API server and no Internet access.
 
-The domain language is Vietnamese, and entity and service names use it (`ChungTuLuuKy`, `SoDuLuuKy`, `DoiTuong`, `PhieuBanHang`, `TheKho`, `NhatKyThaoTac`). Keep new names in the same language and style.
+The domain language is Vietnamese, but **code is English and only user-visible text is Vietnamese**. New identifiers use the English glossary terms in `docs/conventions/naming-conventions.md` (`CustodyVoucher`, `Inmate`, `StockCard`, `AuditLog`). UI text, messages and printed reports stay Vietnamese with full diacritics.
 
 The source-of-truth specs live in `document/`: the process (.docx), the feature list (49 features, codes like HT-01, LK-T01), the tech stack, and the DB design (PDFs). The prioritized backlog is `_bmad-output/brainstorming/.../backlog-draft.md`. Read these before designing a feature.
 
@@ -16,8 +16,8 @@ The source-of-truth specs live in `document/`: the process (.docx), the feature 
 dotnet build LuuKyCanTin.slnx
 dotnet test LuuKyCanTin.slnx
 dotnet test tests/LuuKyCanTin.Domain.UnitTests
-dotnet test --filter "FullyQualifiedName~SoDuLuuKyTests"          # single class
-dotnet test --filter "FullyQualifiedName~SoDuLuuKyTests.MethodName" # single test
+dotnet test --filter "FullyQualifiedName~AmountInWordsTests"          # single class
+dotnet test --filter "FullyQualifiedName~AmountInWordsTests.MethodName" # single test
 dotnet run --project src/Presentation/LuuKyCanTin.WinForms
 
 # Migrations (dotnet-ef is a local tool: run `dotnet tool restore` once)
@@ -41,30 +41,30 @@ WinForms (Presentation) ─► Application ─► Domain
         └──────────────► Infrastructure ─► Application, Domain
 ```
 
-- **Domain** (`src/Libraries/LuuKyCanTin.Domain`) references nothing. It holds entities, enums, value objects and pure business rules, such as the balance rule, weighted-average cost (`BinhQuanGiaQuyen`), the document state machine and amount-in-words (`SoTienBangChu`).
-- **Application** holds use-case services (`GhiSoLuuKyService`, `BanHangService`, `NhapHangService`, report queries), DTOs, FluentValidation validators and abstractions: `IAppDbContext`, `IReportRenderer`, `ICurrentUser`, `IClock`, `INumberingService`.
+- **Domain** (`src/Libraries/LuuKyCanTin.Domain`) references nothing. It holds entities, enums, value objects and pure business rules, such as the balance rule, weighted-average cost (`WeightedAverageCost`), the document state machine and amount-in-words (`AmountInWords`).
+- **Application** holds use-case services (`CustodyLedgerService`, `SalesService`, `GoodsReceiptService`, report queries), DTOs, FluentValidation validators and abstractions: `IAppDbContext`, `IReportRenderer`, `ICurrentUser`, `IClock`, `INumberingService`.
 - **Infrastructure** implements those abstractions. It contains EF Core 10 (`Persistence/`: DbContext, Configurations, Migrations, Seed), QuestPDF print templates (`Reports/`, one class per template), ClosedXML import/export (`Excel/`), SQL backup and Serilog.
 - **WinForms** uses MVP. Forms are passive Views behind interfaces, and Presenters call Application services. `Program.cs` builds the Generic Host (DI, config, Serilog, global exception handler). The reference to Infrastructure exists **only** for DI composition.
-- Inside each project, organize folders by business module: `LuuKy/`, `HangHoa/`, `DanhMuc/`, `HeThong/`, `BaoCao/` (plus `Common/` and `Abstractions/`).
+- Inside each project, organize folders by business module: `Custody/`, `Inventory/`, `MasterData/`, `Administration/`, `Reporting/` (plus `Common/` and `Abstractions/`).
 
 ### Key design rules (from the spec)
 
-- **Ledger-first.** `GhiSoLuuKyService` is the one engine that writes `ChungTuLuuKy` and updates `SoDuLuuKy` with a conditional UPDATE under a row lock. Receipts, payouts, canteen sales and settlements are all callers of this engine. They never modify balances directly.
-- Each posting operation is **one service method, one transaction** (a unit of work). For example, `BanHangService.GhiSoAsync` writes the sale, the `TheKho` rows and the custodial debit together.
+- **Ledger-first.** `CustodyLedgerService` is the one engine that writes `CustodyVoucher` and updates `Inmate.CustodyBalance` with a conditional UPDATE under a row lock. Receipts, payouts, canteen sales and settlements are all callers of this engine. They never modify balances directly.
+- Each posting operation is **one service method, one transaction** (a unit of work). For example, `SalesService.PostAsync` writes the sale, the `StockCard` rows and the custodial debit together.
 - A balance never goes negative. Money is stored as integer đồng, with no decimals or floats.
 - Vouchers share one state machine: Draft → Posted → Cancelled (with a reason). Snapshot names and categories at posting time so a reprint matches the original.
-- Document numbers come from `INumberingService` (`DemSoChungTu` + UPDLOCK), counted per type and per year.
+- Document numbers come from `INumberingService` (`VoucherCounter` + UPDLOCK), counted per type and per year.
 - All date logic goes through `IClock`. Never use `DateTime.Now` directly. `src/BannedSymbols.txt` (BannedApiAnalyzers, RS0030) fails the build otherwise; `SystemClock` is the only exception.
-- Voucher entities implement `IAuditable` (and `ICoTrangThaiHuy` so a cancellation logs as `Huy`); mark secrets `[KhongGhiNhatKy]`. Write vouchers through `SaveChanges`, never `ExecuteUpdate`/raw SQL, or the audit log misses them. Log non-voucher events (sign-in, print, approve) through `IGhiNhatKy`.
+- Voucher entities implement `IAuditable` (and `ICancellable` so a cancellation logs as `AuditAction.Cancel`); mark secrets `[NotAudited]`. Write vouchers through `SaveChanges`, never `ExecuteUpdate`/raw SQL, or the audit log misses them. Log non-voucher events (sign-in, print, approve) through `IAuditLogWriter`.
 - Services never depend on WinForms (no `MessageBox`). Services re-check permissions before writing, because hidden UI elements don't count as authorization.
 - Forms never hold a `DbContext`. Each operation creates a fresh DI scope.
-- The `SaveChanges` interceptor writes the audit log (`NhatKyThaoTac`) automatically for every voucher table. The log is append-only.
+- The `SaveChanges` interceptor writes the audit log (`AuditLog`) automatically for every voucher table. The log is append-only. Rows written before the English rename keep their Vietnamese table and property names; translate them through `LegacyAuditNames`. The stored action codes (`Them`, `Sua`, …) are data and never change.
 - Domain enum values must match the DB CHECK constraints, and a test enforces this.
 - Use `rowversion` for optimistic concurrency. Write complex reports as SQL (EF `SqlQuery` or Dapper), not as complex LINQ.
 
 ## Conventions (mandatory)
 
-- **Naming.** Every new file, type, method, property, field and variable follows `docs/conventions/naming-conventions.md`. Existing code that doesn't conform stays as it is; rename it only in a dedicated refactor story.
+- **Naming.** Every new file, type, method, property, field and variable follows `docs/conventions/naming-conventions.md`: identifiers in English (glossary terms), user-visible text in Vietnamese. Where a story's text names an identifier in Vietnamese, translate it with the glossary; the convention wins.
 - **UI prototypes.** Every WinForms screen must strictly follow the style of the UI prototypes in `_bmad-output/planning-artifacts/ux-designs/ux-TienGuiLuuKy-2026-10-02/`. That means the layout, spacing, controls, colours, fonts, shortcuts and states in `DESIGN.md`, `EXPERIENCE.md` and `mockups/*.html`. Follow `docs/conventions/ui-prototype-conventions.md`. A new layout or a new kind of control is a UX decision, so ask before building it.
 - **Story dependency gate.** Before writing code for a story, apply `docs/conventions/story-dependency-gate.md`. If any story in its `dependsOn` is not `review` or `done` (for example `ready-for-dev`), report the blocking dependencies and stop without changing files, unless the user explicitly overrides the gate.
 

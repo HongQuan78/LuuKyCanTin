@@ -1,8 +1,8 @@
 using LuuKyCanTin.Application.Abstractions;
 using LuuKyCanTin.Application.Common;
-using LuuKyCanTin.Domain.DanhMuc;
-using LuuKyCanTin.Domain.HeThong;
-using LuuKyCanTin.Domain.LuuKy;
+using LuuKyCanTin.Domain.Administration;
+using LuuKyCanTin.Domain.Custody;
+using LuuKyCanTin.Domain.MasterData;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,32 +16,32 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     /// For name columns searched by typing without diacritics. Vietnamese_CI_AI ignores only tone marks: it treats
     /// ă, â, ê, ô, ơ, ư and đ as separate letters, so "van" would never find "Văn". This one folds them all.
     /// </summary>
-    public const string CollationTimKiem = "Latin1_General_100_CI_AI";
+    public const string SearchCollation = "Latin1_General_100_CI_AI";
 
     // SQL Server's "Cannot insert duplicate key": 2601 for a unique index, 2627 for a unique constraint.
-    private static readonly HashSet<int> LoiTrungKhoa = [2601, 2627];
+    private static readonly HashSet<int> DuplicateKeyErrors = [2601, 2627];
 
-    public DbSet<NhatKyThaoTac> NhatKyThaoTac => Set<NhatKyThaoTac>();
+    public DbSet<AuditLog> AuditLog => Set<AuditLog>();
 
-    public DbSet<NguoiDung> NguoiDung => Set<NguoiDung>();
+    public DbSet<User> User => Set<User>();
 
-    public DbSet<ThongTinDonVi> ThongTinDonVi => Set<ThongTinDonVi>();
+    public DbSet<FacilityInfo> FacilityInfo => Set<FacilityInfo>();
 
-    public DbSet<DoiTuong> DoiTuong => Set<DoiTuong>();
+    public DbSet<Inmate> Inmate => Set<Inmate>();
 
-    public DbSet<ChungTuLuuKy> ChungTuLuuKy => Set<ChungTuLuuKy>();
+    public DbSet<CustodyVoucher> CustodyVoucher => Set<CustodyVoucher>();
 
-    public DbSet<DemSoChungTu> DemSoChungTu => Set<DemSoChungTu>();
+    public DbSet<VoucherCounter> VoucherCounter => Set<VoucherCounter>();
 
-    public DbSet<CanBo> CanBo => Set<CanBo>();
+    public DbSet<Officer> Officer => Set<Officer>();
 
-    public DbSet<VaiTro> VaiTro => Set<VaiTro>();
+    public DbSet<Role> Role => Set<Role>();
 
-    public DbSet<Quyen> Quyen => Set<Quyen>();
+    public DbSet<Permission> Permission => Set<Permission>();
 
-    public DbSet<VaiTroQuyen> VaiTroQuyen => Set<VaiTroQuyen>();
+    public DbSet<RolePermission> RolePermission => Set<RolePermission>();
 
-    public DbSet<NguoiDungVaiTro> NguoiDungVaiTro => Set<NguoiDungVaiTro>();
+    public DbSet<UserRole> UserRole => Set<UserRole>();
 
     // Application sees only its own exception types; Infrastructure code calling the context directly keeps EF's.
     async Task<int> IAppDbContext.SaveChangesAsync(CancellationToken ct)
@@ -52,11 +52,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         }
         catch (DbUpdateConcurrencyException ex)
         {
-            throw new XungDotDuLieuException(ex);
+            throw new ConcurrencyConflictException(ex);
         }
-        catch (DbUpdateException ex) when (ex.InnerException is SqlException sql && LoiTrungKhoa.Contains(sql.Number))
+        catch (DbUpdateException ex) when (ex.InnerException is SqlException sql && DuplicateKeyErrors.Contains(sql.Number))
         {
-            throw new TrungGiaTriDuyNhatException(ex);
+            throw new UniqueConstraintException(ex);
         }
     }
 

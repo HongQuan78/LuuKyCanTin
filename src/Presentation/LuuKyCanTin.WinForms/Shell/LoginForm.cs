@@ -7,36 +7,36 @@ public partial class LoginForm : Form, ILoginView
         InitializeComponent();
     }
 
-    public event EventHandler? DangNhapBam;
+    public event EventHandler? SignInClicked;
 
-    public string TenDangNhap => txtTenDangNhap.Text;
+    public string UserName => txtUserName.Text;
 
-    public string MatKhau => txtMatKhau.Text;
+    public string Password => txtPassword.Text;
 
-    public void HienLoi(string thongBao)
+    public void ShowError(string message)
     {
-        lblLoi.Text = thongBao;
-        txtMatKhau.SelectAll();
-        txtMatKhau.Focus();
+        lblError.Text = message;
+        txtPassword.SelectAll();
+        txtPassword.Focus();
     }
 
-    public void XoaMatKhau()
+    public void ClearPassword()
     {
-        txtMatKhau.Clear();
-        txtMatKhau.Focus();
+        txtPassword.Clear();
+        txtPassword.Focus();
     }
 
-    public void DongVoiKetQua(bool thanhCong)
+    public void CloseWithResult(bool succeeded)
     {
-        DialogResult = thanhCong ? DialogResult.OK : DialogResult.Cancel;
+        DialogResult = succeeded ? DialogResult.OK : DialogResult.Cancel;
         Close();
     }
 
-    private void OnDangNhapBam(object? sender, EventArgs e) => DangNhapBam?.Invoke(this, EventArgs.Empty);
+    private void OnSignInClicked(object? sender, EventArgs e) => SignInClicked?.Invoke(this, EventArgs.Empty);
 
     protected override void OnShown(EventArgs e)
     {
         base.OnShown(e);
-        txtTenDangNhap.Focus();
+        txtUserName.Focus();
     }
 }

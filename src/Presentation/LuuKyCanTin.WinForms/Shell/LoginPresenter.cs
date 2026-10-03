@@ -1,4 +1,4 @@
-using LuuKyCanTin.Application.HeThong;
+using LuuKyCanTin.Application.Administration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace LuuKyCanTin.WinForms.Shell;
@@ -13,38 +13,38 @@ public sealed class LoginPresenter
     {
         _view = view;
         _scopeFactory = scopeFactory;
-        _view.DangNhapBam += async (_, _) =>
+        _view.SignInClicked += async (_, _) =>
         {
             try
             {
-                await DangNhapAsync();
+                await SignInAsync();
             }
             catch (Exception ex)
             {
                 // An unexpected failure (database down) must still reach the user, not the global handler.
-                _view.HienLoi($"Không đăng nhập được: {ex.Message}");
+                _view.ShowError($"Không đăng nhập được: {ex.Message}");
             }
         };
     }
 
     /// <summary>Set after a successful sign-in; true when the shell must wait for a password change.</summary>
-    public bool PhaiDoiMatKhau { get; private set; }
+    public bool MustChangePassword { get; private set; }
 
-    public async Task DangNhapAsync()
+    public async Task SignInAsync()
     {
         await using var scope = _scopeFactory.CreateAsyncScope();
-        var dangNhap = scope.ServiceProvider.GetRequiredService<DangNhapService>();
+        var signIn = scope.ServiceProvider.GetRequiredService<SignInService>();
 
-        var ketQua = await dangNhap.DangNhapAsync(_view.TenDangNhap, _view.MatKhau);
-        if (ketQua.ThanhCong)
+        var result = await signIn.SignInAsync(_view.UserName, _view.Password);
+        if (result.Succeeded)
         {
-            PhaiDoiMatKhau = ketQua.PhaiDoiMatKhau;
-            _view.DongVoiKetQua(true);
+            MustChangePassword = result.MustChangePassword;
+            _view.CloseWithResult(true);
             return;
         }
 
-        _view.HienLoi(ketQua.ThongBao ?? DangNhapService.SaiThongTin);
-        if (ketQua.TrangThai == TrangThaiDangNhap.TaiKhoanBiKhoa)
-            _view.XoaMatKhau();
+        _view.ShowError(result.Message ?? SignInService.InvalidCredentialsMessage);
+        if (result.Status == SignInStatus.AccountLocked)
+            _view.ClearPassword();
     }
 }

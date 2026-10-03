@@ -2,14 +2,14 @@ namespace LuuKyCanTin.IntegrationTests.Common;
 
 internal static class RepositoryPaths
 {
-    public static string Root { get; } = TimThuMucGoc();
+    public static string Root { get; } = FindRoot();
 
-    private static string TimThuMucGoc()
+    private static string FindRoot()
     {
-        for (var thuMuc = new DirectoryInfo(AppContext.BaseDirectory); thuMuc is not null; thuMuc = thuMuc.Parent)
+        for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
         {
-            if (File.Exists(Path.Combine(thuMuc.FullName, "LuuKyCanTin.slnx")))
-                return thuMuc.FullName;
+            if (File.Exists(Path.Combine(directory.FullName, "LuuKyCanTin.slnx")))
+                return directory.FullName;
         }
 
         throw new InvalidOperationException("Could not find LuuKyCanTin.slnx above " + AppContext.BaseDirectory);

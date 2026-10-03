@@ -23,13 +23,13 @@ internal sealed class PdfPreviewForm : Form
     private readonly ToolStripLabel _statusLabel = new("Đang mở bản xem trước…");
 
     private readonly byte[] _pdf;
-    private readonly string _tenTep;
+    private readonly string _fileName;
     private string _previewPath = "";
 
-    public PdfPreviewForm(byte[] pdf, string tenTep)
+    public PdfPreviewForm(byte[] pdf, string fileName)
     {
         _pdf = pdf;
-        _tenTep = tenTep;
+        _fileName = fileName;
 
         Text = "Xem trước bản in";
         Width = 1100;
@@ -89,7 +89,7 @@ internal sealed class PdfPreviewForm : Form
             };
 
             Directory.CreateDirectory(PreviewDir);
-            _previewPath = Path.Combine(PreviewDir, $"{_tenTep}-{Guid.NewGuid():N}.pdf");
+            _previewPath = Path.Combine(PreviewDir, $"{_fileName}-{Guid.NewGuid():N}.pdf");
             await File.WriteAllBytesAsync(_previewPath, _pdf);
 
             _webView.CoreWebView2.Navigate(new Uri(_previewPath).AbsoluteUri);
@@ -133,7 +133,7 @@ internal sealed class PdfPreviewForm : Form
         using var dialog = new SaveFileDialog
         {
             Filter = "PDF (*.pdf)|*.pdf",
-            FileName = $"{_tenTep}.pdf",
+            FileName = $"{_fileName}.pdf",
             Title = "Lưu bản in PDF",
         };
 

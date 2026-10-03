@@ -100,13 +100,13 @@ public interface IReportRenderer
     byte[] Render<TModel>(TModel model) where TModel : IReportModel;
 }
 
-// Application/BaoCao: one model per template, a plain DTO with snapshotted data
-public interface IReportModel { string MaMauIn { get; } }  // e.g. "BIEN_NHAN_THU", matches CauHinhKyTen.MaMauIn
+// Application/Reporting: one model per template, a plain DTO with snapshotted data
+public interface IReportModel { string TemplateCode { get; } }  // e.g. "BIEN_NHAN_THU", matches SignatoryConfiguration.TemplateCode
 ```
 
 Infrastructure resolves `IReportTemplate<TModel>` (one QuestPDF class per template in
-`Infrastructure/Reports/`). The shared frame — header from `ThongTinDonVi`, signature block from
-`CauHinhKyTen`, reprint watermark — is a base component every template composes (built in Epic 4,
+`Infrastructure/Reports/`). The shared frame — header from `FacilityInfo`, signature block from
+`SignatoryConfiguration`, reprint watermark — is a base component every template composes (built in Epic 4,
 FR42/FR43). `byte[]` (not `Stream`) is right for 1–5 page documents; the spike showed no memory
 concern.
 

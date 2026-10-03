@@ -10,43 +10,43 @@ namespace LuuKyCanTin.IntegrationTests.Persistence.EnumChecks;
 public sealed class EnumCheckConstraintTests(SqlServerFixture fixture)
 {
     [SqlServerFact]
-    public async Task KiemTra_EveryEnumColumnInModel_HasNoProblems()
+    public async Task Verify_EveryEnumColumnInModel_HasNoProblems()
     {
-        await using var db = fixture.Database.TaoDbContext();
+        await using var db = fixture.Database.CreateDbContext();
 
-        var problems = EnumCheckVerifier.KiemTra(EnumModel.LayCotEnum(db), await LayCheckConstraintAsync(fixture.Database));
+        var problems = EnumCheckVerifier.Verify(EnumModel.GetEnumColumns(db), await GetCheckConstraintsAsync(fixture.Database));
 
         problems.ShouldBeEmpty();
     }
 
     // The real model has no enum column yet, so prove the check against constraints SQL Server actually stored.
     [SqlServerFact]
-    public async Task KiemTra_DeployedMismatchedConstraints_ReportsEachKind()
+    public async Task Verify_DeployedMismatchedConstraints_ReportsEachKind()
     {
         await using var database = new TestDatabase();
         await using (var db = new TestAppDbContext(database.Options))
         {
             await db.Database.EnsureCreatedAsync();
-            EnumCheckVerifier.KiemTra(EnumModel.LayCotEnum(db), await LayCheckConstraintAsync(database)).ShouldBeEmpty();
+            EnumCheckVerifier.Verify(EnumModel.GetEnumColumns(db), await GetCheckConstraintsAsync(database)).ShouldBeEmpty();
         }
-        await database.ThucThiAsync("ALTER TABLE [MauChungTu] DROP CONSTRAINT [CK_MauChungTu_TrangThaiTruoc]");
-        var checks = await LayCheckConstraintAsync(database);
+        await database.ExecuteAsync("ALTER TABLE [SampleVoucher] DROP CONSTRAINT [CK_SampleVoucher_PreviousStatus]");
+        var checks = await GetCheckConstraintsAsync(database);
 
-        EnumCheckVerifier.KiemTra([TaoCot("TrangThai", typeof(MauTrangThaiThieu))], checks)
-            .ShouldHaveSingleItem().ShouldContain("CHECK allows 3, which MauTrangThaiThieu does not define");
-        EnumCheckVerifier.KiemTra([TaoCot("TrangThai", typeof(MauTrangThaiThua))], checks)
-            .ShouldHaveSingleItem().ShouldContain("enum value Moi=4 is not allowed by the CHECK constraint");
-        EnumCheckVerifier.KiemTra([TaoCot("TrangThaiTruoc", typeof(MauTrangThai))], checks)
+        EnumCheckVerifier.Verify([CreateColumn("Status", typeof(SampleStatusMissingValue))], checks)
+            .ShouldHaveSingleItem().ShouldContain("CHECK allows 3, which SampleStatusMissingValue does not define");
+        EnumCheckVerifier.Verify([CreateColumn("Status", typeof(SampleStatusExtraValue))], checks)
+            .ShouldHaveSingleItem().ShouldContain("enum value New=4 is not allowed by the CHECK constraint");
+        EnumCheckVerifier.Verify([CreateColumn("PreviousStatus", typeof(SampleStatus))], checks)
             .ShouldHaveSingleItem().ShouldContain("no CHECK constraint");
     }
 
-    private enum MauTrangThaiThieu : byte { Nhap = 1, DaGhiSo = 2 }
+    private enum SampleStatusMissingValue : byte { Draft = 1, Posted = 2 }
 
-    private enum MauTrangThaiThua : byte { Nhap = 1, DaGhiSo = 2, DaHuy = 3, Moi = 4 }
+    private enum SampleStatusExtraValue : byte { Draft = 1, Posted = 2, Cancelled = 3, New = 4 }
 
-    private static EnumColumn TaoCot(string column, Type enumType) => new(EnumModel.DefaultSchema, "MauChungTu", column, enumType);
+    private static EnumColumn CreateColumn(string column, Type enumType) => new(EnumModel.DefaultSchema, "SampleVoucher", column, enumType);
 
-    private static async Task<IReadOnlyList<DeployedCheck>> LayCheckConstraintAsync(TestDatabase database)
+    private static async Task<IReadOnlyList<DeployedCheck>> GetCheckConstraintsAsync(TestDatabase database)
     {
         const string sql = """
             SELECT s.name, t.name, cc.definition

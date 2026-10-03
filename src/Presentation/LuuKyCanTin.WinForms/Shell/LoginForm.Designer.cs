@@ -3,14 +3,14 @@ namespace LuuKyCanTin.WinForms.Shell;
 partial class LoginForm
 {
     private System.ComponentModel.IContainer components = null!;
-    private TextBox txtTenDangNhap = null!;
-    private TextBox txtMatKhau = null!;
-    private Label lblTenDangNhap = null!;
-    private Label lblMatKhau = null!;
-    private Label lblLoi = null!;
-    private Button btnDangNhap = null!;
-    private Button btnHuy = null!;
-    private Label lblTieuDe = null!;
+    private TextBox txtUserName = null!;
+    private TextBox txtPassword = null!;
+    private Label lblUserName = null!;
+    private Label lblPassword = null!;
+    private Label lblError = null!;
+    private Button btnSignIn = null!;
+    private Button btnCancel = null!;
+    private Label lblTitle = null!;
 
     protected override void Dispose(bool disposing)
     {
@@ -23,65 +23,65 @@ partial class LoginForm
     private void InitializeComponent()
     {
         components = new System.ComponentModel.Container();
-        txtTenDangNhap = new TextBox();
-        txtMatKhau = new TextBox();
-        lblTenDangNhap = new Label();
-        lblMatKhau = new Label();
-        lblLoi = new Label();
-        btnDangNhap = new Button();
-        btnHuy = new Button();
-        lblTieuDe = new Label();
+        txtUserName = new TextBox();
+        txtPassword = new TextBox();
+        lblUserName = new Label();
+        lblPassword = new Label();
+        lblError = new Label();
+        btnSignIn = new Button();
+        btnCancel = new Button();
+        lblTitle = new Label();
         SuspendLayout();
 
-        lblTieuDe.AutoSize = true;
-        lblTieuDe.Font = new Font("Segoe UI", 14F, FontStyle.Bold);
-        lblTieuDe.Location = new Point(24, 20);
-        lblTieuDe.Text = "Lưu ký – Căn tin";
+        lblTitle.AutoSize = true;
+        lblTitle.Font = new Font("Segoe UI", 14F, FontStyle.Bold);
+        lblTitle.Location = new Point(24, 20);
+        lblTitle.Text = "Lưu ký – Căn tin";
 
-        lblTenDangNhap.AutoSize = true;
-        lblTenDangNhap.Location = new Point(24, 70);
-        lblTenDangNhap.Text = "Tên đăng nhập";
+        lblUserName.AutoSize = true;
+        lblUserName.Location = new Point(24, 70);
+        lblUserName.Text = "Tên đăng nhập";
 
-        txtTenDangNhap.Location = new Point(24, 90);
-        txtTenDangNhap.Size = new Size(280, 27);
-        txtTenDangNhap.Name = "txtTenDangNhap";
+        txtUserName.Location = new Point(24, 90);
+        txtUserName.Size = new Size(280, 27);
+        txtUserName.Name = "txtUserName";
 
-        lblMatKhau.AutoSize = true;
-        lblMatKhau.Location = new Point(24, 130);
-        lblMatKhau.Text = "Mật khẩu";
+        lblPassword.AutoSize = true;
+        lblPassword.Location = new Point(24, 130);
+        lblPassword.Text = "Mật khẩu";
 
-        txtMatKhau.Location = new Point(24, 150);
-        txtMatKhau.Size = new Size(280, 27);
-        txtMatKhau.UseSystemPasswordChar = true;
-        txtMatKhau.Name = "txtMatKhau";
+        txtPassword.Location = new Point(24, 150);
+        txtPassword.Size = new Size(280, 27);
+        txtPassword.UseSystemPasswordChar = true;
+        txtPassword.Name = "txtPassword";
 
-        lblLoi.ForeColor = Color.Firebrick;
-        lblLoi.Location = new Point(24, 184);
-        lblLoi.Size = new Size(280, 40);
-        lblLoi.Text = "";
+        lblError.ForeColor = Color.Firebrick;
+        lblError.Location = new Point(24, 184);
+        lblError.Size = new Size(280, 40);
+        lblError.Text = "";
 
-        btnDangNhap.Location = new Point(24, 228);
-        btnDangNhap.Size = new Size(135, 32);
-        btnDangNhap.Text = "Đăng nhập";
-        btnDangNhap.Click += OnDangNhapBam;
+        btnSignIn.Location = new Point(24, 228);
+        btnSignIn.Size = new Size(135, 32);
+        btnSignIn.Text = "Đăng nhập";
+        btnSignIn.Click += OnSignInClicked;
 
-        btnHuy.DialogResult = DialogResult.Cancel;
-        btnHuy.Location = new Point(169, 228);
-        btnHuy.Size = new Size(135, 32);
-        btnHuy.Text = "Hủy";
+        btnCancel.DialogResult = DialogResult.Cancel;
+        btnCancel.Location = new Point(169, 228);
+        btnCancel.Size = new Size(135, 32);
+        btnCancel.Text = "Hủy";
 
-        AcceptButton = btnDangNhap;
-        CancelButton = btnHuy;
+        AcceptButton = btnSignIn;
+        CancelButton = btnCancel;
         AutoScaleMode = AutoScaleMode.Font;
         ClientSize = new Size(330, 280);
-        Controls.Add(lblTieuDe);
-        Controls.Add(lblTenDangNhap);
-        Controls.Add(txtTenDangNhap);
-        Controls.Add(lblMatKhau);
-        Controls.Add(txtMatKhau);
-        Controls.Add(lblLoi);
-        Controls.Add(btnDangNhap);
-        Controls.Add(btnHuy);
+        Controls.Add(lblTitle);
+        Controls.Add(lblUserName);
+        Controls.Add(txtUserName);
+        Controls.Add(lblPassword);
+        Controls.Add(txtPassword);
+        Controls.Add(lblError);
+        Controls.Add(btnSignIn);
+        Controls.Add(btnCancel);
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
         MinimizeBox = false;

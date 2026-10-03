@@ -1,4 +1,4 @@
-using LuuKyCanTin.Application.BaoCao;
+using LuuKyCanTin.Application.Reporting;
 
 namespace LuuKyCanTin.Infrastructure.Reports;
 

@@ -19,6 +19,8 @@ LuuKyCanTin.WinForms.exe --migrate --seed-demo --environment Development
 
 `--seed-demo` chỉ chạy trong môi trường Development, hoặc khi xác nhận bằng `--force=<tên cơ sở dữ liệu>`.
 
+Mỗi lần triển khai bản mới có migration, quản trị viên chạy `--migrate` một lần trước khi các máy trạm mở ứng dụng: máy trạm từ chối chạy với cơ sở dữ liệu cũ hơn bản build. Migration `RenameIdentifiersToEnglish` đổi tên bảng và cột sang tiếng Anh ngay trên dữ liệu đang có, không mất dòng nào. Nếu có `appsettings.json` đã sửa tay, đổi khoá `"DangNhap": { "ThoiGianKhoaPhut" }` thành `"SignIn": { "LockoutMinutes" }` và `"App": { "TieuDe" }` thành `"App": { "Title" }`.
+
 ## Tài khoản quản trị ban đầu
 
 | Tên đăng nhập | Mật khẩu ban đầu |
@@ -26,13 +28,13 @@ LuuKyCanTin.WinForms.exe --migrate --seed-demo --environment Development
 | `admin` | `LuuKy@2026` |
 
 - Mật khẩu được băm bằng PBKDF2-SHA256 (600.000 vòng, salt ngẫu nhiên 16 byte); không lưu dạng rõ.
-- Ở lần đăng nhập đầu tiên, hệ thống **bắt buộc đổi mật khẩu** (`PhaiDoiMatKhau = 1` trong migration `AddDangNhapBaoMat`). Sau khi đổi, mật khẩu mới phải có ít nhất 8 ký tự, gồm chữ in hoa, chữ thường và chữ số.
-- Hash khởi tạo nằm trong migration `AddWalkingSkeletonTables` (một chuỗi cố định, sinh một lần ngoại tuyến bằng `Pbkdf2MatKhauHasher` trong Infrastructure).
+- Ở lần đăng nhập đầu tiên, hệ thống **bắt buộc đổi mật khẩu** (`User.MustChangePassword = 1`, đặt trong migration `AddDangNhapBaoMat`). Sau khi đổi, mật khẩu mới phải có ít nhất 8 ký tự, gồm chữ in hoa, chữ thường và chữ số.
+- Hash khởi tạo nằm trong migration `AddWalkingSkeletonTables` (một chuỗi cố định, sinh một lần ngoại tuyến bằng `Pbkdf2PasswordHasher` trong Infrastructure).
 
 ## Đăng nhập, khoá tài khoản và phân quyền
 
 - Sai mật khẩu 5 lần liên tiếp thì tài khoản bị khoá. Thời gian khoá đọc từ `appsettings.json`:
-  `"DangNhap": { "ThoiGianKhoaPhut": 15 }`. Giá trị `0` nghĩa là chỉ quản trị viên mở khoá (Story 2.4).
+  `"SignIn": { "LockoutMinutes": 15 }`. Giá trị `0` nghĩa là chỉ quản trị viên mở khoá (Story 2.4).
   Vì các máy trạm dùng chung một cơ sở dữ liệu, **mọi máy phải cấu hình cùng một giá trị**.
 - `--seed-demo` tạo thêm một tài khoản cho mỗi vai trò chuẩn (mật khẩu chung `Demo@2026`, không buộc đổi):
 

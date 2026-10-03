@@ -1,4 +1,4 @@
-using LuuKyCanTin.Infrastructure.HeThong;
+using LuuKyCanTin.Infrastructure.Administration;
 using LuuKyCanTin.Infrastructure.Persistence;
 using LuuKyCanTin.Infrastructure.Persistence.Interceptors;
 using LuuKyCanTin.IntegrationTests.Common;
@@ -17,29 +17,29 @@ public sealed class AuditDatabaseFixture : IAsyncLifetime
 
     public CurrentUserSession User { get; } = new();
 
-    public NhatKyFactory NhatKyFactory => new(Clock, User);
+    public AuditLogFactory AuditLogFactory => new(Clock, User);
 
     /// <summary>A context with the audit interceptor, as the app's DI builds it: one interceptor per context.</summary>
-    public TestAppDbContext TaoDbContextCoNhatKy() => new(new DbContextOptionsBuilder<AppDbContext>()
+    public TestAppDbContext CreateAuditedDbContext() => new(new DbContextOptionsBuilder<AppDbContext>()
         .UseSqlServer(Database.ConnectionString)
-        .AddInterceptors(new AuditInterceptor(Clock, User, NhatKyFactory))
+        .AddInterceptors(new AuditInterceptor(Clock, User, AuditLogFactory))
         .Options);
 
     /// <summary>A context without the interceptor, for reading back what was really stored.</summary>
-    public TestAppDbContext TaoDbContext() => new(Database.Options);
+    public TestAppDbContext CreateDbContext() => new(Database.Options);
 
     public async Task InitializeAsync()
     {
-        if (!SqlServerFactAttribute.DuocPhepChay)
+        if (!SqlServerFactAttribute.CanRun)
             return;
 
-        await using var db = TaoDbContext();
+        await using var db = CreateDbContext();
         await db.Database.EnsureCreatedAsync();
     }
 
     public async Task DisposeAsync()
     {
-        if (SqlServerFactAttribute.DuocPhepChay)
+        if (SqlServerFactAttribute.CanRun)
             await Database.DisposeAsync();
     }
 }

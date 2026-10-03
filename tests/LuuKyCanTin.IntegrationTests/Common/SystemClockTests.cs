@@ -8,19 +8,19 @@ public sealed class SystemClockTests
     [Fact]
     public void Now_Always_IsLocalTime()
     {
-        var truoc = DateTime.Now;
-        var thoiDiem = new SystemClock().Now;
+        var before = DateTime.Now;
+        var now = new SystemClock().Now;
 
-        thoiDiem.Kind.ShouldBe(DateTimeKind.Local);
-        thoiDiem.ShouldBeInRange(truoc, DateTime.Now);
+        now.Kind.ShouldBe(DateTimeKind.Local);
+        now.ShouldBeInRange(before, DateTime.Now);
     }
 
     [Fact]
     public void Today_Always_IsTheDateOfNow()
     {
-        var truoc = DateOnly.FromDateTime(DateTime.Now);
-        var homNay = new SystemClock().Today;
+        var before = DateOnly.FromDateTime(DateTime.Now);
+        var today = new SystemClock().Today;
 
-        homNay.ShouldBeInRange(truoc, DateOnly.FromDateTime(DateTime.Now));
+        today.ShouldBeInRange(before, DateOnly.FromDateTime(DateTime.Now));
     }
 }
