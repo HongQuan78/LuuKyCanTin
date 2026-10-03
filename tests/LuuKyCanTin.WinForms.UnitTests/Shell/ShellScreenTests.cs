@@ -188,6 +188,7 @@ public class ShellScreenTests
     [InlineData(ShellNavigation.DepositReceiptKey, "Lập biên nhận thu", typeof(DepositReceiptForm))]
     [InlineData(ShellNavigation.RolesKey, "Vai trò và phân quyền", typeof(RoleForm))]
     [InlineData(ShellNavigation.FacilityInfoKey, "Thông tin đơn vị", typeof(FacilityInfoForm))]
+    [InlineData(ShellNavigation.SignatoryConfigurationKey, "Cấu hình người ký", typeof(SignatoryConfigurationForm))]
     public void Navigator_ModuleScreens_AreHostedInTheContentArea(string key, string title, Type screenType)
     {
         StaThread.Run(() =>
@@ -203,6 +204,7 @@ public class ShellScreenTests
                 ShellNavigation.OfficersKey => navigator.OpenOfficers,
                 ShellNavigation.DepositReceiptKey => navigator.OpenDepositReceipt,
                 ShellNavigation.FacilityInfoKey => navigator.OpenFacilityInfo,
+                ShellNavigation.SignatoryConfigurationKey => navigator.OpenSignatoryConfiguration,
                 _ => navigator.OpenRoles,
             };
             open();

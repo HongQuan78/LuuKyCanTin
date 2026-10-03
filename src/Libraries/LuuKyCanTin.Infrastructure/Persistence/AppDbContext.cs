@@ -28,6 +28,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
     public DbSet<FacilityInfo> FacilityInfo => Set<FacilityInfo>();
 
+    public DbSet<SignatoryConfiguration> SignatoryConfiguration => Set<SignatoryConfiguration>();
+
     public DbSet<Inmate> Inmate => Set<Inmate>();
 
     public DbSet<CustodyVoucher> CustodyVoucher => Set<CustodyVoucher>();

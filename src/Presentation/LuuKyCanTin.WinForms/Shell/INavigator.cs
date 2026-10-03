@@ -27,6 +27,9 @@ public interface INavigator
     /// <summary>Shows the unit-information screen in the content area.</summary>
     void OpenFacilityInfo();
 
+    /// <summary>Shows the signer-configuration screen in the content area.</summary>
+    void OpenSignatoryConfiguration();
+
     /// <summary>Opens the voluntary change-password dialog for the signed-in user.</summary>
     void OpenChangePassword();
 

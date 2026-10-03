@@ -17,6 +17,7 @@ internal sealed class Navigator(IServiceScopeFactory scopes, IContentHost host, 
     public const string AccountsTitle = "Tài khoản";
     public const string RolesTitle = "Vai trò và phân quyền";
     public const string FacilityInfoTitle = "Thông tin đơn vị";
+    public const string SignatoryConfigurationTitle = "Cấu hình người ký";
 
     public void ShowPage(string key, string title, Func<Control> create) => host.ShowPage(key, title, create);
 
@@ -77,6 +78,14 @@ internal sealed class Navigator(IServiceScopeFactory scopes, IContentHost host, 
     {
         var page = new FacilityInfoForm();
         _ = new FacilityInfoPresenter(page, scopes, currentUser);
+        return page;
+    });
+
+    public void OpenSignatoryConfiguration() => host.ShowPage(
+        ShellNavigation.SignatoryConfigurationKey, SignatoryConfigurationTitle, () =>
+    {
+        var page = new SignatoryConfigurationForm();
+        _ = new SignatoryConfigurationPresenter(page, scopes, currentUser);
         return page;
     });
 

@@ -80,3 +80,7 @@
 - source_spec: `_bmad-output/implementation-artifacts/stories/epic-02/2-7-session-auto-lock.md`
   summary: Shell close does not remove the application message filter in any test (no ShellApplicationContext seam).
   evidence: MainPresenter.Dispose removes the filter and disposes the monitor, but nothing asserts it; a per-session leak is possible if the call is dropped. A lifecycle seam or a filter-count test would settle it.
+
+- source_spec: `_bmad-output/implementation-artifacts/stories/epic-02/2-9-signatory-configuration.md`
+  summary: Signatory rows are runtime-editable but seeded with HasData, so a future seed diff could revert the unit's saved configuration.
+  evidence: EF diffs HasData on every migrations add; the story documents the data-migration policy but no build guard enforces it. A test that adds an empty migration and asserts no seed diff would pin it.

@@ -17,6 +17,8 @@ public interface IAppDbContext
 
     DbSet<FacilityInfo> FacilityInfo { get; }
 
+    DbSet<SignatoryConfiguration> SignatoryConfiguration { get; }
+
     DbSet<Officer> Officer { get; }
 
     DbSet<Role> Role { get; }

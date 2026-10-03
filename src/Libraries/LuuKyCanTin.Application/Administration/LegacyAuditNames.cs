@@ -19,6 +19,7 @@ public static class LegacyAuditNames
         ["NhatKyThaoTac"] = "AuditLog",
         ["Quyen"] = "Permission",
         ["ThongTinDonVi"] = "FacilityInfo",
+        ["CauHinhKyTen"] = "SignatoryConfiguration",
         ["VaiTro"] = "Role",
         ["VaiTroQuyen"] = "RolePermission",
     };

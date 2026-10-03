@@ -9,7 +9,7 @@ namespace LuuKyCanTin.Application.Reporting;
 /// </summary>
 public sealed class DepositReceiptModel : IReportModel
 {
-    public const string PrintTemplate = "BIEN_NHAN_THU";
+    public const string PrintTemplate = TemplateCodes.DepositReceipt;
 
     public string TemplateCode => PrintTemplate;
 

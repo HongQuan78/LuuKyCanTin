@@ -17,6 +17,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<IOfficerService, OfficerService>();
         services.AddScoped<IRoleService, RoleService>();
         services.AddScoped<IFacilityInfoService, FacilityInfoService>();
+        services.AddScoped<ISignatoryConfigurationService, SignatoryConfigurationService>();
         services.AddScoped<LastAdministratorGuard>();
         services.AddScoped<IAccountService, AccountService>();
 

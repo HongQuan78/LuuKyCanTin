@@ -36,6 +36,7 @@ public class ShellNavigationTests
     [InlineData(ShellNavigation.AccountsKey)]
     [InlineData(ShellNavigation.RolesKey)]
     [InlineData(ShellNavigation.FacilityInfoKey)]
+    [InlineData(ShellNavigation.SignatoryConfigurationKey)]
     [InlineData(ShellNavigation.ChangePasswordKey)]
     public void Open_EachScreenItem_CallsItsNavigatorMethod(string key)
     {
@@ -49,6 +50,7 @@ public class ShellNavigationTests
             ShellNavigation.AccountsKey => nameof(INavigator.OpenAccounts),
             ShellNavigation.RolesKey => nameof(INavigator.OpenRoles),
             ShellNavigation.FacilityInfoKey => nameof(INavigator.OpenFacilityInfo),
+            ShellNavigation.SignatoryConfigurationKey => nameof(INavigator.OpenSignatoryConfiguration),
             _ => nameof(INavigator.OpenChangePassword),
         };
         _navigator.ReceivedCalls().Select(c => c.GetMethodInfo().Name).ShouldBe([expected]);
