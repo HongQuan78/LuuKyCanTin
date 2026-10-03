@@ -3,58 +3,58 @@ using Shouldly;
 
 namespace LuuKyCanTin.WinForms.UnitTests.HeThong;
 
-public class AdminCommandLineTests
+public sealed class AdminCommandLineTests
 {
     [Fact]
-    public void NoArguments_IsNormalStartup()
+    public void PhanTich_NoArguments_IsNotAdminCommand()
     {
-        var command = AdminCommandLine.Parse([]);
+        var lenh = AdminCommandLine.PhanTich([]);
 
-        command.IsAdminCommand.ShouldBeFalse();
-        command.HostArgs.ShouldBeEmpty();
+        lenh.LaLenhQuanTri.ShouldBeFalse();
+        lenh.HostArgs.ShouldBeEmpty();
     }
 
     [Fact]
-    public void Migrate_IsAdminCommand()
+    public void PhanTich_MigrateVerb_IsAdminCommand()
     {
-        var command = AdminCommandLine.Parse(["--migrate"]);
+        var lenh = AdminCommandLine.PhanTich(["--migrate"]);
 
-        command.IsAdminCommand.ShouldBeTrue();
-        command.Migrate.ShouldBeTrue();
-        command.SeedDemo.ShouldBeFalse();
+        lenh.LaLenhQuanTri.ShouldBeTrue();
+        lenh.CoApDungMigration.ShouldBeTrue();
+        lenh.CoNapDuLieuMau.ShouldBeFalse();
     }
 
     [Fact]
-    public void MigrateAndSeedDemo_CanBeCombined()
+    public void PhanTich_MigrateAndSeedDemo_SetsBoth()
     {
-        var command = AdminCommandLine.Parse(["--migrate", "--seed-demo"]);
+        var lenh = AdminCommandLine.PhanTich(["--migrate", "--seed-demo"]);
 
-        command.Migrate.ShouldBeTrue();
-        command.SeedDemo.ShouldBeTrue();
-        command.ForceDatabaseName.ShouldBeNull();
+        lenh.CoApDungMigration.ShouldBeTrue();
+        lenh.CoNapDuLieuMau.ShouldBeTrue();
+        lenh.TenCoSoDuLieuXacNhan.ShouldBeNull();
     }
 
     [Theory]
     [InlineData("--force=LuuKyCanTin", "LuuKyCanTin")]
     [InlineData("--force=", "")]
     [InlineData("--force", "")]
-    public void Force_CarriesTheConfirmedDatabaseName(string argument, string expected)
+    public void PhanTich_ForceFlag_CarriesConfirmedDatabaseName(string argument, string expected)
     {
-        AdminCommandLine.Parse(["--seed-demo", argument]).ForceDatabaseName.ShouldBe(expected);
+        AdminCommandLine.PhanTich(["--seed-demo", argument]).TenCoSoDuLieuXacNhan.ShouldBe(expected);
     }
 
     [Fact]
-    public void Verbs_AreCaseInsensitive()
+    public void PhanTich_VerbInUpperCase_IsRecognised()
     {
-        AdminCommandLine.Parse(["--MIGRATE"]).Migrate.ShouldBeTrue();
+        AdminCommandLine.PhanTich(["--MIGRATE"]).CoApDungMigration.ShouldBeTrue();
     }
 
     [Fact]
-    public void OwnVerbs_AreNotPassedToTheHost_OtherArgumentsAre()
+    public void PhanTich_MixedArguments_PassesOnlyNonAdminArgumentsToHost()
     {
         // The host's command-line provider would read "--migrate --environment" as the key "migrate".
-        var command = AdminCommandLine.Parse(["--migrate", "--environment", "Development", "--force=X"]);
+        var lenh = AdminCommandLine.PhanTich(["--migrate", "--environment", "Development", "--force=X"]);
 
-        command.HostArgs.ShouldBe(["--environment", "Development"]);
+        lenh.HostArgs.ShouldBe(["--environment", "Development"]);
     }
 }

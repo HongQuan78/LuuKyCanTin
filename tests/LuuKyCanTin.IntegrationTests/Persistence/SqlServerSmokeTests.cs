@@ -4,7 +4,7 @@ using Shouldly;
 
 namespace LuuKyCanTin.IntegrationTests.Persistence;
 
-public class SqlServerSmokeTests
+public sealed class SqlServerSmokeTests
 {
     [SqlServerFact]
     public async Task OpenAsync_ConfiguredServer_AcceptsSelectQuery()

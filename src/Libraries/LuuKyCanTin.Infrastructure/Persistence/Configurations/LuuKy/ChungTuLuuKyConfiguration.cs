@@ -8,7 +8,7 @@ namespace LuuKyCanTin.Infrastructure.Persistence.Configurations.LuuKy;
 
 internal sealed class ChungTuLuuKyConfiguration : AuditableEntityConfiguration<ChungTuLuuKy>
 {
-    protected override void ConfigureEntity(EntityTypeBuilder<ChungTuLuuKy> builder)
+    protected override void CauHinhRieng(EntityTypeBuilder<ChungTuLuuKy> builder)
     {
         builder.ToTable("ChungTuLuuKy", t =>
         {

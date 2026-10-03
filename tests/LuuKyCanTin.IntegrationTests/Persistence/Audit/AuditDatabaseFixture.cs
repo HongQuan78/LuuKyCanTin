@@ -30,7 +30,7 @@ public sealed class AuditDatabaseFixture : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        if (!SqlServerFactAttribute.ShouldRun)
+        if (!SqlServerFactAttribute.DuocPhepChay)
             return;
 
         await using var db = CreatePlainContext();
@@ -39,7 +39,7 @@ public sealed class AuditDatabaseFixture : IAsyncLifetime
 
     public async Task DisposeAsync()
     {
-        if (SqlServerFactAttribute.ShouldRun)
+        if (SqlServerFactAttribute.DuocPhepChay)
             await Database.DisposeAsync();
     }
 }

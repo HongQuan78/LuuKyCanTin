@@ -25,8 +25,9 @@
 
   <ItemGroup>
     <None Update="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
-    <!-- Each developer's own .env (gitignored) is copied next to the exe, where the app looks for it. -->
-    <None Include=".env" CopyToOutputDirectory="PreserveNewest" Condition="Exists('.env')" />
+    <!-- Each developer's own .env (gitignored) is copied next to the exe, where the app looks for it. It is never
+         published: a release must not carry a developer's connection string or password. -->
+    <None Include=".env" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="Never" Condition="Exists('.env')" />
   </ItemGroup>
 
   <!-- The WebView2 package also ships a WPF assembly. The app only uses the WinForms control, and the WPF copy

@@ -4,5 +4,5 @@ namespace LuuKyCanTin.Application.HeThong;
 public interface IDatabaseMigrator
 {
     /// <returns>The migrations applied by this call, oldest first; empty when the database was already current.</returns>
-    Task<IReadOnlyList<string>> MigrateAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<string>> ApDungMigrationAsync(CancellationToken ct = default);
 }

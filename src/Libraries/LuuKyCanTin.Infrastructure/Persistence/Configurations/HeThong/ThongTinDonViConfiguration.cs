@@ -10,7 +10,7 @@ internal sealed class ThongTinDonViConfiguration : AuditableEntityConfiguration<
     // One reference-data row exists on every install; a fixed timestamp keeps the seed deterministic.
     private static readonly DateTime NgayTaoSeed = new(2026, 1, 1);
 
-    protected override void ConfigureEntity(EntityTypeBuilder<ThongTinDonVi> builder)
+    protected override void CauHinhRieng(EntityTypeBuilder<ThongTinDonVi> builder)
     {
         builder.ToTable("ThongTinDonVi", t => t.HasCheckConstraint("CK_ThongTinDonVi_Id", "[Id] = 1"));
 

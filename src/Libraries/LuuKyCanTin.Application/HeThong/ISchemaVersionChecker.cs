@@ -1,7 +1,7 @@
 namespace LuuKyCanTin.Application.HeThong;
 
-/// <summary>Compares the migration this build expects with the one last applied to the database.</summary>
+/// <summary>Compares the migrations this build expects with the ones applied to the database.</summary>
 public interface ISchemaVersionChecker
 {
-    Task<SchemaVersionCheckResult> CheckAsync(CancellationToken cancellationToken = default);
+    Task<SchemaVersionCheckResult> KiemTraAsync(CancellationToken ct = default);
 }

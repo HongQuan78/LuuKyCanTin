@@ -25,3 +25,9 @@
 - source_spec: `_bmad-output/implementation-artifacts/stories/epic-01/1-1-solution-skeleton-host-ci.md`
   summary: The host is built but never started, so a future `IHostedService` (for example scheduled backup) would silently never run.
   evidence: `Program.Main` calls `CreateHost` and then `WinFormsApp.Run`, with no `host.Start()`/`StopAsync()`. No hosted service is registered yet.
+
+## Deferred from: code review of 1-2-database-migrations-schema-version-enum-check (2026-10-03)
+
+- source_spec: `_bmad-output/implementation-artifacts/stories/epic-01/1-2-database-migrations-schema-version-enum-check.md`
+  summary: A login or permission failure (SQL 18456/4060) may be reported as a schema-version mismatch instead of "cannot connect to the database" (unverified, medium if real).
+  evidence: `SchemaVersionChecker` relies on `GetAppliedMigrationsAsync`, and EF's `SqlServerDatabaseCreator.Exists` treats some of these errors as "database does not exist", which yields an empty list and so a mismatch. To settle it, start a workstation with a wrong password and with a login lacking DB access, and see which message appears.

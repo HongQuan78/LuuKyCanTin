@@ -24,11 +24,11 @@ public sealed class AppDatabaseFixture : IAsyncLifetime
         .AddInterceptors(new AuditInterceptor(Clock, User, new NhatKyFactory(Clock, User)))
         .Options);
 
-    public Task InitializeAsync() => SqlServerFactAttribute.ShouldRun ? Database.MigrateAsync() : Task.CompletedTask;
+    public Task InitializeAsync() => SqlServerFactAttribute.DuocPhepChay ? Database.ApDungMigrationAsync() : Task.CompletedTask;
 
     public async Task DisposeAsync()
     {
-        if (SqlServerFactAttribute.ShouldRun)
+        if (SqlServerFactAttribute.DuocPhepChay)
             await Database.DisposeAsync();
     }
 }

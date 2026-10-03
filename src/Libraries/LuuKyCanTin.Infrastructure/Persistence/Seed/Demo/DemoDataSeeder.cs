@@ -24,14 +24,15 @@ internal sealed class DemoDataSeeder(AppDbContext db, IMatKhauHasher matKhauHash
         new("ketoan", "CB-KT", "Hoàng Thị Kế Toán", "Kế toán đơn vị", MaVaiTro.KeToan, false),
     ];
 
-    public async Task<DemoSeedDecision> SeedAsync(bool isDevelopment, string? confirmedDatabaseName, CancellationToken cancellationToken = default)
+    public async Task<DemoSeedDecision> NapDuLieuMauAsync(
+        bool laMoiTruongPhatTrien, string? tenCoSoDuLieuXacNhan, CancellationToken ct = default)
     {
-        var decision = DemoSeedPolicy.Decide(isDevelopment, confirmedDatabaseName, db.Database.GetDbConnection().Database);
+        var decision = DemoSeedPolicy.KiemTra(laMoiTruongPhatTrien, tenCoSoDuLieuXacNhan, db.Database.GetDbConnection().Database);
         if (decision != DemoSeedDecision.Allowed)
             return decision;
 
-        await FillUnitInfoAsync(cancellationToken);
-        await FillTaiKhoanDemoAsync(cancellationToken);
+        await FillUnitInfoAsync(ct);
+        await FillTaiKhoanDemoAsync(ct);
         return decision;
     }
 

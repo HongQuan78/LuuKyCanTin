@@ -4,5 +4,6 @@ namespace LuuKyCanTin.Application.HeThong;
 public interface IDemoDataSeeder
 {
     /// <returns>The policy decision; data is written only when it is <see cref="DemoSeedDecision.Allowed"/>.</returns>
-    Task<DemoSeedDecision> SeedAsync(bool isDevelopment, string? confirmedDatabaseName, CancellationToken cancellationToken = default);
+    Task<DemoSeedDecision> NapDuLieuMauAsync(
+        bool laMoiTruongPhatTrien, string? tenCoSoDuLieuXacNhan, CancellationToken ct = default);
 }

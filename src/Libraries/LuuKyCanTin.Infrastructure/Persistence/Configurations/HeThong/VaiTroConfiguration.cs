@@ -8,7 +8,7 @@ namespace LuuKyCanTin.Infrastructure.Persistence.Configurations.HeThong;
 
 internal sealed class VaiTroConfiguration : AuditableEntityConfiguration<VaiTro>
 {
-    protected override void ConfigureEntity(EntityTypeBuilder<VaiTro> builder)
+    protected override void CauHinhRieng(EntityTypeBuilder<VaiTro> builder)
     {
         builder.ToTable("VaiTro");
 

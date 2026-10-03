@@ -16,24 +16,24 @@ public sealed class SqlServerFactAttribute : FactAttribute
     private const string LocalDbConnectionString =
         @"Server=(localdb)\MSSQLLocalDB;Integrated Security=true;TrustServerCertificate=true;Connect Timeout=60";
 
-    private static readonly string? ConfiguredServer = ReadConfiguredServer();
+    private static readonly string? ConfiguredServer = LayMayChuDaCauHinh();
 
     /// <summary>A connection string to the server's master database.</summary>
     public static string ConnectionString { get; } = ConfiguredServer ?? LocalDbConnectionString;
 
     /// <summary>False only when the tests are going to be skipped, so fixtures can avoid touching a server.</summary>
-    public static bool ShouldRun { get; } =
+    public static bool DuocPhepChay { get; } =
         ConfiguredServer is not null || Environment.GetEnvironmentVariable("CI") is not null || DaCaiLocalDb();
 
     public SqlServerFactAttribute()
     {
-        if (!ShouldRun)
+        if (!DuocPhepChay)
             Skip = $"No test SQL Server: set {ServerVariable} in .env (see docker-compose.yml) or install LocalDB.";
     }
 
-    private static string? ReadConfiguredServer()
+    private static string? LayMayChuDaCauHinh()
     {
-        DotEnvFile.Load(Path.Combine(RepositoryPaths.Root, DotEnvFile.FileName));
+        DotEnvFile.Nap(Path.Combine(RepositoryPaths.Root, DotEnvFile.FileName));
         var value = Environment.GetEnvironmentVariable(ServerVariable);
         return string.IsNullOrWhiteSpace(value) ? null : value;
     }

@@ -17,8 +17,8 @@ public abstract class AuditableEntityConfiguration<T> : IEntityTypeConfiguration
         builder.Property(e => e.NgaySua).HasColumnType("datetime2(0)");
         builder.Property(e => e.RowVer).IsRowVersion();
 
-        ConfigureEntity(builder);
+        CauHinhRieng(builder);
     }
 
-    protected abstract void ConfigureEntity(EntityTypeBuilder<T> builder);
+    protected abstract void CauHinhRieng(EntityTypeBuilder<T> builder);
 }

@@ -6,28 +6,28 @@ namespace LuuKyCanTin.WinForms.HeThong;
 
 /// <summary>Runs <c>--migrate</c> and <c>--seed-demo</c> without opening any window.</summary>
 internal sealed class AdminCommandRunner(
-    IServiceScopeFactory scopeFactory, bool isDevelopment, TextWriter output, ILogger<AdminCommandRunner> logger)
+    IServiceScopeFactory scopeFactory, bool laMoiTruongPhatTrien, TextWriter output, ILogger<AdminCommandRunner> logger)
 {
     public const int Success = 0;
     public const int Failure = 1;
 
-    public async Task<int> RunAsync(AdminCommandLine command, CancellationToken cancellationToken = default)
+    public async Task<int> ChayAsync(AdminCommandLine lenh, CancellationToken ct = default)
     {
         try
         {
             using var scope = scopeFactory.CreateScope();
 
-            if (command.Migrate)
-                await MigrateAsync(scope.ServiceProvider.GetRequiredService<IDatabaseMigrator>(), cancellationToken);
+            if (lenh.CoApDungMigration)
+                await ApDungMigrationAsync(scope.ServiceProvider.GetRequiredService<IDatabaseMigrator>(), ct);
 
-            if (command.SeedDemo)
+            if (lenh.CoNapDuLieuMau)
             {
                 var decision = await scope.ServiceProvider.GetRequiredService<IDemoDataSeeder>()
-                    .SeedAsync(isDevelopment, command.ForceDatabaseName, cancellationToken);
+                    .NapDuLieuMauAsync(laMoiTruongPhatTrien, lenh.TenCoSoDuLieuXacNhan, ct);
                 if (decision != DemoSeedDecision.Allowed)
                 {
                     logger.LogWarning("Demo data seeding refused: {Decision}", decision);
-                    output.WriteLine(RefusalMessage(decision));
+                    output.WriteLine(LayThongBaoTuChoi(decision));
                     return Failure;
                 }
 
@@ -45,9 +45,9 @@ internal sealed class AdminCommandRunner(
         }
     }
 
-    private async Task MigrateAsync(IDatabaseMigrator migrator, CancellationToken cancellationToken)
+    private async Task ApDungMigrationAsync(IDatabaseMigrator migrator, CancellationToken ct)
     {
-        var applied = await migrator.MigrateAsync(cancellationToken);
+        var applied = await migrator.ApDungMigrationAsync(ct);
         logger.LogInformation("Applied {Count} migration(s): {Migrations}", applied.Count, applied);
 
         if (applied.Count == 0)
@@ -61,7 +61,7 @@ internal sealed class AdminCommandRunner(
             output.WriteLine("  " + migration);
     }
 
-    private static string RefusalMessage(DemoSeedDecision decision) => decision switch
+    private static string LayThongBaoTuChoi(DemoSeedDecision decision) => decision switch
     {
         DemoSeedDecision.NotDevelopment =>
             "Chỉ nạp dữ liệu mẫu trong môi trường Development. Nếu chắc chắn, chạy lại với --force=<tên cơ sở dữ liệu>.",

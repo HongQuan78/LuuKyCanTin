@@ -2,7 +2,7 @@
 story: "1.2"
 epic: 1
 title: Database migrations, schema-version check and enum ↔ CHECK test
-status: review
+status: done
 size: M
 backlogItems: [NEN-02, NEN-03, NEN-04]
 frsCovered: []
@@ -12,7 +12,7 @@ dependsOn: ["1.1"]
 
 # Story 1.2: Database migrations, schema-version check and enum ↔ CHECK test
 
-Status: review
+Status: done
 
 ## Story
 
@@ -71,6 +71,40 @@ So that every machine always works on a consistent database.
   - [x] Add `EnumCheckConstraintTests`. Walk `AppDbContext.Model` for every property whose CLR type is an enum (or nullable enum) mapped to `tinyint`. For each one, query `sys.check_constraints` joined to `sys.columns`, parse the integer list out of the `definition` (`([Col]=(1) OR [Col]=(2))` or `IN (...)`), and compare the sets both ways. Report missing enum values and missing allowed values separately.
   - [x] Also fail when an enum column has **no** CHECK constraint at all.
   - [x] No enum tables exist yet, so the test passes vacuously. Add a test-only DbContext (or a fixture SQL table plus a test enum) that proves the comparer catches each mismatch direction.
+
+### Review Findings
+
+Code review 2026-10-03 (diff `15b0491..bca091a`, verified against HEAD `4f78ee8`).
+
+- [x] [Review][Decision] The schema check compares only the last migration. A migration merged with an earlier timestamp than one already applied leaves `Expected == Actual` while that migration was never applied. The workstation then opens against a schema with missing tables. **Resolved: (a).** `SchemaVersionCheckResult.Tao` now requires the applied set to equal the build's set; `Expected`/`Actual` still carry the last ids for logging.
+- [x] [Review][Decision] Scope of the naming-convention rename for story 1.2 code. The user asked for it explicitly, so it counts as a dedicated refactor. About 50 type and member names, about 60 test-method names, and 6 files that hold several types (see the naming audit in the review conversation). **Resolved: full scope**, applied on HEAD with every call site from later stories.
+- [x] [Review][Patch] An empty `--force` confirmation is accepted when the connection string names no database. `Decide(false, "", "")` returns `Allowed`, so demo data goes into the login's default database. [src/Libraries/LuuKyCanTin.Application/HeThong/DemoSeedPolicy.cs:23]
+- [x] [Review][Patch] A developer's `.env` (connection string, possibly the `sa` password) is also copied to publish output, and so into any Velopack package. Add `CopyToPublishDirectory="Never"`. [src/Presentation/LuuKyCanTin.WinForms/LuuKyCanTin.WinForms.csproj:29]
+- [x] [Review][Patch] `SchemaVersionChecker` catches only `DbException`. A malformed connection string (`ArgumentException`) crashes startup instead of showing the "cannot connect" message. [src/Libraries/LuuKyCanTin.Infrastructure/Persistence/SchemaVersionChecker.cs:20]
+- [x] [Review][Patch] `DesignTimeDbContextFactory`'s comment says it reads `.env`, but it reads only the process environment. A developer who relies on `.env` silently gets LocalDB from `dotnet ef`. [src/Libraries/LuuKyCanTin.Infrastructure/Persistence/DesignTimeDbContextFactory.cs:9]
+- [x] [Review][Patch] `ParseAllowedValues` returns an empty set (not null) for a single-column CHECK without `=`/`IN` (e.g. `[TrangThai] > 0`). The intersection then reports every enum value as disallowed. [tests/LuuKyCanTin.IntegrationTests/Persistence/EnumChecks/EnumCheckVerifier.cs:77]
+- [x] [Review][Patch] `DemoSeedDecision` and `SchemaVersionStatus` are not declared `: byte`. CLAUDE.md requires it for every enum. [src/Libraries/LuuKyCanTin.Application/HeThong/DemoSeedPolicy.cs:3]
+- [x] [Review][Patch] `DatabaseMigrator` (the real `--migrate`) is never run by a test. Reading the pending list after `MigrateAsync`, or dropping the call entirely, would stay green. [src/Libraries/LuuKyCanTin.Infrastructure/Persistence/DatabaseMigrator.cs:8]
+- [x] [Review][Patch] The non-Development path of `DemoDataSeeder` is never run: the real `Database` name as target, refusal on a wrong name, and nothing written when refused. [tests/LuuKyCanTin.IntegrationTests/Persistence/Seed/DemoDataSeederTests.cs]
+- [x] [Review][Patch] The startup gate (a mismatch or connection failure returns 1 before `MainForm`) has no test. Extract the decision from `Program.RunApplication` and unit-test Matches, Mismatch and ConnectionFailed. [src/Presentation/LuuKyCanTin.WinForms/Program.cs:105]
+- [x] [Review][Defer] A login or permission failure (SQL 18456/4060) may show the "version mismatch" message instead of "cannot connect" [src/Libraries/LuuKyCanTin.Infrastructure/Persistence/SchemaVersionChecker.cs:18]. Deferred as maybe-false, with medium severity if real. EF's `SqlServerDatabaseCreator.Exists` treats some of these errors as "database does not exist". To settle it, run against a real server with a wrong password and with a login that lacks DB access, and see which message appears.
+
+**Rejected:**
+- The mismatch dialog doesn't say whether the DB is behind or ahead. Rejected: the spec fixes the message, and the log carries both versions.
+- `--seed-demo` without `--migrate` on an old DB. Rejected (`false`): the seeder fails loudly with a SQL error and exit code 1, which is acceptable.
+- `--migrate` exclusive-lock error and the default command timeout. Rejected (`low`): already documented in the Completion Notes, and a fix would add branches.
+- Admin output is lost with no parent console. Rejected (`low`): everything is also in the Serilog file.
+- Story File List and T1/T7 wording are stale. Rejected: the fix would edit the spec under review.
+- Non-DB tests live in the IntegrationTests project, and `ClearAllPools` is global. Rejected (`low`): no named failure.
+- `DatabaseMigrator` race between reading pending migrations and migrating. Rejected (`low`): it needs two admins migrating at once.
+- `--force` without `--seed-demo` is silently ignored. Rejected (`low`).
+- `HasEnumCheck` resolves names eagerly, and an empty enum gives `IN ()`. Rejected (`low`): no caller configures in that order, and a fix needs lazy resolution.
+- Enums inside complex types and keyless entities. Rejected (`false`): the model has none.
+- `--environment Development` bypasses the seed guard. Rejected: that is the documented gate (CLAUDE.md command).
+- WinForms calls `DotEnvFile.Load` from Infrastructure. Rejected (`low`): config bootstrap in the composition root.
+- `DotEnvFile` duplicate-key and inline-comment semantics, the unpinned docker image, and the SA password repeated in `.env.example`. Rejected (`low`).
+- New enums default to the "allowed/matches" value 0. Rejected (`low`): only NSubstitute defaults reach it, and every production path sets the value explicitly.
+- `SqlServerFixture` location and name differ from T7, and the `sys.columns` join is not used. Rejected: both are accepted deviations recorded in the Completion Notes.
 
 ## Dev Notes
 
@@ -214,3 +248,4 @@ Claude Opus 5.5 (claude-opus-5-5[1m])
 |---|---|
 | 2026-10-01 | Story file created from Epic 1 |
 | 2026-10-01 | Implemented: EF Core 10 + InitialCreate (collation), shared conventions, enum CHECK helper, `--migrate`/`--seed-demo`, startup schema check, enum ↔ CHECK integration test. Status → review |
+| 2026-10-03 | Code review: 9 patches and 2 decisions applied (schema check now compares the full migration set; empty `--force` refused; `.env` never published; new tests for `DatabaseMigrator`, the non-Development seeder path and the startup gate). Story 1.2 code renamed to `docs/conventions/naming-conventions.md` (Vietnamese verbs, `La/Co/DuocPhep` bools, `ct`, `Loi…` messages, `<Method>_<Scenario>_<Result>` tests, one type per file). 1 finding deferred. Status → done |

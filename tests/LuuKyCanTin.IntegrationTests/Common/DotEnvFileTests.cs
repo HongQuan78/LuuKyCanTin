@@ -3,10 +3,10 @@ using Shouldly;
 
 namespace LuuKyCanTin.IntegrationTests.Common;
 
-public class DotEnvFileTests
+public sealed class DotEnvFileTests
 {
     [Fact]
-    public void Parse_ReadsKeyValuePairs_SkippingBlankLinesAndComments()
+    public void PhanTich_BlankLinesAndComments_ReturnsOnlyKeyValuePairs()
     {
         string[] lines =
         [
@@ -16,7 +16,7 @@ public class DotEnvFileTests
             "App__TieuDe=Lưu ký",
         ];
 
-        DotEnvFile.Parse(lines).ShouldBe(
+        DotEnvFile.PhanTich(lines).ShouldBe(
         [
             new("ConnectionStrings__LuuKyCanTin", @"Server=.\SQLEXPRESS;Database=LuuKyCanTin"),
             new("App__TieuDe", "Lưu ký"),
@@ -28,29 +28,29 @@ public class DotEnvFileTests
     [InlineData("KEY='a=b; c'", "a=b; c")]
     [InlineData("KEY=\"unbalanced", "\"unbalanced")]
     [InlineData("KEY=", "")]
-    public void Parse_StripsMatchingQuotesOnly(string line, string expected)
+    public void PhanTich_QuotedValue_StripsOnlyMatchingQuotes(string line, string expected)
     {
-        DotEnvFile.Parse([line]).ShouldHaveSingleItem().Value.ShouldBe(expected);
+        DotEnvFile.PhanTich([line]).ShouldHaveSingleItem().Value.ShouldBe(expected);
     }
 
     [Fact]
-    public void Parse_KeepsBackslashesLiteral()
+    public void PhanTich_ValueWithBackslashes_KeepsThemLiteral()
     {
         // Unlike JSON, a SQL Server instance name needs no escaping.
-        DotEnvFile.Parse([@"KEY=Server=.\SQLEXPRESS"]).ShouldHaveSingleItem().Value.ShouldBe(@"Server=.\SQLEXPRESS");
+        DotEnvFile.PhanTich([@"KEY=Server=.\SQLEXPRESS"]).ShouldHaveSingleItem().Value.ShouldBe(@"Server=.\SQLEXPRESS");
     }
 
     [Theory]
     [InlineData("no equals sign")]
     [InlineData("=value without key")]
-    public void Parse_MalformedLine_FailsWithItsLineNumber(string badLine)
+    public void PhanTich_MalformedLine_FailsWithItsLineNumber(string badLine)
     {
-        Should.Throw<FormatException>(() => DotEnvFile.Parse(["# ok", badLine]))
+        Should.Throw<FormatException>(() => DotEnvFile.PhanTich(["# ok", badLine]))
             .Message.ShouldContain("line 2");
     }
 
     [Fact]
-    public void Load_SetsMissingVariables_ButNeverOverridesExistingOnes()
+    public void Nap_VariableAlreadySet_SetsOnlyMissingOnes()
     {
         var unset = "LUUKY_TEST_" + Guid.NewGuid().ToString("N");
         var alreadySet = "LUUKY_TEST_" + Guid.NewGuid().ToString("N");
@@ -59,7 +59,7 @@ public class DotEnvFileTests
         Environment.SetEnvironmentVariable(alreadySet, "from-environment");
         try
         {
-            DotEnvFile.Load(path);
+            DotEnvFile.Nap(path);
 
             Environment.GetEnvironmentVariable(unset).ShouldBe("from-file");
             Environment.GetEnvironmentVariable(alreadySet).ShouldBe("from-environment");
@@ -73,8 +73,8 @@ public class DotEnvFileTests
     }
 
     [Fact]
-    public void Load_MissingFile_DoesNothing()
+    public void Nap_MissingFile_DoesNothing()
     {
-        Should.NotThrow(() => DotEnvFile.Load(Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".env")));
+        Should.NotThrow(() => DotEnvFile.Nap(Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".env")));
     }
 }

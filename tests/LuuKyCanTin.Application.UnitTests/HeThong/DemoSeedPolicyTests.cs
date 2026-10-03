@@ -3,38 +3,41 @@ using Shouldly;
 
 namespace LuuKyCanTin.Application.UnitTests.HeThong;
 
-public class DemoSeedPolicyTests
+public sealed class DemoSeedPolicyTests
 {
     [Fact]
-    public void Development_IsAllowedWithoutConfirmation()
+    public void KiemTra_DevelopmentWithoutConfirmation_IsAllowed()
     {
-        DemoSeedPolicy.Decide(isDevelopment: true, confirmedDatabaseName: null, targetDatabaseName: "LuuKyCanTin")
+        DemoSeedPolicy.KiemTra(laMoiTruongPhatTrien: true, tenCoSoDuLieuXacNhan: null, tenCoSoDuLieuDich: "LuuKyCanTin")
             .ShouldBe(DemoSeedDecision.Allowed);
     }
 
     [Fact]
-    public void OutsideDevelopment_WithoutConfirmation_IsRefused()
+    public void KiemTra_OutsideDevelopmentWithoutConfirmation_IsNotDevelopment()
     {
-        DemoSeedPolicy.Decide(isDevelopment: false, confirmedDatabaseName: null, targetDatabaseName: "LuuKyCanTin")
+        DemoSeedPolicy.KiemTra(laMoiTruongPhatTrien: false, tenCoSoDuLieuXacNhan: null, tenCoSoDuLieuDich: "LuuKyCanTin")
             .ShouldBe(DemoSeedDecision.NotDevelopment);
     }
 
     [Theory]
-    [InlineData("")]
-    [InlineData("LuuKyCanTin_Test")]
-    public void OutsideDevelopment_WithWrongDatabaseName_IsRefused(string confirmed)
+    [InlineData("", "LuuKyCanTin")]
+    [InlineData("LuuKyCanTin_Test", "LuuKyCanTin")]
+    // A connection string without Database= reports an empty name; a bare --force must not count as matching it.
+    [InlineData("", "")]
+    [InlineData("  ", "")]
+    public void KiemTra_OutsideDevelopmentWrongOrEmptyConfirmation_IsDatabaseNameMismatch(string xacNhan, string dich)
     {
-        DemoSeedPolicy.Decide(isDevelopment: false, confirmedDatabaseName: confirmed, targetDatabaseName: "LuuKyCanTin")
+        DemoSeedPolicy.KiemTra(laMoiTruongPhatTrien: false, tenCoSoDuLieuXacNhan: xacNhan, tenCoSoDuLieuDich: dich)
             .ShouldBe(DemoSeedDecision.DatabaseNameMismatch);
     }
 
     [Theory]
     [InlineData("LuuKyCanTin")]
     [InlineData("luukycantin")]
-    public void OutsideDevelopment_WithMatchingDatabaseName_IsAllowed(string confirmed)
+    public void KiemTra_OutsideDevelopmentMatchingDatabaseName_IsAllowed(string xacNhan)
     {
         // SQL Server database names are case-insensitive.
-        DemoSeedPolicy.Decide(isDevelopment: false, confirmedDatabaseName: confirmed, targetDatabaseName: "LuuKyCanTin")
+        DemoSeedPolicy.KiemTra(laMoiTruongPhatTrien: false, tenCoSoDuLieuXacNhan: xacNhan, tenCoSoDuLieuDich: "LuuKyCanTin")
             .ShouldBe(DemoSeedDecision.Allowed);
     }
 }

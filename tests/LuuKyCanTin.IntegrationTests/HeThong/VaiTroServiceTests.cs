@@ -42,7 +42,7 @@ public sealed class VaiTroServiceTests : IClassFixture<AppDatabaseFixture>, IAsy
 
     private async Task NguoiDungDangNhapAsync(string tenDangNhap)
     {
-        await using var db = _fixture.Database.CreateDbContext();
+        await using var db = _fixture.Database.TaoDbContext();
         var nguoiDung = await db.NguoiDung.SingleAsync(u => u.TenDangNhap == tenDangNhap);
         _fixture.User.DangNhap(nguoiDung.Id, nguoiDung.TenDangNhap);
     }
@@ -78,7 +78,7 @@ public sealed class VaiTroServiceTests : IClassFixture<AppDatabaseFixture>, IAsy
 
     private async Task<List<NhatKyThaoTac>> NhatKyCuaVaiTroAsync(int vaiTroId)
     {
-        await using var db = _fixture.Database.CreateDbContext();
+        await using var db = _fixture.Database.TaoDbContext();
         return await db.NhatKyThaoTac
             .Where(n => n.TenBang == "VaiTro" && n.BanGhiId == vaiTroId)
             .OrderBy(n => n.Id)
@@ -88,7 +88,7 @@ public sealed class VaiTroServiceTests : IClassFixture<AppDatabaseFixture>, IAsy
     [SqlServerFact]
     public async Task Quyen_Seed_KhopHoanToanVoiDanhMuc()
     {
-        await using var db = _fixture.Database.CreateDbContext();
+        await using var db = _fixture.Database.TaoDbContext();
         var trongDb = await db.Quyen.AsNoTracking().OrderBy(q => q.Id).ToListAsync();
 
         trongDb.Count.ShouldBe(MaQuyen.TatCa.Count);
@@ -99,7 +99,7 @@ public sealed class VaiTroServiceTests : IClassFixture<AppDatabaseFixture>, IAsy
     [SqlServerFact]
     public async Task VaiTro_Seed_DuSauVaiTroVoiMaChuan()
     {
-        await using var db = _fixture.Database.CreateDbContext();
+        await using var db = _fixture.Database.TaoDbContext();
         var ma = await db.VaiTro.AsNoTracking().OrderBy(v => v.Id).Select(v => v.Ma).ToListAsync();
 
         ma.ShouldBe(
@@ -155,7 +155,7 @@ public sealed class VaiTroServiceTests : IClassFixture<AppDatabaseFixture>, IAsy
     [SqlServerFact]
     public async Task NguoiDungVaiTro_AdminDuocGanQuanTri()
     {
-        await using var db = _fixture.Database.CreateDbContext();
+        await using var db = _fixture.Database.TaoDbContext();
         var adminId = await db.NguoiDung.Where(u => u.TenDangNhap == "admin").Select(u => u.Id).SingleAsync();
         var maVaiTro = await (from nguoiDungVaiTro in db.NguoiDungVaiTro
                               join vaiTro in db.VaiTro on nguoiDungVaiTro.VaiTroId equals vaiTro.Id

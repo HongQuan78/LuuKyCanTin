@@ -49,7 +49,7 @@ public sealed class CanBoServiceTests : IClassFixture<AppDatabaseFixture>, IAsyn
 
     private async Task<List<NhatKyThaoTac>> LogOfAsync(int id)
     {
-        await using var db = _fixture.Database.CreateDbContext();
+        await using var db = _fixture.Database.TaoDbContext();
         return await db.NhatKyThaoTac.Where(n => n.TenBang == "CanBo" && n.BanGhiId == id).OrderBy(n => n.Id).ToListAsync();
     }
 
@@ -203,8 +203,8 @@ public sealed class CanBoServiceTests : IClassFixture<AppDatabaseFixture>, IAsyn
     public async Task NewStaffMember_IsActive_AndNotAWarden_ByDatabaseDefault()
     {
         var ma = NewCode();
-        await _fixture.Database.ExecuteAsync($"INSERT INTO CanBo (MaCanBo, HoTen, NgayTao, NguoiTaoId) VALUES ('{ma}', N'Mặc định', '2026-10-02', 0)");
+        await _fixture.Database.ThucThiAsync($"INSERT INTO CanBo (MaCanBo, HoTen, NgayTao, NguoiTaoId) VALUES ('{ma}', N'Mặc định', '2026-10-02', 0)");
 
-        (await _fixture.Database.ScalarAsync($"SELECT CONCAT(DangCongTac, LaQuanGiao) FROM CanBo WHERE MaCanBo = '{ma}'")).ShouldBe("10");
+        (await _fixture.Database.LayGiaTriAsync($"SELECT CONCAT(DangCongTac, LaQuanGiao) FROM CanBo WHERE MaCanBo = '{ma}'")).ShouldBe("10");
     }
 }

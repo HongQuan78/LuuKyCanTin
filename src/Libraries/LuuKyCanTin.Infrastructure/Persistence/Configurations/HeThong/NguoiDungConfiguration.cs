@@ -7,7 +7,7 @@ namespace LuuKyCanTin.Infrastructure.Persistence.Configurations.HeThong;
 
 internal sealed class NguoiDungConfiguration : AuditableEntityConfiguration<NguoiDung>
 {
-    protected override void ConfigureEntity(EntityTypeBuilder<NguoiDung> builder)
+    protected override void CauHinhRieng(EntityTypeBuilder<NguoiDung> builder)
     {
         builder.ToTable("NguoiDung");
 

@@ -34,7 +34,7 @@ public class WalkingSkeletonTests(WalkingSkeletonFixture fixture) : IClassFixtur
 
     private async Task ResetAsync()
     {
-        await fixture.Database.ExecuteAsync("""
+        await fixture.Database.ThucThiAsync("""
             DELETE FROM NhatKyThaoTac;
             DELETE FROM ChungTuLuuKy;
             DELETE FROM DoiTuong;
@@ -95,7 +95,7 @@ public class WalkingSkeletonTests(WalkingSkeletonFixture fixture) : IClassFixtur
         ketQua.SoChungTu.ShouldBe("BNT-2026-00001");
         ketQua.SoDuSau.ShouldBe(500_000m);
 
-        await using (var db = fixture.Database.CreateDbContext())
+        await using (var db = fixture.Database.TaoDbContext())
         {
             var chungTu = await db.ChungTuLuuKy.SingleAsync(c => c.Id == ketQua.Id);
             chungTu.SoChungTu.ShouldBe("BNT-2026-00001");
@@ -168,10 +168,10 @@ public class WalkingSkeletonTests(WalkingSkeletonFixture fixture) : IClassFixtur
         var ketQua = await ghiSo.GhiSoBienNhanThuAsync(BienNhan(doiTuongId));
 
         ketQua.ThanhCong.ShouldBeFalse();
-        Convert.ToInt32(await fixture.Database.ScalarAsync("SELECT COUNT(*) FROM ChungTuLuuKy")).ShouldBe(0);
-        Convert.ToInt32(await fixture.Database.ScalarAsync("SELECT COUNT(*) FROM NhatKyThaoTac WHERE HanhDong = 'Them'")).ShouldBe(0);
-        Convert.ToDecimal(await fixture.Database.ScalarAsync($"SELECT SoDuLuuKy FROM DoiTuong WHERE Id = {doiTuongId}")).ShouldBe(0m);
-        Convert.ToInt32(await fixture.Database.ScalarAsync("SELECT SoHienTai FROM DemSoChungTu WHERE LoaiChungTu = 'BNT' AND Nam = 2026"))
+        Convert.ToInt32(await fixture.Database.LayGiaTriAsync("SELECT COUNT(*) FROM ChungTuLuuKy")).ShouldBe(0);
+        Convert.ToInt32(await fixture.Database.LayGiaTriAsync("SELECT COUNT(*) FROM NhatKyThaoTac WHERE HanhDong = 'Them'")).ShouldBe(0);
+        Convert.ToDecimal(await fixture.Database.LayGiaTriAsync($"SELECT SoDuLuuKy FROM DoiTuong WHERE Id = {doiTuongId}")).ShouldBe(0m);
+        Convert.ToInt32(await fixture.Database.LayGiaTriAsync("SELECT SoHienTai FROM DemSoChungTu WHERE LoaiChungTu = 'BNT' AND Nam = 2026"))
             .ShouldBe(0, "a rolled-back posting must not consume a document number");
 
         await LedgerReconciliation.AssertBalancedAsync(fixture.Database);
@@ -189,10 +189,10 @@ public sealed class WalkingSkeletonFixture : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        if (!SqlServerFactAttribute.ShouldRun)
+        if (!SqlServerFactAttribute.DuocPhepChay)
             return;
 
-        await Database.MigrateAsync();
+        await Database.ApDungMigrationAsync();
 
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
@@ -213,7 +213,7 @@ public sealed class WalkingSkeletonFixture : IAsyncLifetime
 
     public async Task DisposeAsync()
     {
-        if (!SqlServerFactAttribute.ShouldRun)
+        if (!SqlServerFactAttribute.DuocPhepChay)
             return;
 
         await Services.DisposeAsync();

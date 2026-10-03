@@ -93,7 +93,7 @@ public class AuditInterceptorTests : IClassFixture<AuditDatabaseFixture>
     {
         var voucher = await InsertAsync(NewVoucher());
 
-        (await _fixture.Database.ScalarAsync($"SELECT HanhDong FROM NhatKyThaoTac WHERE TenBang = 'MauChungTu' AND BanGhiId = {voucher.Id}"))
+        (await _fixture.Database.LayGiaTriAsync($"SELECT HanhDong FROM NhatKyThaoTac WHERE TenBang = 'MauChungTu' AND BanGhiId = {voucher.Id}"))
             .ShouldBe("Them");
     }
 
@@ -219,7 +219,7 @@ public class AuditInterceptorTests : IClassFixture<AuditDatabaseFixture>
     {
         const string reject = "TU-CHOI-NHAT-KY";
         // Test-only constraint: an audit row mentioning the marker fails, after the voucher INSERT has succeeded.
-        await _fixture.Database.ExecuteAsync($"""
+        await _fixture.Database.ThucThiAsync($"""
             IF OBJECT_ID('CK_Test_TuChoiNhatKy') IS NULL
                 ALTER TABLE NhatKyThaoTac ADD CONSTRAINT CK_Test_TuChoiNhatKy CHECK (DuLieuMoi NOT LIKE '%{reject}%')
             """);

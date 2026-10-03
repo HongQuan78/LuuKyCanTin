@@ -69,7 +69,7 @@ public sealed class DangNhapServiceTests : IClassFixture<AppDatabaseFixture>, IA
 
     private async Task<List<NhatKyThaoTac>> LogCuaTaiKhoanAsync(int nguoiDungId)
     {
-        await using var db = _fixture.Database.CreateDbContext();
+        await using var db = _fixture.Database.TaoDbContext();
         return await db.NhatKyThaoTac
             .Where(n => n.TenBang == "NguoiDung" && n.BanGhiId == nguoiDungId)
             .OrderBy(n => n.Id)
@@ -92,7 +92,7 @@ public sealed class DangNhapServiceTests : IClassFixture<AppDatabaseFixture>, IA
         _fixture.User.NguoiDungId.ShouldBe(taiKhoan.Id);
         var log = await LogCuaTaiKhoanAsync(taiKhoan.Id);
         log.ShouldContain(n => n.HanhDong == HanhDong.DangNhap && CoSuKien(n, SuKienDangNhap.DangNhap));
-        await using var check = _fixture.Database.CreateDbContext();
+        await using var check = _fixture.Database.TaoDbContext();
         (await check.NguoiDung.SingleAsync(u => u.Id == taiKhoan.Id)).SoLanSai.ShouldBe((byte)0);
         _fixture.User.DangXuat();
     }
@@ -109,7 +109,7 @@ public sealed class DangNhapServiceTests : IClassFixture<AppDatabaseFixture>, IA
             ketQuaCuoi = await service.DangNhapAsync(taiKhoan.TenDangNhap, "sai-mat-khau");
 
         ketQuaCuoi!.TrangThai.ShouldBe(TrangThaiDangNhap.TaiKhoanBiKhoa);
-        await using (var check = _fixture.Database.CreateDbContext())
+        await using (var check = _fixture.Database.TaoDbContext())
         {
             var sau = await check.NguoiDung.SingleAsync(u => u.Id == taiKhoan.Id);
             sau.SoLanSai.ShouldBe(NguoiDung.SoLanSaiToiDa);
@@ -158,7 +158,7 @@ public sealed class DangNhapServiceTests : IClassFixture<AppDatabaseFixture>, IA
         var ketQua = await TaoDangNhapService(db).DangNhapAsync(taiKhoan.TenDangNhap, MatKhauBanDau);
 
         ketQua.ThanhCong.ShouldBeTrue();
-        await using var check = _fixture.Database.CreateDbContext();
+        await using var check = _fixture.Database.TaoDbContext();
         var sau = await check.NguoiDung.SingleAsync(u => u.Id == taiKhoan.Id);
         sau.SoLanSai.ShouldBe((byte)0);
         sau.KhoaDen.ShouldBeNull();

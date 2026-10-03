@@ -1,19 +1,8 @@
 using LuuKyCanTin.Domain.Common;
-using LuuKyCanTin.Infrastructure.Persistence;
-using LuuKyCanTin.Infrastructure.Persistence.Configurations.Common;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace LuuKyCanTin.IntegrationTests.Persistence.TestModel;
 
 // A test-only voucher that exercises every shared convention and the audit log, since the real model has no vouchers yet.
-public enum MauTrangThai : byte
-{
-    Nhap = 1,
-    DaGhiSo = 2,
-    DaHuy = 3,
-}
-
 public sealed class MauChungTu : AuditableEntity, IAuditable, ICoTrangThaiHuy
 {
     public int Id { get; set; }
@@ -28,24 +17,4 @@ public sealed class MauChungTu : AuditableEntity, IAuditable, ICoTrangThaiHuy
     public string? MaBiMat { get; set; }
 
     public bool DaHuy => TrangThai == MauTrangThai.DaHuy;
-}
-
-public sealed class MauChungTuConfiguration : AuditableEntityConfiguration<MauChungTu>
-{
-    protected override void ConfigureEntity(EntityTypeBuilder<MauChungTu> builder)
-    {
-        builder.HasEnumCheck(e => e.TrangThai);
-        builder.HasEnumCheck(e => e.TrangThaiTruoc);
-    }
-}
-
-public sealed class TestAppDbContext(DbContextOptions<AppDbContext> options) : AppDbContext(options)
-{
-    public DbSet<MauChungTu> MauChungTu => Set<MauChungTu>();
-
-    protected override void OnModelCreating(ModelBuilder modelBuilder)
-    {
-        base.OnModelCreating(modelBuilder);
-        modelBuilder.ApplyConfiguration(new MauChungTuConfiguration());
-    }
 }

@@ -8,7 +8,7 @@ namespace LuuKyCanTin.Infrastructure.Persistence.Configurations.DanhMuc;
 
 internal sealed class DoiTuongConfiguration : AuditableEntityConfiguration<DoiTuong>
 {
-    protected override void ConfigureEntity(EntityTypeBuilder<DoiTuong> builder)
+    protected override void CauHinhRieng(EntityTypeBuilder<DoiTuong> builder)
     {
         builder.ToTable("DoiTuong", t =>
         {

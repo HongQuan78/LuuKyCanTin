@@ -8,7 +8,7 @@ namespace LuuKyCanTin.Infrastructure.Persistence.Configurations.DanhMuc;
 
 internal sealed class CanBoConfiguration : AuditableEntityConfiguration<CanBo>
 {
-    protected override void ConfigureEntity(EntityTypeBuilder<CanBo> builder)
+    protected override void CauHinhRieng(EntityTypeBuilder<CanBo> builder)
     {
         builder.ToTable("CanBo");
 

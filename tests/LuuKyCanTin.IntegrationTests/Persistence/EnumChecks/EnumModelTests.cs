@@ -10,7 +10,7 @@ using Shouldly;
 namespace LuuKyCanTin.IntegrationTests.Persistence.EnumChecks;
 
 // Model-only: kept out of the SQL Server collection so they run, and pass, without a server.
-public class EnumModelTests
+public sealed class EnumModelTests
 {
     private static readonly DbContextOptions<AppDbContext> ModelOnlyOptions = new DbContextOptionsBuilder<AppDbContext>()
         .UseSqlServer("Server=unused")
@@ -21,29 +21,29 @@ public class EnumModelTests
     {
         using var db = new AppDbContext(ModelOnlyOptions);
 
-        EnumModel.EnumColumnsOf(db)
+        EnumModel.LayCotEnum(db)
             .Where(c => Enum.GetUnderlyingType(c.EnumType) != typeof(byte))
             .Select(c => $"{c.EnumType.Name} is not declared ': byte'")
             .ShouldBeEmpty();
     }
 
     [Fact]
-    public void EveryEnumColumn_IsTinyint_UnlessStoredAsName()
+    public void LayCotEnum_NumericEnumColumn_IsTinyint()
     {
         using var db = new AppDbContext(ModelOnlyOptions);
 
-        EnumModel.EnumPropertiesOf(db)
+        EnumModel.LayThuocTinhEnum(db)
             .Where(p => !EnumModel.IsStoredAsName(p) && p.GetColumnType() != "tinyint")
             .Select(p => $"{p.DeclaringType.DisplayName()}.{p.Name} is {p.GetColumnType()}; declare the enum ': byte'")
             .ShouldBeEmpty();
     }
 
     [Fact]
-    public void ModelWalk_FindsNullableAndNonNullableEnumColumns()
+    public void LayThuocTinhEnum_NullableAndNonNullableEnums_FindsBoth()
     {
         using var db = new TestAppDbContext(ModelOnlyOptions);
 
-        EnumModel.EnumColumnsOf(db).ShouldBe(
+        EnumModel.LayCotEnum(db).ShouldBe(
         [
             new EnumColumn(EnumModel.DefaultSchema, "MauChungTu", "TrangThai", typeof(MauTrangThai)),
             new EnumColumn(EnumModel.DefaultSchema, "MauChungTu", "TrangThaiTruoc", typeof(MauTrangThai)),

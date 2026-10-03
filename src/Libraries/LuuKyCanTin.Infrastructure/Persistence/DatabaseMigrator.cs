@@ -5,10 +5,10 @@ namespace LuuKyCanTin.Infrastructure.Persistence;
 
 internal sealed class DatabaseMigrator(AppDbContext db) : IDatabaseMigrator
 {
-    public async Task<IReadOnlyList<string>> MigrateAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<string>> ApDungMigrationAsync(CancellationToken ct = default)
     {
-        var pending = (await db.Database.GetPendingMigrationsAsync(cancellationToken)).ToList();
-        await db.Database.MigrateAsync(cancellationToken);
-        return pending;
+        var danhSachChuaApDung = (await db.Database.GetPendingMigrationsAsync(ct)).ToList();
+        await db.Database.MigrateAsync(ct);
+        return danhSachChuaApDung;
     }
 }

@@ -22,10 +22,10 @@ internal static class Program
     [STAThread]
     private static int Main(string[] args)
     {
-        var command = AdminCommandLine.Parse(args);
-        if (command.IsAdminCommand)
+        var lenh = AdminCommandLine.PhanTich(args);
+        if (lenh.LaLenhQuanTri)
         {
-            if (ParentConsole.TryAttach())
+            if (ParentConsole.ThuGan())
                 Console.OutputEncoding = Encoding.UTF8;
         }
         else
@@ -38,13 +38,13 @@ internal static class Program
         {
             // Until the host has read its configuration, a startup failure still needs a file to land in.
             Log.Logger = TaoLogger(configuration: null);
-            using var host = CreateHost(command.HostArgs);
-            return command.IsAdminCommand ? RunAdminCommand(host, command) : RunApplication(host);
+            using var host = TaoHost(lenh.HostArgs);
+            return lenh.LaLenhQuanTri ? ChayLenhQuanTri(host, lenh) : ChayUngDung(host);
         }
         catch (Exception ex)
         {
             Log.Fatal(ex, "LuuKyCanTin failed to start");
-            if (!command.IsAdminCommand)
+            if (!lenh.LaLenhQuanTri)
                 throw;
 
             Console.WriteLine($"Lỗi: {ex.Message} Chi tiết đã được ghi vào nhật ký.");
@@ -56,10 +56,10 @@ internal static class Program
         }
     }
 
-    private static IHost CreateHost(string[] args)
+    private static IHost TaoHost(string[] args)
     {
         // Before the builder exists, so the host's environment-variable provider sees the values.
-        DotEnvFile.Load(Path.Combine(AppContext.BaseDirectory, DotEnvFile.FileName));
+        DotEnvFile.Nap(Path.Combine(AppContext.BaseDirectory, DotEnvFile.FileName));
 
         var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings
         {
@@ -86,23 +86,23 @@ internal static class Program
     }
 
     // No Form is resolved on this path, so it also works over a remote shell without a desktop.
-    private static int RunAdminCommand(IHost host, AdminCommandLine command)
+    private static int ChayLenhQuanTri(IHost host, AdminCommandLine lenh)
     {
-        Log.Information("LuuKyCanTin admin command: migrate={Migrate}, seed-demo={SeedDemo}", command.Migrate, command.SeedDemo);
+        Log.Information("LuuKyCanTin admin command: migrate={Migrate}, seed-demo={SeedDemo}", lenh.CoApDungMigration, lenh.CoNapDuLieuMau);
         var runner = new AdminCommandRunner(
             host.Services.GetRequiredService<IServiceScopeFactory>(),
             host.Services.GetRequiredService<IHostEnvironment>().IsDevelopment(),
             Console.Out,
             host.Services.GetRequiredService<ILogger<AdminCommandRunner>>());
 
-        return runner.RunAsync(command).GetAwaiter().GetResult();
+        return runner.ChayAsync(lenh).GetAwaiter().GetResult();
     }
 
-    private static int RunApplication(IHost host)
+    private static int ChayUngDung(IHost host)
     {
         Log.Information("LuuKyCanTin starting");
         // Workstations never migrate: they only check, and refuse to run against a different schema.
-        if (!SchemaVersionIsCurrent(host.Services))
+        if (!LaPhienBanCoSoDuLieuKhop(host.Services))
             return 1;
 
         // Sign-in and sign-out loop without restarting: the context swaps login and shell as the user signs out.
@@ -112,20 +112,15 @@ internal static class Program
         return 0;
     }
 
-    private static bool SchemaVersionIsCurrent(IServiceProvider services)
+    private static bool LaPhienBanCoSoDuLieuKhop(IServiceProvider services)
     {
         using var scope = services.CreateScope();
         // Blocking is safe here: no SynchronizationContext exists before the message loop starts.
-        var result = scope.ServiceProvider.GetRequiredService<ISchemaVersionChecker>().CheckAsync().GetAwaiter().GetResult();
-
-        var message = SchemaVersionGate.BlockingMessage(result);
-        if (message is null)
-            return true;
-
-        Log.Error("Database schema check failed ({Status}): expected migration {Expected}, database has {Actual}",
-            result.Status, result.Expected, result.Actual ?? "(none)");
-        MessageBox.Show(message, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error);
-        return false;
+        return SchemaVersionGate.DuocPhepMoAsync(
+                scope.ServiceProvider.GetRequiredService<ISchemaVersionChecker>(),
+                thongBao => MessageBox.Show(thongBao, "Lỗi", MessageBoxButtons.OK, MessageBoxIcon.Error),
+                services.GetRequiredService<ILoggerFactory>().CreateLogger(typeof(SchemaVersionGate)))
+            .GetAwaiter().GetResult();
     }
 
     private static Serilog.ILogger TaoLogger(IConfiguration? configuration)

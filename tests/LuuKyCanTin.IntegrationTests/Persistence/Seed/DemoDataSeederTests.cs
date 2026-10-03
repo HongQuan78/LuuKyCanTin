@@ -16,69 +16,108 @@ public class DemoDataSeederTests
     public async Task AnEmptyUnitRow_GetsTheDemoValues()
     {
         await using var database = new TestDatabase();
-        await database.MigrateAsync();
+        await database.ApDungMigrationAsync();
 
-        await using (var db = database.CreateDbContext())
+        await using (var db = database.TaoDbContext())
         {
-            (await TaoSeeder(db).SeedAsync(isDevelopment: true, confirmedDatabaseName: null))
+            (await TaoSeeder(db).NapDuLieuMauAsync(laMoiTruongPhatTrien: true, tenCoSoDuLieuXacNhan: null))
                 .ShouldBe(DemoSeedDecision.Allowed);
         }
 
-        (await database.ScalarAsync("SELECT TenDonVi FROM ThongTinDonVi WHERE Id = 1")).ShouldBe("TRẠI TẠM GIAM … (dữ liệu mẫu)");
-        (await database.ScalarAsync("SELECT DiaChi FROM ThongTinDonVi WHERE Id = 1")).ShouldBe("Xã …, huyện …, tỉnh …");
+        (await database.LayGiaTriAsync("SELECT TenDonVi FROM ThongTinDonVi WHERE Id = 1")).ShouldBe("TRẠI TẠM GIAM … (dữ liệu mẫu)");
+        (await database.LayGiaTriAsync("SELECT DiaChi FROM ThongTinDonVi WHERE Id = 1")).ShouldBe("Xã …, huyện …, tỉnh …");
     }
 
     [SqlServerFact]
     public async Task ARowWithOnlyTheParentUnitFilled_IsLeftUntouched()
     {
         await using var database = new TestDatabase();
-        await database.MigrateAsync();
-        await database.ExecuteAsync("UPDATE ThongTinDonVi SET TenCoQuanChuQuan = N'CÔNG AN X' WHERE Id = 1");
+        await database.ApDungMigrationAsync();
+        await database.ThucThiAsync("UPDATE ThongTinDonVi SET TenCoQuanChuQuan = N'CÔNG AN X' WHERE Id = 1");
 
-        await using (var db = database.CreateDbContext())
+        await using (var db = database.TaoDbContext())
         {
-            (await TaoSeeder(db).SeedAsync(isDevelopment: true, confirmedDatabaseName: null))
+            (await TaoSeeder(db).NapDuLieuMauAsync(laMoiTruongPhatTrien: true, tenCoSoDuLieuXacNhan: null))
                 .ShouldBe(DemoSeedDecision.Allowed);
         }
 
-        (await database.ScalarAsync("SELECT TenCoQuanChuQuan FROM ThongTinDonVi WHERE Id = 1")).ShouldBe("CÔNG AN X");
-        (await database.ScalarAsync("SELECT TenDonVi FROM ThongTinDonVi WHERE Id = 1")).ShouldBe("");
-        (await database.ScalarAsync("SELECT DiaChi FROM ThongTinDonVi WHERE Id = 1")).ShouldBe("");
+        (await database.LayGiaTriAsync("SELECT TenCoQuanChuQuan FROM ThongTinDonVi WHERE Id = 1")).ShouldBe("CÔNG AN X");
+        (await database.LayGiaTriAsync("SELECT TenDonVi FROM ThongTinDonVi WHERE Id = 1")).ShouldBe("");
+        (await database.LayGiaTriAsync("SELECT DiaChi FROM ThongTinDonVi WHERE Id = 1")).ShouldBe("");
     }
 
     [SqlServerFact]
     public async Task DemoRun_TaoDuTaiKhoanVaiTro_ChayLaiKhongNhanDoi()
     {
         await using var database = new TestDatabase();
-        await database.MigrateAsync();
+        await database.ApDungMigrationAsync();
 
-        await using (var db = database.CreateDbContext())
-            await TaoSeeder(db).SeedAsync(isDevelopment: true, confirmedDatabaseName: null);
+        await using (var db = database.TaoDbContext())
+            await TaoSeeder(db).NapDuLieuMauAsync(laMoiTruongPhatTrien: true, tenCoSoDuLieuXacNhan: null);
 
         // The seeded admin + one account per standard role.
-        (await database.ScalarAsync("SELECT COUNT(*) FROM NguoiDung")).ShouldBe(6);
-        (await database.ScalarAsync("SELECT COUNT(*) FROM NguoiDungVaiTro")).ShouldBe(6);
-        (await database.ScalarAsync("SELECT COUNT(*) FROM CanBo")).ShouldBe(5);
-        (await database.ScalarAsync(
+        (await database.LayGiaTriAsync("SELECT COUNT(*) FROM NguoiDung")).ShouldBe(6);
+        (await database.LayGiaTriAsync("SELECT COUNT(*) FROM NguoiDungVaiTro")).ShouldBe(6);
+        (await database.LayGiaTriAsync("SELECT COUNT(*) FROM CanBo")).ShouldBe(5);
+        (await database.LayGiaTriAsync(
             "SELECT v.Ma FROM NguoiDung u JOIN NguoiDungVaiTro uv ON uv.NguoiDungId = u.Id "
             + "JOIN VaiTro v ON v.Id = uv.VaiTroId WHERE u.TenDangNhap = 'luuky'")).ShouldBe("LUU_KY");
 
-        await using (var db = database.CreateDbContext())
-            await TaoSeeder(db).SeedAsync(isDevelopment: true, confirmedDatabaseName: null);
+        await using (var db = database.TaoDbContext())
+            await TaoSeeder(db).NapDuLieuMauAsync(laMoiTruongPhatTrien: true, tenCoSoDuLieuXacNhan: null);
 
-        (await database.ScalarAsync("SELECT COUNT(*) FROM NguoiDung")).ShouldBe(6);
-        (await database.ScalarAsync("SELECT COUNT(*) FROM CanBo")).ShouldBe(5);
+        (await database.LayGiaTriAsync("SELECT COUNT(*) FROM NguoiDung")).ShouldBe(6);
+        (await database.LayGiaTriAsync("SELECT COUNT(*) FROM CanBo")).ShouldBe(5);
     }
 
     [SqlServerFact]
     public async Task DemoRun_TaiKhoanDangNhapDuocBangMatKhauDemo()
     {
         await using var database = new TestDatabase();
-        await database.MigrateAsync();
-        await using (var db = database.CreateDbContext())
-            await TaoSeeder(db).SeedAsync(isDevelopment: true, confirmedDatabaseName: null);
+        await database.ApDungMigrationAsync();
+        await using (var db = database.TaoDbContext())
+            await TaoSeeder(db).NapDuLieuMauAsync(laMoiTruongPhatTrien: true, tenCoSoDuLieuXacNhan: null);
 
-        var hash = (string)(await database.ScalarAsync("SELECT MatKhauHash FROM NguoiDung WHERE TenDangNhap = 'ketoan'"))!;
+        var hash = (string)(await database.LayGiaTriAsync("SELECT MatKhauHash FROM NguoiDung WHERE TenDangNhap = 'ketoan'"))!;
         new Pbkdf2MatKhauHasher().Verify(DemoDataSeeder.MatKhauDemo, hash).ShouldBeTrue();
+    }
+
+    [SqlServerFact]
+    public async Task NapDuLieuMau_OutsideDevelopmentConfirmedWithConnectedDatabaseName_IsAllowed()
+    {
+        await using var database = new TestDatabase();
+        await database.ApDungMigrationAsync();
+
+        await using (var db = database.TaoDbContext())
+        {
+            (await TaoSeeder(db).NapDuLieuMauAsync(laMoiTruongPhatTrien: false, tenCoSoDuLieuXacNhan: database.Name))
+                .ShouldBe(DemoSeedDecision.Allowed);
+        }
+
+        (await database.LayGiaTriAsync("SELECT COUNT(*) FROM NguoiDung")).ShouldBe(6);
+    }
+
+    [SqlServerFact]
+    public async Task NapDuLieuMau_OutsideDevelopmentNotConfirmed_IsRefusedAndWritesNothing()
+    {
+        await using var database = new TestDatabase();
+        await database.ApDungMigrationAsync();
+
+        (string? XacNhan, DemoSeedDecision Expected)[] danhSachTruongHop =
+        [
+            (null, DemoSeedDecision.NotDevelopment),
+            ("", DemoSeedDecision.DatabaseNameMismatch),
+            ("LuuKyCanTin", DemoSeedDecision.DatabaseNameMismatch),
+        ];
+        foreach (var (xacNhan, expected) in danhSachTruongHop)
+        {
+            await using var db = database.TaoDbContext();
+            (await TaoSeeder(db).NapDuLieuMauAsync(laMoiTruongPhatTrien: false, tenCoSoDuLieuXacNhan: xacNhan))
+                .ShouldBe(expected);
+        }
+
+        // Only the admin account seeded by the migrations.
+        (await database.LayGiaTriAsync("SELECT COUNT(*) FROM NguoiDung")).ShouldBe(1);
+        (await database.LayGiaTriAsync("SELECT TenDonVi FROM ThongTinDonVi WHERE Id = 1")).ShouldBe("");
     }
 }

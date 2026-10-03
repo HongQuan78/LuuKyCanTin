@@ -1,26 +1,22 @@
 namespace LuuKyCanTin.Application.HeThong;
 
-public enum DemoSeedDecision
-{
-    Allowed,
-    NotDevelopment,
-    DatabaseNameMismatch,
-}
-
 /// <summary>
 /// Demo data must never reach a production database by accident. Outside Development the admin has to
 /// confirm by typing the name of the database that is about to be filled.
 /// </summary>
 public static class DemoSeedPolicy
 {
-    public static DemoSeedDecision Decide(bool isDevelopment, string? confirmedDatabaseName, string targetDatabaseName)
+    public static DemoSeedDecision KiemTra(bool laMoiTruongPhatTrien, string? tenCoSoDuLieuXacNhan, string tenCoSoDuLieuDich)
     {
-        if (isDevelopment)
+        if (laMoiTruongPhatTrien)
             return DemoSeedDecision.Allowed;
-        if (confirmedDatabaseName is null)
+        if (tenCoSoDuLieuXacNhan is null)
             return DemoSeedDecision.NotDevelopment;
+        // A bare --force confirms nothing, even when the connection string names no database (the target is then empty too).
+        if (string.IsNullOrWhiteSpace(tenCoSoDuLieuXacNhan))
+            return DemoSeedDecision.DatabaseNameMismatch;
 
-        return string.Equals(confirmedDatabaseName, targetDatabaseName, StringComparison.OrdinalIgnoreCase)
+        return string.Equals(tenCoSoDuLieuXacNhan, tenCoSoDuLieuDich, StringComparison.OrdinalIgnoreCase)
             ? DemoSeedDecision.Allowed
             : DemoSeedDecision.DatabaseNameMismatch;
     }
