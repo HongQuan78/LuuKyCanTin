@@ -18,6 +18,10 @@ public class GlobalExceptionHandlerTests
         GlobalExceptionHandler.IsBusinessError(new PermissionDeniedException("DM.Them")).ShouldBeTrue();
 
     [Fact]
+    public void IsBusinessError_SeparationOfDutiesViolationException_IsTrue() =>
+        GlobalExceptionHandler.IsBusinessError(new SeparationOfDutiesViolationException()).ShouldBeTrue();
+
+    [Fact]
     public void IsBusinessError_AggregateWrappingABusinessError_IsTrue() =>
         GlobalExceptionHandler
             .IsBusinessError(new AggregateException(new PermissionDeniedException(PermissionCodes.MasterData.Create)))
@@ -46,6 +50,28 @@ public class GlobalExceptionHandlerTests
             shown.ShouldHaveSingleItem();
             shown[0].Title.ShouldBe("Cảnh báo");
             shown[0].Message.ShouldBe(denied.Message);
+        }
+        finally
+        {
+            GlobalExceptionHandler.ShowWarning = original;
+        }
+    }
+
+    [Fact]
+    public void TryShowBusinessWarning_SeparationOfDutiesViolation_ShowsTheWarningTitleAndItsOwnMessage()
+    {
+        var shown = new List<(string Message, string Title)>();
+        var original = GlobalExceptionHandler.ShowWarning;
+        try
+        {
+            GlobalExceptionHandler.ShowWarning = (message, title) => shown.Add((message, title));
+            var violation = new SeparationOfDutiesViolationException();
+
+            GlobalExceptionHandler.TryShowBusinessWarning(violation).ShouldBeTrue();
+
+            shown.ShouldHaveSingleItem();
+            shown[0].Title.ShouldBe("Cảnh báo");
+            shown[0].Message.ShouldBe(violation.Message);
         }
         finally
         {

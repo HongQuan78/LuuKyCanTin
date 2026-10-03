@@ -22,6 +22,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<SignInService>();
         services.AddScoped<ChangePasswordService>();
         services.AddScoped<ISignedInUserQuery, SignedInUserQuery>();
+        services.AddScoped<SeparationOfDutiesPolicy>();
         services.AddScoped<AddInmateService>();
         services.AddScoped<InmatesInCustodyQuery>();
         services.AddScoped<CustodyLedgerService>();

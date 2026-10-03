@@ -13,6 +13,8 @@ namespace LuuKyCanTin.Application.Abstractions;
 /// </summary>
 public interface IAppDbContext
 {
+    DbSet<User> User { get; }
+
     DbSet<Officer> Officer { get; }
 
     DbSet<Role> Role { get; }
@@ -34,4 +36,7 @@ public interface IAppDbContext
 
     /// <summary>Opens a transaction at the requested isolation, for a guarded read-check-write.</summary>
     Task<IAppTransaction> BeginTransactionAsync(TransactionIsolation isolation, CancellationToken ct = default);
+
+    /// <summary>True while a transaction started by <see cref="BeginTransactionAsync(CancellationToken)"/> is open.</summary>
+    bool HasActiveTransaction { get; }
 }

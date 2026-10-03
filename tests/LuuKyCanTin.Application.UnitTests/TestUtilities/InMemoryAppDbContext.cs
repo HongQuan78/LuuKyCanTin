@@ -14,6 +14,8 @@ public sealed class InMemoryAppDbContext() : DbContext(
 {
     public DbSet<Officer> Officer => Set<Officer>();
 
+    public DbSet<User> User => Set<User>();
+
     public DbSet<Role> Role => Set<Role>();
 
     public DbSet<Permission> Permission => Set<Permission>();
@@ -21,6 +23,9 @@ public sealed class InMemoryAppDbContext() : DbContext(
     public DbSet<RolePermission> RolePermission => Set<RolePermission>();
 
     public DbSet<UserRole> UserRole => Set<UserRole>();
+
+    /// <summary>Test seam: lets a test pretend the caller already opened its transaction.</summary>
+    public bool HasActiveTransaction { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

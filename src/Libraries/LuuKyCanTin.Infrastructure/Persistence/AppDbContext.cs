@@ -44,6 +44,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
     public DbSet<UserRole> UserRole => Set<UserRole>();
 
+    public bool HasActiveTransaction => Database.CurrentTransaction is not null;
+
     // Application sees only its own exception types; Infrastructure code calling the context directly keeps EF's.
     async Task<int> IAppDbContext.SaveChangesAsync(CancellationToken ct)
     {

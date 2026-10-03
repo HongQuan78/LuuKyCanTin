@@ -60,3 +60,10 @@
 - source_spec: `_bmad-output/implementation-artifacts/stories/epic-02/2-5-permission-driven-shell-service-authorization.md`
   summary: A refused permission caught by a presenter is not logged, and the top-level refusal log has no service identity.
   evidence: T4 asks Serilog to record user, permission code and service, but permission denials are caught in the presenters and the global handler cannot know the calling service. A logging seam (decorator or checker callback) would settle it.
+
+- source_spec: `_bmad-output/implementation-artifacts/stories/epic-02/2-6-segregation-of-duties-policy.md`
+  summary: The naming-conventions table has no Policy category or SeparationOfDuties glossary entry.
+  evidence: The story names the class a policy while the convention only defines Service/Policy-less patterns; the fix edits a rules file.
+- source_spec: `_bmad-output/implementation-artifacts/stories/epic-02/2-6-segregation-of-duties-policy.md`
+  summary: GlobalExceptionHandler keeps a hand-maintained list of Domain business exceptions instead of a Domain marker interface.
+  evidence: BusinessRuleException lives in Application, so Domain exceptions cannot derive from it; both Domain exceptions are recognized by an explicit type list whose only tie is a comment. A Domain marker interface would make a future business exception show correctly by construction.

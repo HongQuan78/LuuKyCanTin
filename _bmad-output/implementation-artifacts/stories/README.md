@@ -37,7 +37,7 @@ Source of the stories: `_bmad-output/planning-artifacts/epics/epic-NN-*.md`. Eac
 | 2.3 Roles and permission catalogue | [2-3-roles-permission-catalogue.md](epic-02/2-3-roles-permission-catalogue.md) | M | 2.2 | review |
 | 2.4 User accounts linked to staff and role assignment | [2-4-user-accounts-role-assignment.md](epic-02/2-4-user-accounts-role-assignment.md) | M | 2.1, 2.3 | done |
 | 2.5 Permission-driven shell and service-level authorization | [2-5-permission-driven-shell-service-authorization.md](epic-02/2-5-permission-driven-shell-service-authorization.md) | M | 2.3, 2.4 | done |
-| 2.6 Segregation-of-duties policy | [2-6-segregation-of-duties-policy.md](epic-02/2-6-segregation-of-duties-policy.md) | S | 2.5 | ready-for-dev |
+| 2.6 Segregation-of-duties policy | [2-6-segregation-of-duties-policy.md](epic-02/2-6-segregation-of-duties-policy.md) | S | 2.5 | done |
 | 2.7 Session auto-lock | [2-7-session-auto-lock.md](epic-02/2-7-session-auto-lock.md) | S | 2.2 | ready-for-dev |
 | 2.8 Unit information | [2-8-unit-information.md](epic-02/2-8-unit-information.md) | S | 2.5 | ready-for-dev |
 | 2.9 Signatory configuration per print template | [2-9-signatory-configuration.md](epic-02/2-9-signatory-configuration.md) | M | 2.1, 2.8 | ready-for-dev |

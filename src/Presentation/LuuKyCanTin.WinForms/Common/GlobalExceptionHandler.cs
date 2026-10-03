@@ -121,7 +121,7 @@ internal static class GlobalExceptionHandler
     // An AggregateException (an unobserved task) is unwrapped until a business error is found.
     private static Exception? BusinessError(Exception? exception) => exception switch
     {
-        BusinessRuleException or PermissionDeniedException => exception,
+        BusinessRuleException or PermissionDeniedException or SeparationOfDutiesViolationException => exception,
         AggregateException aggregate => aggregate.InnerExceptions.Select(BusinessError).FirstOrDefault(e => e is not null),
         _ => null,
     };
