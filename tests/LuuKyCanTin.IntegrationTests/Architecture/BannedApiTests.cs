@@ -15,7 +15,8 @@ public class BannedApiTests
     [InlineData("P:System.DateTime.UtcNow")]
     [InlineData("P:System.DateTimeOffset.Now")]
     [InlineData("P:System.DateTimeOffset.UtcNow")]
-    public void SystemClockReads_AreBanned(string symbol)
+    [InlineData("P:System.TimeProvider.System")]
+    public void BannedSymbols_SystemClockRead_IsBanned(string symbol)
     {
         File.ReadAllLines(Path.Combine(SourceRoot, "BannedSymbols.txt"))
             .Select(line => line.Split(';')[0].Trim())
@@ -23,7 +24,7 @@ public class BannedApiTests
     }
 
     [Fact]
-    public void EverySourceProject_GetsTheBannedApiAnalyzer()
+    public void DirectoryBuildProps_EverySourceProject_GetsTheBannedApiAnalyzer()
     {
         var props = XDocument.Load(Path.Combine(SourceRoot, "Directory.Build.props"));
 

@@ -8,9 +8,9 @@ Source of the stories: `_bmad-output/planning-artifacts/epics/epic-NN-*.md`. Eac
 
 | Story | File | Size | Depends on | Status |
 |---|---|---|---|---|
-| 1.1 Solution skeleton, host and CI | [1-1-solution-skeleton-host-ci.md](epic-01/1-1-solution-skeleton-host-ci.md) | M | — | review |
-| 1.2 Database migrations, schema-version check, enum ↔ CHECK test | [1-2-database-migrations-schema-version-enum-check.md](epic-01/1-2-database-migrations-schema-version-enum-check.md) | M | 1.1 | review |
-| 1.3 IClock and automatic audit-log interceptor | [1-3-iclock-audit-log-interceptor.md](epic-01/1-3-iclock-audit-log-interceptor.md) | M | 1.2 | review |
+| 1.1 Solution skeleton, host and CI | [1-1-solution-skeleton-host-ci.md](epic-01/1-1-solution-skeleton-host-ci.md) | M | — | done |
+| 1.2 Database migrations, schema-version check, enum ↔ CHECK test | [1-2-database-migrations-schema-version-enum-check.md](epic-01/1-2-database-migrations-schema-version-enum-check.md) | M | 1.1 | done |
+| 1.3 IClock and automatic audit-log interceptor | [1-3-iclock-audit-log-interceptor.md](epic-01/1-3-iclock-audit-log-interceptor.md) | M | 1.2 | done |
 | 1.4 Amount in Vietnamese words | [1-4-amount-in-vietnamese-words.md](epic-01/1-4-amount-in-vietnamese-words.md) | S | 1.1 | review |
 | 1.5 Spike: QuestPDF printing with Vietnamese fonts | [1-5-spike-questpdf-vietnamese-printing.md](epic-01/1-5-spike-questpdf-vietnamese-printing.md) | M (spike) | 1.1 | done |
 | 1.6 Spike: Velopack updates from a LAN shared folder | [1-6-spike-velopack-lan-updates.md](epic-01/1-6-spike-velopack-lan-updates.md) | M (spike) | 1.1 | done |
@@ -24,6 +24,7 @@ Source of the stories: `_bmad-output/planning-artifacts/epics/epic-NN-*.md`. Eac
 1. Can Application reference `Microsoft.EntityFrameworkCore` (core, no provider)? — **Settled: yes** (Epic 2.1 and the merge; the architecture test allows EF Core core and still forbids every provider). See 1.1 Dev Notes and the 1.8 T0 note.
 2. Document number format `BNT-2026-00001` (epics.md Open Question 1).
 3. 24 → "hai mươi bốn" or "hai mươi tư" (1.4, non-blocking).
+4. Application may reference `Microsoft.Extensions.DependencyInjection.Abstractions` (for `AddApplication`) beyond AC 2's "plus FluentValidation". **Settled: accepted deviation** (1.1 code review, 2026-10-02).
 
 **Sprint 0 gate:** CI green, spike notes merged, and DEC-02, DEC-05 and DEC-09 decided by the PO.
 
@@ -52,3 +53,15 @@ Source of the stories: `_bmad-output/planning-artifacts/epics/epic-NN-*.md`. Eac
 4. Leadership gets `HT.Xem` so the audit log (2.10) is usable by its intended user (epics.md alignment A22).
 
 **Epic 2 gate:** every seeded role signs in and sees only its own menus (2.5 theory test), the bypass test is green, and the unit header and the signers for all 12 templates are configured.
+
+## Refactor
+
+| Story | File | Size | Depends on | Status |
+|---|---|---|---|---|
+| R.1 Rename existing identifiers to English | [r-1-rename-identifiers-to-english.md](refactor/r-1-rename-identifiers-to-english.md) | L | 1.4, 2.1, 2.2, 2.3 | review |
+| R.2 UI theme, shared controls, shell and sign-in aligned with the prototypes | [r-2-ui-theme-shell-sign-in.md](refactor/r-2-ui-theme-shell-sign-in.md) | L | R.1, 2.2 | review |
+| R.3 Bring the existing screens into line with the UI prototypes | [r-3-align-existing-screens-with-prototypes.md](refactor/r-3-align-existing-screens-with-prototypes.md) | L | R.2, 1.8, 2.1, 2.3 | review |
+
+**Why:** on 2026-10-03 the naming convention changed to English identifiers with Vietnamese user-visible text (`docs/conventions/naming-conventions.md`). R.1 renames the code written before that. **Suggested timing:** before 2.4, so the rest of Epic 2 is built on English names.
+
+**Why R.2 and R.3:** the UI prototypes (`ux-designs/ux-TienGuiLuuKy-2026-10-02/`) became binding on 2026-10-02 (`docs/conventions/ui-prototype-conventions.md`), after the first screens were built. R.2 creates `AppTheme`, `CardPanel`, `InputFrame` and the sidebar shell and redesigns sign-in and change password. R.3 brings the other existing screens into line. Both are visual and interaction only; behaviour the prototypes show but no story has delivered yet stays with its own story. **Suggested timing:** R.2 before 2.4, so new screens start from the theme. Then 2.5 makes the R.2 sidebar its permission-driven menu, and 2.7 builds the lock overlay (key-01 D) on the R.2 shell.

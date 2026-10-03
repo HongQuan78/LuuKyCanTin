@@ -10,7 +10,8 @@ public static class EnumCheckExtensions
 {
     /// <summary>
     /// Adds <c>CHECK ([Col] IN (...))</c> built from the enum's values, so the constraint and the enum share one source.
-    /// A column converted to text (<c>HasConversion&lt;string&gt;()</c>, configured first) is checked against the enum's names.
+    /// A column converted to text (configured first) is checked against the text its converter stores: the enum's names
+    /// for <c>HasConversion&lt;string&gt;()</c>, or the codes of a custom converter.
     /// </summary>
     public static EntityTypeBuilder<TEntity> HasEnumCheck<TEntity, TEnum>(
         this EntityTypeBuilder<TEntity> builder, Expression<Func<TEntity, TEnum>> property)
@@ -28,8 +29,9 @@ public static class EnumCheckExtensions
         where TEntity : class
         where TEnum : struct, Enum
     {
-        var values = property.GetProviderClrType() == typeof(string)
-            ? Enum.GetNames<TEnum>().Select(name => $"'{name}'")
+        var converter = property.GetValueConverter();
+        var values = (property.GetProviderClrType() ?? converter?.ProviderClrType) == typeof(string)
+            ? Enum.GetValues<TEnum>().Select(v => $"'{converter?.ConvertToProvider(v) ?? v.ToString()}'")
             : Enum.GetValues<TEnum>().Select(v => Convert.ToInt64(v, CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture));
         var column = property.GetColumnName();
         var table = builder.Metadata.GetTableName();

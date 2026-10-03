@@ -1,7 +1,7 @@
 using LuuKyCanTin.Application.Abstractions;
+using LuuKyCanTin.Domain.Administration;
 using LuuKyCanTin.Domain.Common;
-using LuuKyCanTin.Domain.HeThong;
-using LuuKyCanTin.Infrastructure.HeThong;
+using LuuKyCanTin.Infrastructure.Administration;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -10,78 +10,88 @@ using Microsoft.EntityFrameworkCore.Storage;
 namespace LuuKyCanTin.Infrastructure.Persistence.Interceptors;
 
 /// <summary>
-/// Fills the <see cref="AuditableEntity"/> columns and writes one <see cref="NhatKyThaoTac"/> row per changed
+/// Fills the <see cref="AuditableEntity"/> columns and writes one <see cref="AuditLog"/> row per changed
 /// <see cref="IAuditable"/> record, in the same transaction as the change. It keeps state between the before- and
 /// after-save callbacks, so every DbContext needs its own instance (it is registered scoped).
 /// </summary>
 /// <remarks>
 /// ExecuteUpdate, ExecuteDelete and raw SQL bypass interceptors, so voucher writes must go through SaveChanges; don't
-/// turn them into ExecuteUpdate. The conditional balance UPDATE on SoDuLuuKy is raw SQL on purpose: a balance is not
+/// turn them into ExecuteUpdate. The conditional balance UPDATE on CustodyBalance is raw SQL on purpose: a balance is not
 /// a voucher, and the voucher inserted in the same transaction is what the log records.
 /// </remarks>
-internal sealed class AuditInterceptor(IClock clock, ICurrentUser currentUser, NhatKyFactory nhatKyFactory) : SaveChangesInterceptor
+internal sealed class AuditInterceptor(IClock clock, ICurrentUser currentUser, AuditLogFactory auditLogFactory) : SaveChangesInterceptor
 {
-    // Written to NguoiTaoId when nobody is signed in (seeding, admin commands); the log row itself keeps a null user.
-    private const int KhongCoNguoiDung = 0;
+    // Written to CreatedById when nobody is signed in (seeding, admin commands); the log row itself keeps a null user.
+    private const int NoUser = 0;
 
     // Bookkeeping columns: the log row already records who and when, and a row version means nothing to a reader.
-    private static readonly HashSet<string> CotKhongGhi =
+    private static readonly HashSet<string> BookkeepingColumns =
     [
-        nameof(AuditableEntity.NgayTao),
-        nameof(AuditableEntity.NguoiTaoId),
-        nameof(AuditableEntity.NgaySua),
-        nameof(AuditableEntity.NguoiSuaId),
+        nameof(AuditableEntity.CreatedAt),
+        nameof(AuditableEntity.CreatedById),
+        nameof(AuditableEntity.ModifiedAt),
+        nameof(AuditableEntity.ModifiedById),
         nameof(AuditableEntity.RowVer),
     ];
 
-    private sealed record ThayDoi(EntityEntry Entry, HanhDong HanhDong, Dictionary<string, object?>? Cu, Dictionary<string, object?>? Moi);
+    private sealed record PendingChange(EntityEntry Entry, AuditAction Action, Dictionary<string, object?>? OldValues, Dictionary<string, object?>? NewValues);
 
-    private List<ThayDoi> _thayDoi = [];
-    private IDbContextTransaction? _transactionRieng;
-    private bool _dangGhiNhatKy;
+    private List<PendingChange> _pendingChanges = [];
+    private IDbContextTransaction? _ownTransaction;
+    private bool _isWritingAuditLogs;
+
+    private bool HasPendingChanges => _pendingChanges.Count > 0;
 
     public override InterceptionResult<int> SavingChanges(DbContextEventData eventData, InterceptionResult<int> result)
     {
+        if (_isWritingAuditLogs || eventData.Context is not { } context)
+            return result;
+
+        Prepare(context);
         // A caller's transaction is joined; otherwise the change and its log rows need one of their own.
-        if (!_dangGhiNhatKy && eventData.Context is { } context && ChuanBi(context) && context.Database.CurrentTransaction is null)
-            _transactionRieng = context.Database.BeginTransaction();
+        if (HasPendingChanges && context.Database.CurrentTransaction is null)
+            _ownTransaction = context.Database.BeginTransaction();
         return result;
     }
 
     public override async ValueTask<InterceptionResult<int>> SavingChangesAsync(
         DbContextEventData eventData, InterceptionResult<int> result, CancellationToken cancellationToken = default)
     {
-        if (!_dangGhiNhatKy && eventData.Context is { } context && ChuanBi(context) && context.Database.CurrentTransaction is null)
-            _transactionRieng = await context.Database.BeginTransactionAsync(cancellationToken);
+        if (_isWritingAuditLogs || eventData.Context is not { } context)
+            return result;
+
+        Prepare(context);
+        if (HasPendingChanges && context.Database.CurrentTransaction is null)
+            _ownTransaction = await context.Database.BeginTransactionAsync(cancellationToken);
         return result;
     }
 
     // The log rows are built after the save because added records only get their IDENTITY ids from the INSERT.
     public override int SavedChanges(SaveChangesCompletedEventData eventData, int result)
     {
-        if (_dangGhiNhatKy || eventData.Context is not { } context)
+        if (_isWritingAuditLogs || eventData.Context is not { } context)
             return result;
 
-        List<NhatKyThaoTac> nhatKy = [];
+        List<AuditLog> auditLogs = [];
         try
         {
-            nhatKy = ThemNhatKy(context);
-            if (nhatKy.Count > 0)
+            auditLogs = AddAuditLogs(context);
+            if (auditLogs.Count > 0)
             {
-                _dangGhiNhatKy = true;
+                _isWritingAuditLogs = true;
                 context.SaveChanges();
             }
-            _transactionRieng?.Commit();
+            _ownTransaction?.Commit();
         }
         catch
         {
-            BoNhatKy(context, nhatKy);
-            _transactionRieng?.Rollback();
+            DetachAuditLogs(context, auditLogs);
+            _ownTransaction?.Rollback();
             throw;
         }
         finally
         {
-            KetThuc();
+            Reset();
         }
         return result;
     }
@@ -89,63 +99,63 @@ internal sealed class AuditInterceptor(IClock clock, ICurrentUser currentUser, N
     public override async ValueTask<int> SavedChangesAsync(
         SaveChangesCompletedEventData eventData, int result, CancellationToken cancellationToken = default)
     {
-        if (_dangGhiNhatKy || eventData.Context is not { } context)
+        if (_isWritingAuditLogs || eventData.Context is not { } context)
             return result;
 
-        List<NhatKyThaoTac> nhatKy = [];
+        List<AuditLog> auditLogs = [];
         try
         {
-            nhatKy = ThemNhatKy(context);
-            if (nhatKy.Count > 0)
+            auditLogs = AddAuditLogs(context);
+            if (auditLogs.Count > 0)
             {
-                _dangGhiNhatKy = true;
+                _isWritingAuditLogs = true;
                 await context.SaveChangesAsync(cancellationToken);
             }
-            if (_transactionRieng is not null)
-                await _transactionRieng.CommitAsync(cancellationToken);
+            if (_ownTransaction is not null)
+                await _ownTransaction.CommitAsync(cancellationToken);
         }
         catch
         {
-            BoNhatKy(context, nhatKy);
-            if (_transactionRieng is not null)
-                await _transactionRieng.RollbackAsync(CancellationToken.None);
+            DetachAuditLogs(context, auditLogs);
+            if (_ownTransaction is not null)
+                await _ownTransaction.RollbackAsync(CancellationToken.None);
             throw;
         }
         finally
         {
-            KetThuc();
+            Reset();
         }
         return result;
     }
 
     // A failure while writing the log rows is handled in SavedChanges, which then reports the failure here again.
-    public override void SaveChangesFailed(DbContextErrorEventData eventData) => HuyTransaction();
+    public override void SaveChangesFailed(DbContextErrorEventData eventData) => RollBackOwnTransaction();
 
     public override async Task SaveChangesFailedAsync(DbContextErrorEventData eventData, CancellationToken cancellationToken = default)
-        => await HuyTransactionAsync();
+        => await RollBackOwnTransactionAsync();
 
-    public override void SaveChangesCanceled(DbContextEventData eventData) => HuyTransaction();
+    public override void SaveChangesCanceled(DbContextEventData eventData) => RollBackOwnTransaction();
 
     public override async Task SaveChangesCanceledAsync(DbContextEventData eventData, CancellationToken cancellationToken = default)
-        => await HuyTransactionAsync();
+        => await RollBackOwnTransactionAsync();
 
-    /// <summary>Stamps the audit columns and records what each audited entry changes; true if anything is to be logged.</summary>
-    private bool ChuanBi(DbContext context)
+    /// <summary>Stamps the audit columns and records what each audited entry changes.</summary>
+    private void Prepare(DbContext context)
     {
         // SavingChanges runs before EF's own DetectChanges, so the entry states are not final yet.
         if (context.ChangeTracker.AutoDetectChangesEnabled)
             context.ChangeTracker.DetectChanges();
 
         var now = clock.Now;
-        var nguoiDungId = currentUser.NguoiDungId;
-        _thayDoi = [];
+        var userId = currentUser.UserId;
+        _pendingChanges = [];
 
         foreach (var entry in context.ChangeTracker.Entries())
         {
-            if (entry.Entity is NhatKyThaoTac)
+            if (entry.Entity is AuditLog)
             {
                 if (entry.State is EntityState.Modified or EntityState.Deleted)
-                    throw new InvalidOperationException("NhatKyThaoTac is append-only: audit rows can never be changed or deleted.");
+                    throw new InvalidOperationException("AuditLog is append-only: audit rows can never be changed or deleted.");
                 continue;
             }
 
@@ -153,90 +163,96 @@ internal sealed class AuditInterceptor(IClock clock, ICurrentUser currentUser, N
                 continue;
 
             if (entry.Entity is AuditableEntity)
-                DienCotKiemToan(entry, now, nguoiDungId);
+                StampAuditColumns(entry, now, userId);
 
-            if (entry.Entity is IAuditable && GhiNhan(entry) is { } thayDoi)
-                _thayDoi.Add(thayDoi);
+            if (entry.Entity is IAuditable && CaptureChange(entry) is { } change)
+                _pendingChanges.Add(change);
         }
-
-        return _thayDoi.Count > 0;
     }
 
-    private static void DienCotKiemToan(EntityEntry entry, DateTime now, int? nguoiDungId)
+    private static void StampAuditColumns(EntityEntry entry, DateTime now, int? userId)
     {
         if (entry.State == EntityState.Added)
         {
-            entry.Property(nameof(AuditableEntity.NgayTao)).CurrentValue = now;
-            entry.Property(nameof(AuditableEntity.NguoiTaoId)).CurrentValue = nguoiDungId ?? KhongCoNguoiDung;
+            entry.Property(nameof(AuditableEntity.CreatedAt)).CurrentValue = now;
+            entry.Property(nameof(AuditableEntity.CreatedById)).CurrentValue = userId ?? NoUser;
         }
         else if (entry.State == EntityState.Modified)
         {
-            entry.Property(nameof(AuditableEntity.NgaySua)).CurrentValue = now;
-            entry.Property(nameof(AuditableEntity.NguoiSuaId)).CurrentValue = nguoiDungId;
-            GiuNguyen(entry.Property(nameof(AuditableEntity.NgayTao)));
-            GiuNguyen(entry.Property(nameof(AuditableEntity.NguoiTaoId)));
+            entry.Property(nameof(AuditableEntity.ModifiedAt)).CurrentValue = now;
+            entry.Property(nameof(AuditableEntity.ModifiedById)).CurrentValue = userId;
+            KeepOriginalValue(entry.Property(nameof(AuditableEntity.CreatedAt)));
+            KeepOriginalValue(entry.Property(nameof(AuditableEntity.CreatedById)));
         }
     }
 
     // Who created a record is never rewritten by a later edit.
-    private static void GiuNguyen(PropertyEntry property)
+    private static void KeepOriginalValue(PropertyEntry property)
     {
         property.CurrentValue = property.OriginalValue;
         property.IsModified = false;
     }
 
-    private static ThayDoi? GhiNhan(EntityEntry entry)
+    private static PendingChange? CaptureChange(EntityEntry entry)
     {
-        var daHuySau = entry.Entity is ICoTrangThaiHuy { DaHuy: true };
-        // OriginalValues are only right for an entity loaded by a query; attaching a detached one loses the "before".
-        var daHuyTruoc = entry.State == EntityState.Modified && entry.OriginalValues.ToObject() is ICoTrangThaiHuy { DaHuy: true };
-        var hanhDong = XacDinhHanhDong.Tu(entry.State, daHuyTruoc, daHuySau);
+        var isCancelledAfter = entry.Entity is ICancellable { IsCancelled: true };
+        var isCancelledBefore = entry.State == EntityState.Modified && entry.OriginalValues.ToObject() is ICancellable { IsCancelled: true };
+        var action = AuditActionResolver.Resolve(entry.State, isCancelledBefore, isCancelledAfter);
 
         if (entry.State == EntityState.Added)
-            return new ThayDoi(entry, hanhDong, Cu: null, Moi: null);
+            return new PendingChange(entry, action, OldValues: null, NewValues: null);
 
-        var thayDoi = entry.Properties
-            .Where(p => p.IsModified && !CotKhongGhi.Contains(p.Metadata.Name)
-                && !p.Metadata.GetValueComparer().Equals(p.OriginalValue, p.CurrentValue))
+        var flaggedColumns = entry.Properties
+            .Where(p => p.IsModified && !BookkeepingColumns.Contains(p.Metadata.Name))
             .ToList();
-        if (thayDoi.Count == 0)
+        var changedColumns = flaggedColumns
+            .Where(p => !p.Metadata.GetValueComparer().Equals(p.OriginalValue, p.CurrentValue))
+            .ToList();
+
+        // OriginalValues are only right for an entity loaded by a query. Update/Attach of a detached one flags its
+        // columns with "before" equal to "after", which would save the change with no log row at all.
+        if (changedColumns.Count == 0 && flaggedColumns.Count > 0)
+            throw new InvalidOperationException(
+                $"{entry.Metadata.ClrType.Name} was saved without its original values (Update/Attach of a detached entity), "
+                + "so the audit log cannot tell what changed. Load it, change it, then save.");
+        if (changedColumns.Count == 0)
             return null;
 
         // A change to a secret is still logged, just without its values.
-        var coTheGhi = thayDoi.Where(DuocGhiGiaTri).ToList();
-        return new ThayDoi(
+        var loggableColumns = changedColumns.Where(IsValueLoggable).ToList();
+        return new PendingChange(
             entry,
-            hanhDong,
-            coTheGhi.ToDictionary(p => p.Metadata.GetColumnName(), p => p.OriginalValue),
-            coTheGhi.ToDictionary(p => p.Metadata.GetColumnName(), p => p.CurrentValue));
+            action,
+            loggableColumns.ToDictionary(p => p.Metadata.GetColumnName(), p => p.OriginalValue),
+            loggableColumns.ToDictionary(p => p.Metadata.GetColumnName(), p => p.CurrentValue));
     }
 
-    private List<NhatKyThaoTac> ThemNhatKy(DbContext context)
+    private List<AuditLog> AddAuditLogs(DbContext context)
     {
-        var nhatKy = _thayDoi
-            .Select(t => nhatKyFactory.Tao(
-                t.HanhDong,
+        var auditLogs = _pendingChanges
+            .Select(t => auditLogFactory.Create(
+                t.Action,
                 t.Entry.Metadata.GetTableName(),
-                KhoaCua(t.Entry),
-                t.Cu,
-                t.Moi ?? t.Entry.Properties
-                    .Where(p => !CotKhongGhi.Contains(p.Metadata.Name) && DuocGhiGiaTri(p))
+                GetKey(t.Entry),
+                t.OldValues,
+                t.NewValues ?? t.Entry.Properties
+                    .Where(p => !BookkeepingColumns.Contains(p.Metadata.Name) && IsValueLoggable(p))
                     .ToDictionary(p => p.Metadata.GetColumnName(), p => p.CurrentValue)))
             .ToList();
 
-        context.Set<NhatKyThaoTac>().AddRange(nhatKy);
-        return nhatKy;
+        context.Set<AuditLog>().AddRange(auditLogs);
+        return auditLogs;
     }
 
-    private static bool DuocGhiGiaTri(PropertyEntry property) =>
-        property.Metadata.PropertyInfo?.IsDefined(typeof(KhongGhiNhatKyAttribute), inherit: true) != true;
+    private static bool IsValueLoggable(PropertyEntry property) =>
+        property.Metadata.PropertyInfo?.IsDefined(typeof(NotAuditedAttribute), inherit: true) != true;
 
-    private static long? KhoaCua(EntityEntry entry)
+    private static long? GetKey(EntityEntry entry)
     {
-        if (entry.Metadata.FindPrimaryKey() is not { Properties: [var khoa] })
+        if (entry.Metadata.FindPrimaryKey() is not { Properties: [var key] })
             return null;
 
-        return entry.Property(khoa.Name).CurrentValue switch
+        return entry.Property(key.Name).CurrentValue switch
         {
             int i => i,
             long l => l,
@@ -247,34 +263,35 @@ internal sealed class AuditInterceptor(IClock clock, ICurrentUser currentUser, N
     }
 
     // Rolled-back log rows must not linger as Added and be inserted by the context's next save.
-    private static void BoNhatKy(DbContext context, List<NhatKyThaoTac> nhatKy)
+    private static void DetachAuditLogs(DbContext context, List<AuditLog> auditLogs)
     {
-        foreach (var dong in nhatKy)
-            context.Entry(dong).State = EntityState.Detached;
+        foreach (var auditLog in auditLogs)
+            context.Entry(auditLog).State = EntityState.Detached;
     }
 
-    private void HuyTransaction()
+    private void RollBackOwnTransaction()
     {
-        if (_dangGhiNhatKy)
+        if (_isWritingAuditLogs)
             return;
-        _transactionRieng?.Rollback();
-        KetThuc();
+        _ownTransaction?.Rollback();
+        Reset();
     }
 
-    private async Task HuyTransactionAsync()
+    // No ct: the rollback must run even when the save itself was cancelled.
+    private async Task RollBackOwnTransactionAsync()
     {
-        if (_dangGhiNhatKy)
+        if (_isWritingAuditLogs)
             return;
-        if (_transactionRieng is not null)
-            await _transactionRieng.RollbackAsync(CancellationToken.None);
-        KetThuc();
+        if (_ownTransaction is not null)
+            await _ownTransaction.RollbackAsync(CancellationToken.None);
+        Reset();
     }
 
-    private void KetThuc()
+    private void Reset()
     {
-        _transactionRieng?.Dispose();
-        _transactionRieng = null;
-        _thayDoi = [];
-        _dangGhiNhatKy = false;
+        _ownTransaction?.Dispose();
+        _ownTransaction = null;
+        _pendingChanges = [];
+        _isWritingAuditLogs = false;
     }
 }

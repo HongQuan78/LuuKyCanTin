@@ -7,46 +7,46 @@ namespace LuuKyCanTin.IntegrationTests.Persistence.EnumChecks;
 
 /// <summary>Every Domain enum column must have a deployed CHECK that allows exactly the enum's values.</summary>
 [Collection(SqlServerCollection.Name)]
-public class EnumCheckConstraintTests(SqlServerFixture fixture)
+public sealed class EnumCheckConstraintTests(SqlServerFixture fixture)
 {
     [SqlServerFact]
-    public async Task EveryEnumColumn_MatchesItsDeployedCheckConstraint()
+    public async Task Verify_EveryEnumColumnInModel_HasNoProblems()
     {
         await using var db = fixture.Database.CreateDbContext();
 
-        var problems = EnumCheckVerifier.FindProblems(EnumModel.EnumColumnsOf(db), await ReadCheckConstraintsAsync(fixture.Database));
+        var problems = EnumCheckVerifier.Verify(EnumModel.GetEnumColumns(db), await GetCheckConstraintsAsync(fixture.Database));
 
         problems.ShouldBeEmpty();
     }
 
     // The real model has no enum column yet, so prove the check against constraints SQL Server actually stored.
     [SqlServerFact]
-    public async Task SelfTest_DetectsEachKindOfMismatchInADeployedDatabase()
+    public async Task Verify_DeployedMismatchedConstraints_ReportsEachKind()
     {
         await using var database = new TestDatabase();
         await using (var db = new TestAppDbContext(database.Options))
         {
             await db.Database.EnsureCreatedAsync();
-            EnumCheckVerifier.FindProblems(EnumModel.EnumColumnsOf(db), await ReadCheckConstraintsAsync(database)).ShouldBeEmpty();
+            EnumCheckVerifier.Verify(EnumModel.GetEnumColumns(db), await GetCheckConstraintsAsync(database)).ShouldBeEmpty();
         }
-        await database.ExecuteAsync("ALTER TABLE [MauChungTu] DROP CONSTRAINT [CK_MauChungTu_TrangThaiTruoc]");
-        var checks = await ReadCheckConstraintsAsync(database);
+        await database.ExecuteAsync("ALTER TABLE [SampleVoucher] DROP CONSTRAINT [CK_SampleVoucher_PreviousStatus]");
+        var checks = await GetCheckConstraintsAsync(database);
 
-        EnumCheckVerifier.FindProblems([Column("TrangThai", typeof(MauTrangThaiThieu))], checks)
-            .ShouldHaveSingleItem().ShouldContain("CHECK allows 3, which MauTrangThaiThieu does not define");
-        EnumCheckVerifier.FindProblems([Column("TrangThai", typeof(MauTrangThaiThua))], checks)
-            .ShouldHaveSingleItem().ShouldContain("enum value Moi=4 is not allowed by the CHECK constraint");
-        EnumCheckVerifier.FindProblems([Column("TrangThaiTruoc", typeof(MauTrangThai))], checks)
+        EnumCheckVerifier.Verify([CreateColumn("Status", typeof(SampleStatusMissingValue))], checks)
+            .ShouldHaveSingleItem().ShouldContain("CHECK allows 3, which SampleStatusMissingValue does not define");
+        EnumCheckVerifier.Verify([CreateColumn("Status", typeof(SampleStatusExtraValue))], checks)
+            .ShouldHaveSingleItem().ShouldContain("enum value New=4 is not allowed by the CHECK constraint");
+        EnumCheckVerifier.Verify([CreateColumn("PreviousStatus", typeof(SampleStatus))], checks)
             .ShouldHaveSingleItem().ShouldContain("no CHECK constraint");
     }
 
-    private enum MauTrangThaiThieu : byte { Nhap = 1, DaGhiSo = 2 }
+    private enum SampleStatusMissingValue : byte { Draft = 1, Posted = 2 }
 
-    private enum MauTrangThaiThua : byte { Nhap = 1, DaGhiSo = 2, DaHuy = 3, Moi = 4 }
+    private enum SampleStatusExtraValue : byte { Draft = 1, Posted = 2, Cancelled = 3, New = 4 }
 
-    private static EnumColumn Column(string column, Type enumType) => new(EnumModel.DefaultSchema, "MauChungTu", column, enumType);
+    private static EnumColumn CreateColumn(string column, Type enumType) => new(EnumModel.DefaultSchema, "SampleVoucher", column, enumType);
 
-    private static async Task<IReadOnlyList<DeployedCheck>> ReadCheckConstraintsAsync(TestDatabase database)
+    private static async Task<IReadOnlyList<DeployedCheck>> GetCheckConstraintsAsync(TestDatabase database)
     {
         const string sql = """
             SELECT s.name, t.name, cc.definition

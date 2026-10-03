@@ -1,4 +1,4 @@
-using LuuKyCanTin.Infrastructure.HeThong;
+using LuuKyCanTin.Infrastructure.Administration;
 using LuuKyCanTin.Infrastructure.Persistence;
 using LuuKyCanTin.Infrastructure.Persistence.Interceptors;
 using LuuKyCanTin.IntegrationTests.TestUtilities;
@@ -21,14 +21,14 @@ public sealed class AppDatabaseFixture : IAsyncLifetime
     /// <summary>A new context per call, as each operation in the app gets its own DI scope.</summary>
     public AppDbContext CreateAuditedContext() => new(new DbContextOptionsBuilder<AppDbContext>()
         .UseSqlServer(Database.ConnectionString)
-        .AddInterceptors(new AuditInterceptor(Clock, User, new NhatKyFactory(Clock, User)))
+        .AddInterceptors(new AuditInterceptor(Clock, User, new AuditLogFactory(Clock, User)))
         .Options);
 
-    public Task InitializeAsync() => SqlServerFactAttribute.ShouldRun ? Database.MigrateAsync() : Task.CompletedTask;
+    public Task InitializeAsync() => SqlServerFactAttribute.CanRun ? Database.MigrateAsync() : Task.CompletedTask;
 
     public async Task DisposeAsync()
     {
-        if (SqlServerFactAttribute.ShouldRun)
+        if (SqlServerFactAttribute.CanRun)
             await Database.DisposeAsync();
     }
 }

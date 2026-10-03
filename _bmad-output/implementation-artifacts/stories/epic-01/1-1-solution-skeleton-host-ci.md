@@ -2,7 +2,7 @@
 story: "1.1"
 epic: 1
 title: Solution skeleton, host and CI
-status: review
+status: done
 size: M
 backlogItems: [NEN-01, NEN-07]
 frsCovered: []
@@ -13,7 +13,7 @@ dependsOn: []
 
 # Story 1.1: Solution skeleton, host and CI
 
-Status: review
+Status: done
 
 ## Story
 
@@ -83,6 +83,35 @@ So that every later story starts from the same structure and is checked automati
 - [x] **T9. Verify** (AC: 1–5)
   - [x] Run `dotnet build LuuKyCanTin.slnx` and `dotnet test LuuKyCanTin.slnx` locally and confirm both pass. Run the app and check that a log file appears under `%ProgramData%\LuuKyCanTin\logs`.
   - [x] Temporarily throw from a button and check the friendly message plus the log entry, then remove the throw.
+
+### Review Findings
+
+Code review 2026-10-02 (commit `15b0491`, checked against the current `master`).
+
+- [x] [Review][Decision] Application references packages beyond AC 2 — **Resolved 2026-10-02: accepted deviation** (PO/user). `Microsoft.Extensions.DependencyInjection.Abstractions` stays on the allow-list. AC 2 allows "only Domain (plus FluentValidation)". `ApplicationAllowedPackages` also allows `Microsoft.Extensions.DependencyInjection.Abstractions` (added by 1.1, flagged for PO sign-off in the Completion Notes and never settled) and `Microsoft.EntityFrameworkCore` (settled in the README). Either record DI.Abstractions as an accepted deviation, or move `AddApplication` out of Application.
+- [x] [Review][Decision] AC 5 (CI) has never been verified — **Resolved 2026-10-02: the user confirmed CI is green on `master`.** the Completion Notes say it needs the first push to `master`, but the story went to `review` with T8/T9 ticked and no CI run recorded. Confirm that a green run on `windows-latest` exists, with LocalDB actually running.
+- [x] [Review][Decision] `Shell/` is not a business-module folder — **Resolved 2026-10-02: keep `Shell/`** as an accepted technical folder (T2 asked for it). naming conventions §2 put WinForms code under `LuuKy/`, `HangHoa/`, `DanhMuc/`, `HeThong/`, `BaoCao/`, `Common/`; T2 asked for `Shell/`. It now holds 15 files across stories 1.8–2.3. Keep it as an accepted technical folder, or move it to `HeThong/`.
+- [x] [Review][Patch] `Infrastructure/Backup/` is never committed: `.gitignore` `Backup*/` (VS template) swallows it, so a clean clone has no folder and future backup code is silently ignored [.gitignore:266]
+- [x] [Review][Patch] A startup failure before `Log.Logger` is set (for example malformed `appsettings.json`) goes to Serilog's silent logger, while the friendly message says the details were logged. Add a bootstrap file logger [src/Presentation/LuuKyCanTin.WinForms/Program.cs:39]
+- [x] [Review][Patch] `Loaded_SetsTitleFromOptions` injects the default title, so a presenter that ignores `IOptions<AppOptions>` still passes [tests/LuuKyCanTin.WinForms.UnitTests/Shell/MainPresenterTests.cs:34]
+- [x] [Review][Patch] The `FrameworkReference` rule has no negative test; deleting it leaves every test green [tests/LuuKyCanTin.IntegrationTests/Architecture/ProjectReferenceRules.cs:80]
+- [x] [Review][Patch] Rename the names 1.1 introduced that break `docs/conventions/naming-conventions.md` (explicit user request, overriding the "dedicated refactor story" rule): `GlobalExceptionHandler.Caption/FriendlyMessage/ShowFriendlyMessage/Install`, `Program.CreateLogger`, both `DependencyInjection` classes → `…ServiceCollectionExtensions`, `ProjectReferenceRules.Check/Elements/IsAnalyzerOnly`, `RepositoryPaths.FindRoot`/`dir`, `SqlServerFactAttribute.IsLocalDbInstalled`, `ProjectReferenceRulesTests.Csproj`, and the 1.1 test method names (§6 `<Method>_<Scenario>_<Result>`) [src/Presentation/LuuKyCanTin.WinForms/Common/GlobalExceptionHandler.cs:11]
+- [x] [Review][Defer] The architecture test reads raw `.csproj` only: references injected through `Directory.Build.props`/`GlobalPackageReference`, or any package marked `PrivateAssets="all"`, get past the "Domain has no NuGet package" rule [tests/LuuKyCanTin.IntegrationTests/Architecture/ProjectReferenceRules.cs:59] — deferred: nothing violates the rule today; the only shared reference is the BannedApiAnalyzers analyzer in `src/Directory.Build.props`
+- [x] [Review][Defer] Nothing tests the composition root (the `App` section binds to `AppOptions`, the presenter attaches to the form) [src/Presentation/LuuKyCanTin.WinForms/Program.cs:57] — deferred: needs the host wiring extracted from `Main`; the same gap is already logged for 1.8 and 2.2
+- [x] [Review][Defer] The host is built but never started, so a future `IHostedService` would silently never run [src/Presentation/LuuKyCanTin.WinForms/Program.cs:39] — deferred: no hosted service is registered yet; settle it when the first one (for example scheduled backup) arrives
+
+Rejected:
+- `false` — Logger closed by `OnUnhandledException` drops later entries: on .NET Core that event always terminates the process, so nothing meaningful is logged afterwards.
+- `false` — `e.ExceptionObject as Exception` drops non-CLS throws: the runtime wraps them in `RuntimeWrappedException` by default.
+- `false` — `MainForm` resolved as a Transient from the root provider: the current code passes `IServiceScopeFactory` and creates a scope per operation.
+- `false` — `Microsoft.Extensions.DependencyInjection` in `Directory.Packages.props` is unused: `LuuKyCanTin.IntegrationTests.csproj` references it.
+- `false` — `[LocalDbFact]` CI override and the CLAUDE.md mismatch: the attribute has since been replaced by `[SqlServerFact]`.
+- `low` — Repeated UI-thread exceptions stack modal dialogs: needs a recurring paint or timer fault; the fix adds re-entrancy state.
+- `low` — Race in `OnUnobservedTaskException` (form closes before `BeginInvoke`), and no message when no form is open: rare on the finalizer thread; the fix adds guards.
+- `low` — Empty `App:TieuDe` gives a blank title: admin-owned config; the fix adds a guard.
+- `low` — `PackageReference Update=`, and duplicate csproj names crashing the static initializer: not used in this repo.
+- `low` — Shallow LocalDB detection: superseded by the `[SqlServerFact]` rework.
+- `low` — Shell window `ClientSize`/`CenterScreen` together with `Maximized`, and CI hardening (permissions, cache, concurrency): no user-visible harm.
 
 ## Dev Notes
 
@@ -195,3 +224,4 @@ Claude Opus 5.5 (claude-opus-5-5[1m]). Implemented directly, without the `bmad-b
 |---|---|
 | 2026-10-01 | Story file created from Epic 1 |
 | 2026-10-01 | Implemented T1–T9; status → review (AC 5 pending first CI run) |
+| 2026-10-02 | Code review: 5 patches applied (Backup/ gitignore, bootstrap logger, title test, FrameworkReference test, naming-convention renames on user request); 3 decisions resolved; 3 deferred; status → done |

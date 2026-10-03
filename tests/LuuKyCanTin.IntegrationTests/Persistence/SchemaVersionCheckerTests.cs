@@ -1,4 +1,4 @@
-using LuuKyCanTin.Application.HeThong;
+using LuuKyCanTin.Application.Administration;
 using LuuKyCanTin.Infrastructure.Persistence;
 using LuuKyCanTin.IntegrationTests.Common;
 using Microsoft.EntityFrameworkCore;
@@ -8,13 +8,13 @@ using Shouldly;
 namespace LuuKyCanTin.IntegrationTests.Persistence;
 
 [Collection(SqlServerCollection.Name)]
-public class SchemaVersionCheckerTests(SqlServerFixture fixture)
+public sealed class SchemaVersionCheckerTests(SqlServerFixture fixture)
 {
     private static Task<SchemaVersionCheckResult> CheckAsync(AppDbContext db) =>
         new SchemaVersionChecker(db, NullLogger<SchemaVersionChecker>.Instance).CheckAsync();
 
     [SqlServerFact]
-    public async Task FullyMigratedDatabase_Matches()
+    public async Task Check_FullyMigratedDatabase_Matches()
     {
         await using var db = fixture.Database.CreateDbContext();
 
@@ -25,7 +25,7 @@ public class SchemaVersionCheckerTests(SqlServerFixture fixture)
     }
 
     [SqlServerFact]
-    public async Task DatabaseThatDoesNotExist_IsMismatchWithNoActualVersion()
+    public async Task Check_DatabaseDoesNotExist_IsMismatchWithNoActualVersion()
     {
         await using var database = new TestDatabase();
         await using var db = database.CreateDbContext();
@@ -37,7 +37,7 @@ public class SchemaVersionCheckerTests(SqlServerFixture fixture)
     }
 
     [SqlServerFact]
-    public async Task EmptyDatabaseWithoutHistoryTable_IsMismatchWithNoActualVersion()
+    public async Task Check_EmptyDatabaseWithoutHistoryTable_IsMismatchWithNoActualVersion()
     {
         await using var database = new TestDatabase();
         await database.CreateEmptyAsync();
@@ -50,7 +50,7 @@ public class SchemaVersionCheckerTests(SqlServerFixture fixture)
     }
 
     [SqlServerFact]
-    public async Task DatabaseMigratedByANewerBuild_IsMismatch()
+    public async Task Check_DatabaseMigratedByNewerBuild_IsMismatch()
     {
         await using var database = new TestDatabase();
         await database.MigrateAsync();
@@ -62,5 +62,21 @@ public class SchemaVersionCheckerTests(SqlServerFixture fixture)
 
         result.Status.ShouldBe(SchemaVersionStatus.Mismatch);
         result.Actual.ShouldBe("99991231000000_TuPhienBanMoiHon");
+    }
+
+    [SqlServerFact]
+    public async Task Check_MiddleMigrationMissingFromHistory_IsMismatch()
+    {
+        // What a branch merge leaves behind: a migration that sorts before the last applied one was never applied.
+        await using var database = new TestDatabase();
+        await database.MigrateAsync();
+        await using var db = database.CreateDbContext();
+        var middle = db.Database.GetMigrations().Skip(1).First();
+        await database.ExecuteAsync($"DELETE FROM __EFMigrationsHistory WHERE MigrationId = N'{middle}'");
+
+        var result = await CheckAsync(db);
+
+        result.Actual.ShouldBe(result.Expected);
+        result.Status.ShouldBe(SchemaVersionStatus.Mismatch);
     }
 }

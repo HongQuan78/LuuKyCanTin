@@ -1,5 +1,5 @@
 using LuuKyCanTin.Application.Abstractions;
-using LuuKyCanTin.Application.BaoCao;
+using LuuKyCanTin.Application.Reporting;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace LuuKyCanTin.Infrastructure.Reports;

@@ -19,6 +19,8 @@ LuuKyCanTin.WinForms.exe --migrate --seed-demo --environment Development
 
 `--seed-demo` chỉ chạy trong môi trường Development, hoặc khi xác nhận bằng `--force=<tên cơ sở dữ liệu>`.
 
+Mỗi lần triển khai bản mới có migration, quản trị viên chạy `--migrate` một lần trước khi các máy trạm mở ứng dụng: máy trạm từ chối chạy với cơ sở dữ liệu cũ hơn bản build. Migration `RenameIdentifiersToEnglish` đổi tên bảng và cột sang tiếng Anh ngay trên dữ liệu đang có, không mất dòng nào. Nếu có `appsettings.json` đã sửa tay, đổi khoá `"DangNhap": { "ThoiGianKhoaPhut" }` thành `"SignIn": { "LockoutMinutes" }` và `"App": { "TieuDe" }` thành `"App": { "Title" }`.
+
 ## Tài khoản quản trị ban đầu
 
 | Tên đăng nhập | Mật khẩu ban đầu |
@@ -26,13 +28,13 @@ LuuKyCanTin.WinForms.exe --migrate --seed-demo --environment Development
 | `admin` | `LuuKy@2026` |
 
 - Mật khẩu được băm bằng PBKDF2-SHA256 (600.000 vòng, salt ngẫu nhiên 16 byte); không lưu dạng rõ.
-- Ở lần đăng nhập đầu tiên, hệ thống **bắt buộc đổi mật khẩu** (`PhaiDoiMatKhau = 1` trong migration `AddDangNhapBaoMat`). Sau khi đổi, mật khẩu mới phải có ít nhất 8 ký tự, gồm chữ in hoa, chữ thường và chữ số.
-- Hash khởi tạo nằm trong migration `AddWalkingSkeletonTables` (một chuỗi cố định, sinh một lần ngoại tuyến bằng `Pbkdf2MatKhauHasher` trong Infrastructure).
+- Ở lần đăng nhập đầu tiên, hệ thống **bắt buộc đổi mật khẩu** (`User.MustChangePassword = 1`, đặt trong migration `AddDangNhapBaoMat`). Sau khi đổi, mật khẩu mới phải có ít nhất 8 ký tự, gồm chữ in hoa, chữ thường và chữ số.
+- Hash khởi tạo nằm trong migration `AddWalkingSkeletonTables` (một chuỗi cố định, sinh một lần ngoại tuyến bằng `Pbkdf2PasswordHasher` trong Infrastructure).
 
 ## Đăng nhập, khoá tài khoản và phân quyền
 
 - Sai mật khẩu 5 lần liên tiếp thì tài khoản bị khoá. Thời gian khoá đọc từ `appsettings.json`:
-  `"DangNhap": { "ThoiGianKhoaPhut": 15 }`. Giá trị `0` nghĩa là chỉ quản trị viên mở khoá (Story 2.4).
+  `"SignIn": { "LockoutMinutes": 15 }`. Giá trị `0` nghĩa là chỉ quản trị viên mở khoá (Story 2.4).
   Vì các máy trạm dùng chung một cơ sở dữ liệu, **mọi máy phải cấu hình cùng một giá trị**.
 - `--seed-demo` tạo thêm một tài khoản cho mỗi vai trò chuẩn (mật khẩu chung `Demo@2026`, không buộc đổi):
 
@@ -45,9 +47,6 @@ LuuKyCanTin.WinForms.exe --migrate --seed-demo --environment Development
   | `ketoan` | Kế toán đơn vị |
 
 - Màn hình **Hệ thống › Vai trò** cho phép quản trị viên bật/tắt quyền của từng vai trò; thay đổi được ghi vào nhật ký kèm danh sách quyền trước/sau.
-- Màn hình **Hệ thống › Tài khoản** cho phép quản trị viên tạo tài khoản cho cán bộ, phân vai trò, ngừng/kích hoạt, mở khoá và đặt lại mật khẩu. Tài khoản mới nhận một mật khẩu tạm thời hiện một lần và **bắt buộc đổi ở lần đăng nhập đầu tiên**. Mỗi cán bộ chỉ có một tài khoản đang hoạt động; tài khoản cũ được giữ lại làm lịch sử.
-- Tài khoản `admin` dựng sẵn không gắn với cán bộ nào, nên chỉ dành cho tình huống khẩn cấp: nó không thể duyệt phiếu và không có `CanBoLapId` trên chứng từ. Đơn vị nên tạo một tài khoản quản trị riêng cho cán bộ phụ trách IT.
-- **Lưu ý khi nâng cấp:** từ migration `AddNguoiDungCanBo`, mọi tài khoản ngoài `admin` phải gắn với một cán bộ. Cơ sở dữ liệu cũ đã chạy `--seed-demo` (các tài khoản mẫu chưa gắn cán bộ) sẽ không qua được migration này; hãy tạo lại cơ sở dữ liệu phát triển rồi chạy lại `--migrate --seed-demo`.
 
 
 ## Điều kiện máy trạm

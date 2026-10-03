@@ -23,41 +23,41 @@ public sealed class TestDatabase : IAsyncDisposable
 
     public AppDbContext CreateDbContext() => new(Options);
 
-    public async Task MigrateAsync()
+    public async Task MigrateAsync(CancellationToken ct = default)
     {
         await using var db = CreateDbContext();
-        await db.Database.MigrateAsync();
+        await db.Database.MigrateAsync(ct);
     }
 
     /// <summary>Creates the database the way an admin would before the first migration: empty, server default collation.</summary>
-    public async Task CreateEmptyAsync()
+    public async Task CreateEmptyAsync(CancellationToken ct = default)
     {
         await using var connection = new SqlConnection(SqlServerFactAttribute.ConnectionString);
-        await connection.OpenAsync();
+        await connection.OpenAsync(ct);
         await using var command = new SqlCommand($"CREATE DATABASE [{Name}]", connection);
-        await command.ExecuteNonQueryAsync();
+        await command.ExecuteNonQueryAsync(ct);
     }
 
-    public async Task<object?> ScalarAsync(string sql)
+    public async Task<object?> GetScalarAsync(string sql, CancellationToken ct = default)
     {
-        await using var connection = await OpenUnpooledAsync();
+        await using var connection = await OpenUnpooledConnectionAsync(ct);
         await using var command = new SqlCommand(sql, connection);
-        return await command.ExecuteScalarAsync();
+        return await command.ExecuteScalarAsync(ct);
     }
 
-    public async Task ExecuteAsync(string sql)
+    public async Task ExecuteAsync(string sql, CancellationToken ct = default)
     {
-        await using var connection = await OpenUnpooledAsync();
+        await using var connection = await OpenUnpooledConnectionAsync(ct);
         await using var command = new SqlCommand(sql, connection);
-        await command.ExecuteNonQueryAsync();
+        await command.ExecuteNonQueryAsync(ct);
     }
 
     // A pooled connection stays open as a second session after the test is done with it, and that blocks
     // ALTER DATABASE COLLATE in a later migration ("could not be exclusively locked").
-    private async Task<SqlConnection> OpenUnpooledAsync()
+    private async Task<SqlConnection> OpenUnpooledConnectionAsync(CancellationToken ct)
     {
         var connection = new SqlConnection(new SqlConnectionStringBuilder(ConnectionString) { Pooling = false }.ConnectionString);
-        await connection.OpenAsync();
+        await connection.OpenAsync(ct);
         return connection;
     }
 

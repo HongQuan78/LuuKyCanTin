@@ -3,23 +3,23 @@ using Shouldly;
 
 namespace LuuKyCanTin.IntegrationTests.Common;
 
-public class DotEnvFileTests
+public sealed class DotEnvFileTests
 {
     [Fact]
-    public void Parse_ReadsKeyValuePairs_SkippingBlankLinesAndComments()
+    public void Parse_BlankLinesAndComments_ReturnsOnlyKeyValuePairs()
     {
         string[] lines =
         [
             "# Kết nối cơ sở dữ liệu",
             "",
             "  ConnectionStrings__LuuKyCanTin = Server=.\\SQLEXPRESS;Database=LuuKyCanTin  ",
-            "App__TieuDe=Lưu ký",
+            "App__Title=Lưu ký",
         ];
 
         DotEnvFile.Parse(lines).ShouldBe(
         [
             new("ConnectionStrings__LuuKyCanTin", @"Server=.\SQLEXPRESS;Database=LuuKyCanTin"),
-            new("App__TieuDe", "Lưu ký"),
+            new("App__Title", "Lưu ký"),
         ]);
     }
 
@@ -28,13 +28,13 @@ public class DotEnvFileTests
     [InlineData("KEY='a=b; c'", "a=b; c")]
     [InlineData("KEY=\"unbalanced", "\"unbalanced")]
     [InlineData("KEY=", "")]
-    public void Parse_StripsMatchingQuotesOnly(string line, string expected)
+    public void Parse_QuotedValue_StripsOnlyMatchingQuotes(string line, string expected)
     {
         DotEnvFile.Parse([line]).ShouldHaveSingleItem().Value.ShouldBe(expected);
     }
 
     [Fact]
-    public void Parse_KeepsBackslashesLiteral()
+    public void Parse_ValueWithBackslashes_KeepsThemLiteral()
     {
         // Unlike JSON, a SQL Server instance name needs no escaping.
         DotEnvFile.Parse([@"KEY=Server=.\SQLEXPRESS"]).ShouldHaveSingleItem().Value.ShouldBe(@"Server=.\SQLEXPRESS");
@@ -50,7 +50,7 @@ public class DotEnvFileTests
     }
 
     [Fact]
-    public void Load_SetsMissingVariables_ButNeverOverridesExistingOnes()
+    public void Load_VariableAlreadySet_SetsOnlyMissingOnes()
     {
         var unset = "LUUKY_TEST_" + Guid.NewGuid().ToString("N");
         var alreadySet = "LUUKY_TEST_" + Guid.NewGuid().ToString("N");

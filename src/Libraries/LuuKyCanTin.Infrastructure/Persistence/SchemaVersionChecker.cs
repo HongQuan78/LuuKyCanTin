@@ -1,5 +1,5 @@
 using System.Data.Common;
-using LuuKyCanTin.Application.HeThong;
+using LuuKyCanTin.Application.Administration;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -7,22 +7,23 @@ namespace LuuKyCanTin.Infrastructure.Persistence;
 
 internal sealed class SchemaVersionChecker(AppDbContext db, ILogger<SchemaVersionChecker> logger) : ISchemaVersionChecker
 {
-    public async Task<SchemaVersionCheckResult> CheckAsync(CancellationToken cancellationToken = default)
+    public async Task<SchemaVersionCheckResult> CheckAsync(CancellationToken ct = default)
     {
-        var expected = db.Database.GetMigrations().Last();
+        var buildMigrations = db.Database.GetMigrations().ToList();
 
-        IEnumerable<string> applied;
+        IReadOnlyList<string> appliedMigrations;
         try
         {
             // A missing database or history table yields an empty list (a mismatch), not an exception.
-            applied = await db.Database.GetAppliedMigrationsAsync(cancellationToken);
+            appliedMigrations = (await db.Database.GetAppliedMigrationsAsync(ct)).ToList();
         }
-        catch (DbException ex)
+        // A malformed connection string (bad keyword or value) is thrown by SqlClient as ArgumentException.
+        catch (Exception ex) when (ex is DbException or ArgumentException)
         {
             logger.LogError(ex, "Cannot connect to the database to check its schema version");
-            return SchemaVersionCheckResult.ConnectionFailed(expected);
+            return SchemaVersionCheckResult.CreateConnectionFailed(buildMigrations[^1]);
         }
 
-        return SchemaVersionCheckResult.Compare(expected, applied.LastOrDefault());
+        return SchemaVersionCheckResult.Create(buildMigrations, appliedMigrations);
     }
 }

@@ -1,6 +1,6 @@
 using LuuKyCanTin.Application.Common;
-using LuuKyCanTin.Domain.DanhMuc;
-using LuuKyCanTin.Domain.HeThong;
+using LuuKyCanTin.Domain.Administration;
+using LuuKyCanTin.Domain.MasterData;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 
@@ -13,27 +13,22 @@ namespace LuuKyCanTin.Application.Abstractions;
 /// </summary>
 public interface IAppDbContext
 {
-    DbSet<CanBo> CanBo { get; }
+    DbSet<Officer> Officer { get; }
 
-    DbSet<NguoiDung> NguoiDung { get; }
+    DbSet<Role> Role { get; }
 
-    DbSet<VaiTro> VaiTro { get; }
+    DbSet<Permission> Permission { get; }
 
-    DbSet<Quyen> Quyen { get; }
+    DbSet<RolePermission> RolePermission { get; }
 
-    DbSet<VaiTroQuyen> VaiTroQuyen { get; }
-
-    DbSet<NguoiDungVaiTro> NguoiDungVaiTro { get; }
+    DbSet<UserRole> UserRole { get; }
 
     EntityEntry<TEntity> Entry<TEntity>(TEntity entity)
         where TEntity : class;
 
-    /// <exception cref="XungDotDuLieuException">Someone else changed the row after it was loaded.</exception>
-    /// <exception cref="TrungGiaTriDuyNhatException">A unique index rejected the save.</exception>
+    /// <exception cref="ConcurrencyConflictException">Someone else changed the row after it was loaded.</exception>
+    /// <exception cref="UniqueConstraintException">A unique index rejected the save.</exception>
     Task<int> SaveChangesAsync(CancellationToken ct = default);
 
     Task<IAppTransaction> BeginTransactionAsync(CancellationToken ct = default);
-
-    /// <summary>Starts a transaction with an explicit isolation level, for the last-administrator guard.</summary>
-    Task<IAppTransaction> BeginTransactionAsync(MucDoCoLapGiaoDich mucDoCoLap, CancellationToken ct = default);
 }

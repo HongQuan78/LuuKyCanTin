@@ -1,27 +1,15 @@
+using LuuKyCanTin.WinForms.Common;
+
 namespace LuuKyCanTin.WinForms.Shell;
 
 partial class MainForm
 {
-    /// <summary>
-    ///  Required designer variable.
-    /// </summary>
     private System.ComponentModel.IContainer components = null!;
-    private MenuStrip menuStrip = null!;
-    private ToolStripMenuItem mnuDanhMuc = null!;
-    private ToolStripMenuItem mnuCanBo = null!;
-    private ToolStripMenuItem mnuThemDoiTuong = null!;
-    private ToolStripMenuItem mnuLuuKy = null!;
-    private ToolStripMenuItem mnuLapBienNhanThu = null!;
-    private ToolStripMenuItem mnuHeThong = null!;
-    private ToolStripMenuItem mnuTaiKhoan = null!;
-    private ToolStripMenuItem mnuVaiTro = null!;
-    private ToolStripMenuItem mnuDoiMatKhau = null!;
-    private ToolStripMenuItem mnuDangXuat = null!;
+    private Sidebar sidebar = null!;
+    private HeaderBar headerBar = null!;
+    private StatusBar statusBar = null!;
+    private Panel pnlContent = null!;
 
-    /// <summary>
-    ///  Clean up any resources being used.
-    /// </summary>
-    /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
     protected override void Dispose(bool disposing)
     {
         if (disposing && (components != null))
@@ -31,74 +19,43 @@ partial class MainForm
         base.Dispose(disposing);
     }
 
-    #region Windows Form Designer generated code
-
-    /// <summary>
-    ///  Required method for Designer support - do not modify
-    ///  the contents of this method with the code editor.
-    /// </summary>
     private void InitializeComponent()
     {
         components = new System.ComponentModel.Container();
-        menuStrip = new MenuStrip();
-        mnuDanhMuc = new ToolStripMenuItem();
-        mnuCanBo = new ToolStripMenuItem();
-        mnuThemDoiTuong = new ToolStripMenuItem();
-        mnuLuuKy = new ToolStripMenuItem();
-        mnuLapBienNhanThu = new ToolStripMenuItem();
-        mnuHeThong = new ToolStripMenuItem();
-        mnuTaiKhoan = new ToolStripMenuItem();
-        mnuVaiTro = new ToolStripMenuItem();
-        mnuDoiMatKhau = new ToolStripMenuItem();
-        mnuDangXuat = new ToolStripMenuItem();
-        menuStrip.SuspendLayout();
+        sidebar = new Sidebar();
+        headerBar = new HeaderBar();
+        statusBar = new StatusBar();
+        pnlContent = new Panel();
         SuspendLayout();
 
-        mnuCanBo.Name = "mnuCanBo";
-        mnuCanBo.Text = "Cán bộ…";
-        mnuThemDoiTuong.Name = "mnuThemDoiTuong";
-        mnuThemDoiTuong.Text = "Thêm đối tượng…";
-        mnuThemDoiTuong.Click += OnThemDoiTuong;
-        mnuDanhMuc.DropDownItems.AddRange([mnuCanBo, mnuThemDoiTuong]);
-        mnuDanhMuc.Name = "mnuDanhMuc";
-        mnuDanhMuc.Text = "Danh mục";
+        sidebar.Name = "sidebar";
+        sidebar.TabIndex = 0;
 
-        mnuLapBienNhanThu.Name = "mnuLapBienNhanThu";
-        mnuLapBienNhanThu.Text = "Lập biên nhận thu…";
-        mnuLapBienNhanThu.Click += OnLapBienNhanThu;
-        mnuLuuKy.DropDownItems.AddRange([mnuLapBienNhanThu]);
-        mnuLuuKy.Name = "mnuLuuKy";
-        mnuLuuKy.Text = "Lưu ký";
+        headerBar.Name = "headerBar";
+        headerBar.TabStop = false;
 
-        mnuTaiKhoan.Name = "mnuTaiKhoan";
-        mnuTaiKhoan.Text = "Tài khoản…";
-        mnuVaiTro.Name = "mnuVaiTro";
-        mnuVaiTro.Text = "Vai trò…";
-        mnuDoiMatKhau.Name = "mnuDoiMatKhau";
-        mnuDoiMatKhau.Text = "Đổi mật khẩu…";
-        mnuDangXuat.Name = "mnuDangXuat";
-        mnuDangXuat.Text = "Đăng xuất";
-        mnuHeThong.DropDownItems.AddRange([mnuTaiKhoan, mnuVaiTro, mnuDoiMatKhau, mnuDangXuat]);
-        mnuHeThong.Name = "mnuHeThong";
-        mnuHeThong.Text = "Hệ thống";
+        statusBar.Name = "statusBar";
+        statusBar.TabStop = false;
 
-        menuStrip.Items.AddRange([mnuDanhMuc, mnuLuuKy, mnuHeThong]);
-        menuStrip.Location = new Point(0, 0);
-        menuStrip.Name = "menuStrip";
-        menuStrip.Size = new Size(1024, 28);
+        pnlContent.BackColor = AppTheme.Surface;
+        pnlContent.Dock = DockStyle.Fill;
+        pnlContent.Name = "pnlContent";
+        pnlContent.Padding = new Padding(AppTheme.PagePadding);
+        pnlContent.TabIndex = 1;
 
+        // Dock order is reverse add order: the sidebar takes the full height, then header and status bar share the rest.
         AutoScaleMode = AutoScaleMode.Font;
-        ClientSize = new Size(1024, 640);
-        Controls.Add(menuStrip);
-        MainMenuStrip = menuStrip;
+        BackColor = AppTheme.Surface;
+        ClientSize = new Size(1366, 737);
+        Controls.Add(pnlContent);
+        Controls.Add(headerBar);
+        Controls.Add(statusBar);
+        Controls.Add(sidebar);
+        Font = AppTheme.BodyFont;
+        Name = "MainForm";
         StartPosition = FormStartPosition.CenterScreen;
         Text = "Lưu ký – Căn tin";
         WindowState = FormWindowState.Maximized;
-        menuStrip.ResumeLayout(false);
-        menuStrip.PerformLayout();
         ResumeLayout(false);
-        PerformLayout();
     }
-
-    #endregion
 }

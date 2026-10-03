@@ -1,4 +1,5 @@
-using LuuKyCanTin.Application.HeThong;
+using LuuKyCanTin.Application.Abstractions;
+using LuuKyCanTin.Application.Administration;
 using LuuKyCanTin.WinForms.Common;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -10,44 +11,88 @@ public sealed class MainPresenter
     private readonly IMainView _view;
     private readonly AppOptions _options;
     private readonly IServiceScopeFactory _scopes;
-    private bool _dangXuat;
+    private readonly IClock _clock;
+    private readonly WorkstationInfo _workstation;
+    private readonly NavigationModel _navigation;
+    private string _displayName = "";
+    private bool _isSignedOut;
 
-    public MainPresenter(IMainView view, IOptions<AppOptions> options, IDieuHuong dieuHuong, IServiceScopeFactory scopes)
+    public MainPresenter(
+        IMainView view,
+        IOptions<AppOptions> options,
+        INavigator navigator,
+        IServiceScopeFactory scopes,
+        IClock clock,
+        WorkstationInfo workstation)
     {
         _view = view;
         _options = options.Value;
         _scopes = scopes;
+        _clock = clock;
+        _workstation = workstation;
+        _navigation = ShellNavigation.Create(navigator, ShowHome, OnSignOut);
         _view.Loaded += OnLoaded;
-        _view.DanhMucCanBoClicked += (_, _) => dieuHuong.MoDanhMucCanBo();
-        _view.TaiKhoanClicked += (_, _) => dieuHuong.MoTaiKhoan();
-        _view.VaiTroClicked += (_, _) => dieuHuong.MoVaiTro();
-        _view.DoiMatKhauClicked += (_, _) => dieuHuong.MoDoiMatKhau();
-        _view.DangXuatClicked += OnDangXuatClicked;
+        _view.NavigationRequested += OnNavigationRequested;
     }
 
     /// <summary>True after a successful sign-out, so the application context returns to the login form.</summary>
-    public bool DaDangXuat => _dangXuat;
+    public bool IsSignedOut => _isSignedOut;
 
-    private void OnLoaded(object? sender, EventArgs e)
+    private async void OnLoaded(object? sender, EventArgs e)
     {
-        _view.TieuDe = _options.TieuDe;
+        _view.Title = _options.Title;
+        _view.ShowNavigation(_navigation);
+        _view.ShowWorkstation(_workstation);
+
+        try
+        {
+            using var scope = _scopes.CreateScope();
+            var user = await scope.ServiceProvider.GetRequiredService<ISignedInUserQuery>().GetAsync();
+            if (user is not null)
+            {
+                _displayName = user.DisplayName;
+                _view.ShowUser(UserInitials.Create(user.DisplayName), user.DisplayName, user.RoleNames);
+                _view.FacilityName = user.FacilityName;
+            }
+        }
+        catch (Exception ex)
+        {
+            _view.ShowError($"Không tải được thông tin người dùng: {ex.Message}");
+        }
+
+        ShowHome();
     }
 
-    private async void OnDangXuatClicked(object? sender, EventArgs e)
+    private void OnNavigationRequested(object? sender, NavItem item)
     {
-        if (_dangXuat)
+        try
+        {
+            item.Open();
+        }
+        catch (Exception ex)
+        {
+            _view.ShowError($"Không mở được màn hình: {ex.Message}");
+        }
+    }
+
+    private void ShowHome() =>
+        _view.ShowHome(HomeGreeting.CreateGreeting(_clock.Now, _displayName), HomeGreeting.CreateDateLine(_clock.Today));
+
+    private async void OnSignOut()
+    {
+        if (_isSignedOut)
             return;
 
         try
         {
             using var scope = _scopes.CreateScope();
-            await scope.ServiceProvider.GetRequiredService<DangNhapService>().DangXuatAsync();
-            _dangXuat = true;
-            _view.Dong();
+            await scope.ServiceProvider.GetRequiredService<SignInService>().SignOutAsync();
+            _isSignedOut = true;
+            _view.CloseShell();
         }
         catch (Exception ex)
         {
-            _view.HienLoi($"Không đăng xuất được: {ex.Message}");
+            _view.ShowError($"Không đăng xuất được: {ex.Message}");
         }
     }
 }

@@ -11,19 +11,19 @@ namespace LuuKyCanTin.IntegrationTests.Infrastructure;
 public static class LedgerReconciliation
 {
     private const string Sql = """
-        SELECT d.MaSo, d.SoDuLuuKy
-        FROM DoiTuong d
-        WHERE d.SoDuLuuKy <> ISNULL((
-            SELECT SUM(CASE WHEN c.LoaiPhieu = 1 THEN c.SoTien ELSE -c.SoTien END)
-            FROM ChungTuLuuKy c
-            WHERE c.DoiTuongId = d.Id AND c.TrangThai = 2
+        SELECT d.InmateCode, d.CustodyBalance
+        FROM Inmate d
+        WHERE d.CustodyBalance <> ISNULL((
+            SELECT SUM(CASE WHEN c.VoucherType = 1 THEN c.Amount ELSE -c.Amount END)
+            FROM CustodyVoucher c
+            WHERE c.InmateId = d.Id AND c.Status = 2
         ), 0)
         """;
 
     public static async Task AssertBalancedAsync(TestDatabase database)
     {
-        var lech = await FindUnbalancedAsync(database);
-        lech.ShouldBeEmpty("Số dư lưu ký không khớp với tổng chứng từ đã ghi sổ: " + string.Join("; ", lech));
+        var unbalanced = await FindUnbalancedAsync(database);
+        unbalanced.ShouldBeEmpty("Số dư lưu ký không khớp với tổng chứng từ đã ghi sổ: " + string.Join("; ", unbalanced));
     }
 
     public static async Task<IReadOnlyList<string>> FindUnbalancedAsync(TestDatabase database)
@@ -33,9 +33,9 @@ public static class LedgerReconciliation
         await using var command = new SqlCommand(Sql, connection);
         await using var reader = await command.ExecuteReaderAsync();
 
-        var ketQua = new List<string>();
+        var result = new List<string>();
         while (await reader.ReadAsync())
-            ketQua.Add($"{reader.GetString(0)}: số dư {reader.GetDecimal(1)}");
-        return ketQua;
+            result.Add($"{reader.GetString(0)}: số dư {reader.GetDecimal(1)}");
+        return result;
     }
 }

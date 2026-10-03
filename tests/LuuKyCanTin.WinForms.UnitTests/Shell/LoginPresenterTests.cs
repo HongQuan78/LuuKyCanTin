@@ -1,6 +1,6 @@
 using LuuKyCanTin.Application.Abstractions;
-using LuuKyCanTin.Application.HeThong;
-using LuuKyCanTin.Domain.HeThong;
+using LuuKyCanTin.Application.Administration;
+using LuuKyCanTin.Domain.Administration;
 using LuuKyCanTin.WinForms.Shell;
 using LuuKyCanTin.WinForms.UnitTests.TestUtilities;
 using NSubstitute;
@@ -10,87 +10,116 @@ namespace LuuKyCanTin.WinForms.UnitTests.Shell;
 
 public class LoginPresenterTests
 {
-    private readonly INguoiDungStore _store = Substitute.For<INguoiDungStore>();
-    private readonly IMatKhauHasher _hasher = Substitute.For<IMatKhauHasher>();
-    private readonly ICurrentUserSession _phien = Substitute.For<ICurrentUserSession>();
-    private readonly IGhiNhatKy _ghiNhatKy = Substitute.For<IGhiNhatKy>();
+    private readonly IUserStore _store = Substitute.For<IUserStore>();
+    private readonly IPasswordHasher _hasher = Substitute.For<IPasswordHasher>();
+    private readonly ICurrentUserSession _session = Substitute.For<ICurrentUserSession>();
+    private readonly IAuditLogWriter _auditLog = Substitute.For<IAuditLogWriter>();
     private readonly ILoginView _view = Substitute.For<ILoginView>();
-    private NguoiDung? _nguoiDung;
+    private User? _user;
 
-    private LoginPresenter TaoPresenter()
+    private LoginPresenter CreatePresenter()
     {
         var clock = new FakeClock(new DateTime(2026, 10, 2, 9, 0, 0));
-        var ghiNhanSai = new GhiNhanDangNhapSaiService(_store, clock, new DangNhapOptions(), _ghiNhatKy);
-        var service = new DangNhapService(_store, _hasher, _phien, _ghiNhatKy, clock, ghiNhanSai);
-        return new LoginPresenter(_view, ScopeFactoryGia.Tao(service));
+        var failedSignIns = new FailedSignInService(_store, clock, new SignInOptions(), _auditLog);
+        var service = new SignInService(_store, _hasher, _session, _auditLog, clock, failedSignIns);
+        return new LoginPresenter(_view, FakeScopeFactory.Create(service));
     }
 
-    private void SeedTaiKhoan(bool phaiDoiMatKhau = false)
+    private void SeedAccount(bool mustChangePassword = false)
     {
-        _nguoiDung = new NguoiDung
+        _user = new User
         {
             Id = 1,
-            TenDangNhap = "admin",
-            MatKhauHash = "hash",
-            DangHoatDong = true,
-            PhaiDoiMatKhau = phaiDoiMatKhau,
+            UserName = "admin",
+            PasswordHash = "hash",
+            IsActive = true,
+            MustChangePassword = mustChangePassword,
         };
-        _store.TimTheoDangNhapAsync("admin", Arg.Any<CancellationToken>()).Returns(_nguoiDung);
-        _store.LuuAsync(_nguoiDung, Arg.Any<CancellationToken>()).Returns(Task.CompletedTask);
-        _view.TenDangNhap.Returns("admin");
-        _view.MatKhau.Returns("LuuKy@2026");
+        _store.FindByUserNameAsync("admin", Arg.Any<CancellationToken>()).Returns(_user);
+        _store.SaveAsync(_user, Arg.Any<CancellationToken>()).Returns(Task.CompletedTask);
+        _view.UserName.Returns("admin");
+        _view.Password.Returns("LuuKy@2026");
     }
 
     [Fact]
     public async Task Success_ClosesTheViewAsOk()
     {
-        SeedTaiKhoan();
+        SeedAccount();
         _hasher.Verify("LuuKy@2026", "hash").Returns(true);
 
-        var presenter = TaoPresenter();
-        await presenter.DangNhapAsync();
+        var presenter = CreatePresenter();
+        await presenter.SignInAsync();
 
-        presenter.PhaiDoiMatKhau.ShouldBeFalse();
-        _view.Received(1).DongVoiKetQua(true);
-        _view.DidNotReceive().HienLoi(Arg.Any<string>());
+        presenter.MustChangePassword.ShouldBeFalse();
+        _view.Received(1).CloseWithResult(true);
+        _view.DidNotReceive().ShowError(Arg.Any<string>());
     }
 
     [Fact]
     public async Task ForcedChange_ClosesTheViewAsOkAndFlagsTheChange()
     {
-        SeedTaiKhoan(phaiDoiMatKhau: true);
+        SeedAccount(mustChangePassword: true);
         _hasher.Verify("LuuKy@2026", "hash").Returns(true);
 
-        var presenter = TaoPresenter();
-        await presenter.DangNhapAsync();
+        var presenter = CreatePresenter();
+        await presenter.SignInAsync();
 
-        presenter.PhaiDoiMatKhau.ShouldBeTrue();
-        _view.Received(1).DongVoiKetQua(true);
+        presenter.MustChangePassword.ShouldBeTrue();
+        _view.Received(1).CloseWithResult(true);
     }
 
     [Fact]
     public async Task Failure_ShowsTheErrorAndKeepsTheFormOpen()
     {
-        _store.TimTheoDangNhapAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns((NguoiDung?)null);
-        _view.TenDangNhap.Returns("admin");
-        _view.MatKhau.Returns("sai");
+        _store.FindByUserNameAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns((User?)null);
+        _view.UserName.Returns("admin");
+        _view.Password.Returns("sai");
 
-        await TaoPresenter().DangNhapAsync();
+        await CreatePresenter().SignInAsync();
 
-        _view.Received(1).HienLoi(DangNhapService.SaiThongTin);
-        _view.DidNotReceive().DongVoiKetQua(Arg.Any<bool>());
+        _view.Received(1).ShowError(SignInService.InvalidCredentialsMessage);
+        _view.DidNotReceive().CloseWithResult(Arg.Any<bool>());
+    }
+
+    [Fact]
+    public async Task Failure_IsBusyWhileSigningInAndIdleAfterwards()
+    {
+        _store.FindByUserNameAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns((User?)null);
+        _view.UserName.Returns("admin");
+        _view.Password.Returns("sai");
+
+        await CreatePresenter().SignInAsync();
+
+        Received.InOrder(() =>
+        {
+            _view.IsBusy = true;
+            _view.ShowError(SignInService.InvalidCredentialsMessage);
+            _view.IsBusy = false;
+        });
+    }
+
+    [Fact]
+    public async Task Success_StaysBusyWhileTheFormCloses()
+    {
+        SeedAccount();
+        _hasher.Verify("LuuKy@2026", "hash").Returns(true);
+
+        await CreatePresenter().SignInAsync();
+
+        _view.Received(1).IsBusy = true;
+        _view.DidNotReceive().IsBusy = false;
     }
 
     [Fact]
     public async Task ALockedAccount_ShowsTheLockedMessageAndClearsThePasswordBox()
     {
-        SeedTaiKhoan();
-        _nguoiDung!.KhoaDen = new DateTime(2026, 10, 2, 9, 5, 0);
+        SeedAccount();
+        _user!.LockedUntil = new DateTime(2026, 10, 2, 9, 5, 0);
 
-        await TaoPresenter().DangNhapAsync();
+        await CreatePresenter().SignInAsync();
 
-        _view.Received(1).HienLoi(DangNhapService.LoiTaiKhoanBiKhoa);
-        _view.Received(1).XoaMatKhau();
+        _view.Received(1).ShowError(SignInService.AccountLockedMessage);
+        _view.Received(1).ClearPassword();
         _hasher.DidNotReceive().Verify(Arg.Any<string>(), Arg.Any<string>());
     }
 }

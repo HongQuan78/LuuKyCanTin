@@ -7,6 +7,6 @@ persistent_facts = [
 ]
 
 principles = [
-  "New code follows docs/conventions/naming-conventions.md; existing names are renamed only by a refactor story.",
+  "New code follows docs/conventions/naming-conventions.md: English identifiers from its glossary, Vietnamese only for user-visible text; Vietnamese identifiers in a story's text are translated, not copied. Existing names are renamed only by refactor story R.1.",
   "Never develop a story whose dependsOn stories are not yet 'review' or 'done'; report and stop instead.",
 ]

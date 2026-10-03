@@ -1,37 +1,38 @@
 using LuuKyCanTin.Application.Abstractions;
-using LuuKyCanTin.Application.HeThong;
-using LuuKyCanTin.Domain.DanhMuc;
-using LuuKyCanTin.Domain.HeThong;
+using LuuKyCanTin.Application.Administration;
+using LuuKyCanTin.Domain.Administration;
+using LuuKyCanTin.Domain.MasterData;
 using Microsoft.EntityFrameworkCore;
 
 namespace LuuKyCanTin.Infrastructure.Persistence.Seed.Demo;
 
-internal sealed class DemoDataSeeder(AppDbContext db, IMatKhauHasher matKhauHasher) : IDemoDataSeeder
+internal sealed class DemoDataSeeder(AppDbContext db, IPasswordHasher passwordHasher) : IDemoDataSeeder
 {
     /// <summary>Password of every demo account. Development only; the admin still changes its own at first sign-in.</summary>
-    public const string MatKhauDemo = "Demo@2026";
+    public const string DemoPassword = "Demo@2026";
 
-    private sealed record TaiKhoanDemo(
-        string TenDangNhap, string MaCanBo, string HoTen, string ChucVu, string MaVaiTro, bool LaQuanGiao);
+    private sealed record DemoAccount(
+        string UserName, string OfficerCode, string FullName, string Position, string RoleCodes, bool IsSupervisingOfficer);
 
     // One account per standard role, so a tester can sign in and see each role's permissions.
-    private static readonly IReadOnlyList<TaiKhoanDemo> TaiKhoanMacDinh =
+    private static readonly IReadOnlyList<DemoAccount> DemoAccounts =
     [
-        new("luuky", "CB-LK", "Nguyễn Thị Lưu Ký", "Cán bộ theo dõi tiền lưu ký", MaVaiTro.LuuKy, false),
-        new("cantin", "CB-CT", "Trần Văn Căn Tin", "Cán bộ căn tin", MaVaiTro.CanTin, false),
-        new("quangiao", "CB-QG", "Lê Văn Quản Giáo", "Cán bộ quản giáo", MaVaiTro.QuanGiao, true),
-        new("lanhdao", "CB-LD", "Phạm Văn Lãnh Đạo", "Chỉ huy phụ trách", MaVaiTro.LanhDao, false),
-        new("ketoan", "CB-KT", "Hoàng Thị Kế Toán", "Kế toán đơn vị", MaVaiTro.KeToan, false),
+        new("luuky", "CB-LK", "Nguyễn Thị Lưu Ký", "Cán bộ theo dõi tiền lưu ký", RoleCodes.CustodyOfficer, false),
+        new("cantin", "CB-CT", "Trần Văn Căn Tin", "Cán bộ căn tin", RoleCodes.CanteenOfficer, false),
+        new("quangiao", "CB-QG", "Lê Văn Quản Giáo", "Cán bộ quản giáo", RoleCodes.SupervisingOfficer, true),
+        new("lanhdao", "CB-LD", "Phạm Văn Lãnh Đạo", "Chỉ huy phụ trách", RoleCodes.Leader, false),
+        new("ketoan", "CB-KT", "Hoàng Thị Kế Toán", "Kế toán đơn vị", RoleCodes.Accountant, false),
     ];
 
-    public async Task<DemoSeedDecision> SeedAsync(bool isDevelopment, string? confirmedDatabaseName, CancellationToken cancellationToken = default)
+    public async Task<DemoSeedDecision> SeedAsync(
+        bool isDevelopment, string? confirmedDatabaseName, CancellationToken ct = default)
     {
         var decision = DemoSeedPolicy.Decide(isDevelopment, confirmedDatabaseName, db.Database.GetDbConnection().Database);
         if (decision != DemoSeedDecision.Allowed)
             return decision;
 
-        await FillUnitInfoAsync(cancellationToken);
-        await FillTaiKhoanDemoAsync(cancellationToken);
+        await FillUnitInfoAsync(ct);
+        await FillDemoAccountsAsync(ct);
         return decision;
     }
 
@@ -39,51 +40,48 @@ internal sealed class DemoDataSeeder(AppDbContext db, IMatKhauHasher matKhauHash
     // Any field the admin already filled means the row is in use and must not be overwritten.
     private async Task FillUnitInfoAsync(CancellationToken cancellationToken)
     {
-        var donVi = await db.ThongTinDonVi.FirstOrDefaultAsync(u => u.Id == 1, cancellationToken);
-        if (donVi is null
-            || !string.IsNullOrWhiteSpace(donVi.TenCoQuanChuQuan)
-            || !string.IsNullOrWhiteSpace(donVi.TenDonVi)
-            || !string.IsNullOrWhiteSpace(donVi.DiaChi))
+        var facility = await db.FacilityInfo.FirstOrDefaultAsync(u => u.Id == 1, cancellationToken);
+        if (facility is null
+            || !string.IsNullOrWhiteSpace(facility.ParentAgencyName)
+            || !string.IsNullOrWhiteSpace(facility.FacilityName)
+            || !string.IsNullOrWhiteSpace(facility.Address))
             return;
 
-        donVi.TenCoQuanChuQuan = "CÔNG AN TỈNH …";
-        donVi.TenDonVi = "TRẠI TẠM GIAM … (dữ liệu mẫu)";
-        donVi.DiaChi = "Xã …, huyện …, tỉnh …";
+        facility.ParentAgencyName = "CÔNG AN TỈNH …";
+        facility.FacilityName = "TRẠI TẠM GIAM … (dữ liệu mẫu)";
+        facility.Address = "Xã …, huyện …, tỉnh …";
         await db.SaveChangesAsync(cancellationToken);
     }
 
     // Idempotent: an account or staff code that exists is left alone, so re-running --seed-demo changes nothing.
-    private async Task FillTaiKhoanDemoAsync(CancellationToken cancellationToken)
+    private async Task FillDemoAccountsAsync(CancellationToken cancellationToken)
     {
-        foreach (var taiKhoan in TaiKhoanMacDinh)
+        foreach (var account in DemoAccounts)
         {
-            if (await db.NguoiDung.AnyAsync(u => u.TenDangNhap == taiKhoan.TenDangNhap, cancellationToken))
+            if (await db.User.AnyAsync(u => u.UserName == account.UserName, cancellationToken))
                 continue;
 
-            var canBo = await db.CanBo.FirstOrDefaultAsync(c => c.MaCanBo == taiKhoan.MaCanBo, cancellationToken);
-            if (canBo is null)
+            if (!await db.Officer.AnyAsync(c => c.OfficerCode == account.OfficerCode, cancellationToken))
             {
-                canBo = new CanBo(taiKhoan.MaCanBo, taiKhoan.HoTen, taiKhoan.ChucVu, taiKhoan.LaQuanGiao);
-                db.CanBo.Add(canBo);
+                db.Officer.Add(new Officer(account.OfficerCode, account.FullName, account.Position, account.IsSupervisingOfficer));
                 await db.SaveChangesAsync(cancellationToken);
             }
 
-            var nguoiDung = new NguoiDung
+            var user = new User
             {
-                TenDangNhap = taiKhoan.TenDangNhap,
-                CanBoId = canBo.Id,
-                MatKhauHash = matKhauHasher.Hash(MatKhauDemo),
-                DangHoatDong = true,
-                PhaiDoiMatKhau = false,
+                UserName = account.UserName,
+                PasswordHash = passwordHasher.Hash(DemoPassword),
+                IsActive = true,
+                MustChangePassword = false,
             };
-            db.NguoiDung.Add(nguoiDung);
+            db.User.Add(user);
             await db.SaveChangesAsync(cancellationToken);
 
-            var vaiTroId = await db.VaiTro
-                .Where(v => v.Ma == taiKhoan.MaVaiTro)
+            var roleId = await db.Role
+                .Where(v => v.Code == account.RoleCodes)
                 .Select(v => v.Id)
                 .SingleAsync(cancellationToken);
-            db.NguoiDungVaiTro.Add(new NguoiDungVaiTro { NguoiDungId = nguoiDung.Id, VaiTroId = vaiTroId });
+            db.UserRole.Add(new UserRole { UserId = user.Id, RoleId = roleId });
             await db.SaveChangesAsync(cancellationToken);
         }
     }

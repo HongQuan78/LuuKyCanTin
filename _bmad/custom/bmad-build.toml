@@ -14,7 +14,7 @@ implementation_handoff = """
 Launch a subagent with no prior conversation context, with this prompt:
 
 > Read {spec_file} fully and implement it — the spec is the sole source of truth. Load every file listed in its frontmatter `context:` before you start.
-> Every new file, type, method, property, field and variable must follow {project-root}/docs/conventions/naming-conventions.md. Do not rename existing code.
+> Every new file, type, method, property, field and variable must follow {project-root}/docs/conventions/naming-conventions.md: identifiers in English (use its glossary), only user-visible text in Vietnamese. Where the spec names an identifier in Vietnamese, translate it with the glossary — the naming convention wins over the spec on names. Do not rename existing code unless the spec is refactor story R.1.
 >
 > When done, report what you changed, how you verified it, and anything left incomplete or risky.
 """

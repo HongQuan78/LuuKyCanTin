@@ -1,7 +1,7 @@
 using LuuKyCanTin.Application.Abstractions;
-using LuuKyCanTin.Application.HeThong;
+using LuuKyCanTin.Application.Administration;
 using LuuKyCanTin.Infrastructure;
-using LuuKyCanTin.Infrastructure.HeThong;
+using LuuKyCanTin.Infrastructure.Administration;
 using LuuKyCanTin.Infrastructure.Persistence;
 using LuuKyCanTin.Infrastructure.Persistence.Interceptors;
 using Microsoft.Data.SqlClient;
@@ -13,18 +13,18 @@ using Shouldly;
 
 namespace LuuKyCanTin.IntegrationTests.Persistence;
 
-public class InfrastructureRegistrationTests
+public sealed class InfrastructureRegistrationTests
 {
     private const string ConnectionString = "Server=.\\SQLEXPRESS;Database=LuuKyCanTin;Integrated Security=true";
 
     // EF normalizes the connection string and appends an Application Name, so compare what it points at.
-    private static (string Server, string Database) TargetOf(DbContext db)
+    private static (string Server, string Database) GetTarget(DbContext db)
     {
         var builder = new SqlConnectionStringBuilder(db.Database.GetConnectionString());
         return (builder.DataSource, builder.InitialCatalog);
     }
 
-    private static ServiceProvider BuildProvider(string? connectionString)
+    private static ServiceProvider CreateProvider(string? connectionString)
     {
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?> { ["ConnectionStrings:LuuKyCanTin"] = connectionString })
@@ -33,9 +33,9 @@ public class InfrastructureRegistrationTests
     }
 
     [Fact]
-    public void AddInfrastructure_RegistersDbContextPerScopeWithConfiguredConnection()
+    public void AddInfrastructure_ConfiguredConnection_RegistersDbContextPerScope()
     {
-        using var provider = BuildProvider(ConnectionString);
+        using var provider = CreateProvider(ConnectionString);
         using var scope1 = provider.CreateScope();
         using var scope2 = provider.CreateScope();
 
@@ -43,19 +43,19 @@ public class InfrastructureRegistrationTests
 
         db.ShouldBeSameAs(scope1.ServiceProvider.GetRequiredService<AppDbContext>());
         db.ShouldNotBeSameAs(scope2.ServiceProvider.GetRequiredService<AppDbContext>());
-        TargetOf(db).ShouldBe((@".\SQLEXPRESS", "LuuKyCanTin"));
+        GetTarget(db).ShouldBe((@".\SQLEXPRESS", "LuuKyCanTin"));
     }
 
     [Theory]
     [InlineData(typeof(ISchemaVersionChecker))]
     [InlineData(typeof(IDatabaseMigrator))]
     [InlineData(typeof(IDemoDataSeeder))]
-    [InlineData(typeof(IGhiNhatKy))]
+    [InlineData(typeof(IAuditLogWriter))]
     [InlineData(typeof(IClock))]
     [InlineData(typeof(ICurrentUser))]
-    public void AddInfrastructure_RegistersDatabaseServices(Type service)
+    public void AddInfrastructure_DatabaseService_IsResolvable(Type service)
     {
-        using var provider = BuildProvider(ConnectionString);
+        using var provider = CreateProvider(ConnectionString);
         using var scope = provider.CreateScope();
 
         scope.ServiceProvider.GetService(service).ShouldNotBeNull();
@@ -64,7 +64,7 @@ public class InfrastructureRegistrationTests
     [Fact]
     public void AddInfrastructure_ExposesTheScopesDbContextAsTheUnitOfWork()
     {
-        using var provider = BuildProvider(ConnectionString);
+        using var provider = CreateProvider(ConnectionString);
         using var scope = provider.CreateScope();
 
         scope.ServiceProvider.GetRequiredService<IAppDbContext>()
@@ -72,9 +72,9 @@ public class InfrastructureRegistrationTests
     }
 
     [Fact]
-    public void AddInfrastructure_SharesOneSignedInUserAcrossScopes()
+    public void AddInfrastructure_TwoScopes_ShareOneSignedInUser()
     {
-        using var provider = BuildProvider(ConnectionString);
+        using var provider = CreateProvider(ConnectionString);
         using var scope = provider.CreateScope();
 
         scope.ServiceProvider.GetRequiredService<ICurrentUser>()
@@ -82,20 +82,20 @@ public class InfrastructureRegistrationTests
     }
 
     [Fact]
-    public void AddInfrastructure_GivesEachDbContextItsOwnAuditInterceptor()
+    public void AddInfrastructure_TwoScopes_GetTheirOwnAuditInterceptor()
     {
-        using var provider = BuildProvider(ConnectionString);
+        using var provider = CreateProvider(ConnectionString);
         using var scope1 = provider.CreateScope();
         using var scope2 = provider.CreateScope();
 
-        var interceptor1 = InterceptorOf(scope1.ServiceProvider.GetRequiredService<AppDbContext>());
-        var interceptor2 = InterceptorOf(scope2.ServiceProvider.GetRequiredService<AppDbContext>());
+        var interceptor1 = GetAuditInterceptor(scope1.ServiceProvider.GetRequiredService<AppDbContext>());
+        var interceptor2 = GetAuditInterceptor(scope2.ServiceProvider.GetRequiredService<AppDbContext>());
 
         interceptor1.ShouldNotBeNull();
         interceptor1.ShouldNotBeSameAs(interceptor2);
     }
 
-    private static AuditInterceptor? InterceptorOf(DbContext db) => db.GetService<IDbContextOptions>()
+    private static AuditInterceptor? GetAuditInterceptor(DbContext db) => db.GetService<IDbContextOptions>()
         .Extensions.OfType<CoreOptionsExtension>().Single()
         .Interceptors?.OfType<AuditInterceptor>().SingleOrDefault();
 
@@ -104,12 +104,12 @@ public class InfrastructureRegistrationTests
     [InlineData(" ")]
     public void AddInfrastructure_WithoutConnectionString_FailsFast(string? connectionString)
     {
-        Should.Throw<InvalidOperationException>(() => BuildProvider(connectionString))
+        Should.Throw<InvalidOperationException>(() => CreateProvider(connectionString))
             .Message.ShouldContain("ConnectionStrings:LuuKyCanTin");
     }
 
     [Fact]
-    public void DesignTimeFactory_UsesEnvironmentVariableWhenSet()
+    public void CreateDbContext_EnvironmentVariableSet_UsesItsConnection()
     {
         var previous = Environment.GetEnvironmentVariable(DesignTimeDbContextFactory.ConnectionStringVariable);
         try
@@ -118,7 +118,7 @@ public class InfrastructureRegistrationTests
 
             using var db = new DesignTimeDbContextFactory().CreateDbContext([]);
 
-            TargetOf(db).ShouldBe((@".\SQLEXPRESS", "LuuKyCanTin"));
+            GetTarget(db).ShouldBe((@".\SQLEXPRESS", "LuuKyCanTin"));
         }
         finally
         {

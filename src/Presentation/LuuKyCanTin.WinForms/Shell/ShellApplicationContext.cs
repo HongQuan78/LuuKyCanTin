@@ -8,52 +8,54 @@ namespace LuuKyCanTin.WinForms.Shell;
 /// </summary>
 internal sealed class ShellApplicationContext(IServiceProvider services) : ApplicationContext
 {
-    public void BatDau() => MoDangNhap();
+    public void Start() => ShowLogin();
 
-    private void MoDangNhap()
+    private void ShowLogin()
     {
         var login = services.GetRequiredService<LoginForm>();
         var presenter = ActivatorUtilities.CreateInstance<LoginPresenter>(services, login);
         login.FormClosed += (_, _) =>
         {
-            var thanhCong = login.DialogResult == DialogResult.OK;
+            var succeeded = login.DialogResult == DialogResult.OK;
             login.Dispose();
 
-            if (!thanhCong)
+            if (!succeeded)
             {
                 ExitThread();
                 return;
             }
 
-            if (presenter.PhaiDoiMatKhau)
-                MoDoiMatKhauBatBuoc();
+            if (presenter.MustChangePassword)
+                ShowForcedPasswordChange();
             else
-                MoMoShell();
+                ShowShell();
         };
         login.Show();
     }
 
-    private void MoDoiMatKhauBatBuoc()
+    private void ShowForcedPasswordChange()
     {
-        using var form = new DoiMatKhauForm();
-        _ = new DoiMatKhauPresenter(form, services.GetRequiredService<IServiceScopeFactory>(), batBuoc: true);
-        if (form.ShowDialog() == DialogResult.OK)
-            MoMoShell();
+        using var form = new ChangePasswordForm();
+        _ = new ChangePasswordPresenter(form, services.GetRequiredService<IServiceScopeFactory>(), isForced: true);
+        if (form.ShowModal())
+            ShowShell();
         else
-            MoDangNhap();
+            ShowLogin();
     }
 
-    private void MoMoShell()
+    private void ShowShell()
     {
         var main = services.GetRequiredService<MainForm>();
-        var presenter = ActivatorUtilities.CreateInstance<MainPresenter>(services, main);
+        // One navigator per session: it hosts screens in this shell's content area and forgets them at sign-out.
+        var navigator = new Navigator(services.GetRequiredService<IServiceScopeFactory>(), main);
+        var presenter = ActivatorUtilities.CreateInstance<MainPresenter>(services, main, navigator);
         main.FormClosed += (_, _) =>
         {
-            var daDangXuat = presenter.DaDangXuat;
+            var isSignedOut = presenter.IsSignedOut;
             main.Dispose();
 
-            if (daDangXuat)
-                MoDangNhap();
+            if (isSignedOut)
+                ShowLogin();
             else
                 ExitThread();
         };

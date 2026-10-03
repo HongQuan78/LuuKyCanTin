@@ -1,4 +1,4 @@
-using LuuKyCanTin.Application.HeThong;
+using LuuKyCanTin.Application.Administration;
 using LuuKyCanTin.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -7,10 +7,10 @@ using Shouldly;
 namespace LuuKyCanTin.IntegrationTests.Persistence;
 
 // Needs no SQL Server: nothing listens on port 1, so the connection fails fast.
-public class SchemaVersionCheckerUnreachableServerTests
+public sealed class SchemaVersionCheckerUnreachableServerTests
 {
     [Fact]
-    public async Task UnreachableServer_IsConnectionFailure_NotVersionMismatch()
+    public async Task Check_UnreachableServer_IsConnectionFailedNotMismatch()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseSqlServer("Server=tcp:127.0.0.1,1;Database=LuuKyCanTin;Integrated Security=true;Connect Timeout=2;Encrypt=false")

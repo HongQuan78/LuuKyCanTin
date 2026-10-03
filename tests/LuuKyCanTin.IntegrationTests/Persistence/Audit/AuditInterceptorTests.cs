@@ -1,5 +1,5 @@
 using System.Text.Json;
-using LuuKyCanTin.Domain.HeThong;
+using LuuKyCanTin.Domain.Administration;
 using LuuKyCanTin.IntegrationTests.Common;
 using LuuKyCanTin.IntegrationTests.Persistence.TestModel;
 using Microsoft.EntityFrameworkCore;
@@ -7,316 +7,378 @@ using Shouldly;
 
 namespace LuuKyCanTin.IntegrationTests.Persistence.Audit;
 
-public class AuditInterceptorTests : IClassFixture<AuditDatabaseFixture>
+public sealed class AuditInterceptorTests : IClassFixture<AuditDatabaseFixture>
 {
-    private const int NguoiDungId = 7;
+    private const int UserId = 7;
 
     private readonly AuditDatabaseFixture _fixture;
 
     public AuditInterceptorTests(AuditDatabaseFixture fixture)
     {
         _fixture = fixture;
-            _fixture.User.DangNhap(NguoiDungId, "thuquy", canBoId: null, hoTen: "thuquy");
+        _fixture.User.SignIn(UserId, "thuquy");
     }
 
-    private static MauChungTu NewVoucher(string noiDung = "Nộp tiền lưu ký") => new()
+    private static SampleVoucher CreateVoucher(string description = "Nộp tiền lưu ký") => new()
     {
-        SoTien = 100_000,
-        NgayChungTu = new DateOnly(2026, 10, 1),
-        NoiDung = noiDung,
-        TrangThai = MauTrangThai.DaGhiSo,
-        MaBiMat = "bí-mật-ban-đầu",
+        Amount = 100_000,
+        VoucherDate = new DateOnly(2026, 10, 1),
+        Description = description,
+        Status = SampleStatus.Posted,
+        Secret = "bí-mật-ban-đầu",
     };
 
-    private async Task<MauChungTu> InsertAsync(MauChungTu voucher)
+    private async Task<SampleVoucher> AddAsync(SampleVoucher voucher)
     {
-        await using var db = _fixture.CreateAuditedContext();
-        db.MauChungTu.Add(voucher);
+        await using var db = _fixture.CreateAuditedDbContext();
+        db.SampleVoucher.Add(voucher);
         await db.SaveChangesAsync();
         return voucher;
     }
 
-    private async Task UpdateAsync(int id, Action<MauChungTu> change)
+    private async Task UpdateAsync(int id, Action<SampleVoucher> change)
     {
         // Load, change, save: the "before" values come from the tracked query.
-        await using var db = _fixture.CreateAuditedContext();
-        change(await db.MauChungTu.SingleAsync(v => v.Id == id));
+        await using var db = _fixture.CreateAuditedDbContext();
+        change(await db.SampleVoucher.SingleAsync(v => v.Id == id));
         await db.SaveChangesAsync();
     }
 
-    private async Task<List<NhatKyThaoTac>> LogOfAsync(int id)
+    private async Task<List<AuditLog>> GetAuditLogsAsync(int id)
     {
-        await using var db = _fixture.CreatePlainContext();
-        return await db.NhatKyThaoTac.Where(n => n.TenBang == "MauChungTu" && n.BanGhiId == id).OrderBy(n => n.Id).ToListAsync();
+        await using var db = _fixture.CreateDbContext();
+        return await db.AuditLog.Where(n => n.TableName == "SampleVoucher" && n.RecordId == id).OrderBy(n => n.Id).ToListAsync();
     }
 
-    private async Task<int> LogCountAsync()
+    private async Task<int> CountAuditLogsAsync()
     {
-        await using var db = _fixture.CreatePlainContext();
-        return await db.NhatKyThaoTac.CountAsync();
+        await using var db = _fixture.CreateDbContext();
+        return await db.AuditLog.CountAsync();
     }
 
-    private static Dictionary<string, JsonElement> Json(string? json) =>
+    private static Dictionary<string, JsonElement> ReadJson(string? json) =>
         JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json.ShouldNotBeNull())!;
 
     [SqlServerFact]
-    public async Task Insert_WritesThemRowWithNewValues()
+    public async Task SaveChanges_NewVoucher_WritesCreateRowWithNewValues()
     {
-        var voucher = await InsertAsync(NewVoucher());
+        var voucher = await AddAsync(CreateVoucher());
 
-        var row = (await LogOfAsync(voucher.Id)).ShouldHaveSingleItem();
+        var auditLog = (await GetAuditLogsAsync(voucher.Id)).ShouldHaveSingleItem();
 
-        row.HanhDong.ShouldBe(HanhDong.Them);
-        row.ThoiDiem.ShouldBe(_fixture.Clock.Now);
-        row.NguoiDungId.ShouldBe(NguoiDungId);
-        row.MayTram.ShouldBe(Environment.MachineName);
-        row.DuLieuCu.ShouldBeNull();
-        var moi = Json(row.DuLieuMoi);
-        moi["Id"].GetInt32().ShouldBe(voucher.Id);
-        moi["SoTien"].GetDecimal().ShouldBe(100_000m);
-        moi["NoiDung"].GetString().ShouldBe("Nộp tiền lưu ký");
-        moi.Keys.ShouldNotContain("RowVer");
-        moi.Keys.ShouldNotContain("NgayTao");
-        moi.Keys.ShouldNotContain("NguoiTaoId");
+        auditLog.Action.ShouldBe(AuditAction.Create);
+        auditLog.OccurredAt.ShouldBe(_fixture.Clock.Now);
+        auditLog.UserId.ShouldBe(UserId);
+        auditLog.Workstation.ShouldBe(Environment.MachineName);
+        auditLog.OldValues.ShouldBeNull();
+        var newValues = ReadJson(auditLog.NewValues);
+        newValues["Id"].GetInt32().ShouldBe(voucher.Id);
+        newValues["Amount"].GetDecimal().ShouldBe(100_000m);
+        newValues["Description"].GetString().ShouldBe("Nộp tiền lưu ký");
+        newValues["Status"].GetString().ShouldBe(nameof(SampleStatus.Posted));
+        newValues.Keys.ShouldNotContain("RowVer");
+        newValues.Keys.ShouldNotContain("CreatedAt");
+        newValues.Keys.ShouldNotContain("CreatedById");
     }
 
     [SqlServerFact]
-    public async Task Insert_KeepsVietnameseReadableInTheJson()
+    public async Task SaveChanges_VietnameseText_StaysReadableInTheJson()
     {
-        var voucher = await InsertAsync(NewVoucher());
+        var voucher = await AddAsync(CreateVoucher());
 
-        (await LogOfAsync(voucher.Id)).ShouldHaveSingleItem().DuLieuMoi.ShouldNotBeNull().ShouldContain("\"NoiDung\":\"Nộp tiền lưu ký\"");
+        (await GetAuditLogsAsync(voucher.Id)).ShouldHaveSingleItem().NewValues.ShouldNotBeNull().ShouldContain("\"Description\":\"Nộp tiền lưu ký\"");
     }
 
     [SqlServerFact]
-    public async Task Insert_StoresTheActionAsText()
+    public async Task SaveChanges_NewVoucher_StoresTheActionAsText()
     {
-        var voucher = await InsertAsync(NewVoucher());
+        var voucher = await AddAsync(CreateVoucher());
 
-        (await _fixture.Database.ScalarAsync($"SELECT HanhDong FROM NhatKyThaoTac WHERE TenBang = 'MauChungTu' AND BanGhiId = {voucher.Id}"))
+        (await _fixture.Database.GetScalarAsync($"SELECT [Action] FROM AuditLog WHERE TableName = 'SampleVoucher' AND RecordId = {voucher.Id}"))
             .ShouldBe("Them");
     }
 
     [SqlServerFact]
-    public async Task Insert_FillsCreationAuditColumns()
+    public async Task SaveChanges_NewVoucher_FillsCreationAuditColumns()
     {
-        var voucher = await InsertAsync(NewVoucher());
+        var voucher = await AddAsync(CreateVoucher());
 
-        await using var db = _fixture.CreatePlainContext();
-        var stored = await db.MauChungTu.SingleAsync(v => v.Id == voucher.Id);
-        stored.NgayTao.ShouldBe(_fixture.Clock.Now);
-        stored.NguoiTaoId.ShouldBe(NguoiDungId);
-        stored.NgaySua.ShouldBeNull();
-        stored.NguoiSuaId.ShouldBeNull();
+        await using var db = _fixture.CreateDbContext();
+        var savedVoucher = await db.SampleVoucher.SingleAsync(v => v.Id == voucher.Id);
+        savedVoucher.CreatedAt.ShouldBe(_fixture.Clock.Now);
+        savedVoucher.CreatedById.ShouldBe(UserId);
+        savedVoucher.ModifiedAt.ShouldBeNull();
+        savedVoucher.ModifiedById.ShouldBeNull();
     }
 
     [SqlServerFact]
-    public async Task Update_WritesSuaRowWithOnlyTheChangedColumns()
+    public async Task SaveChanges_ChangedVoucher_WritesUpdateRowWithOnlyTheChangedColumns()
     {
-        var voucher = await InsertAsync(NewVoucher());
+        var voucher = await AddAsync(CreateVoucher());
 
-        await UpdateAsync(voucher.Id, v => v.SoTien = 150_000);
+        await UpdateAsync(voucher.Id, v => v.Amount = 150_000);
 
-        var row = (await LogOfAsync(voucher.Id)).Last();
-        row.HanhDong.ShouldBe(HanhDong.Sua);
-        var cu = Json(row.DuLieuCu);
-        var moi = Json(row.DuLieuMoi);
-        cu.Keys.ShouldBe(["SoTien"]);
-        moi.Keys.ShouldBe(["SoTien"]);
-        cu["SoTien"].GetDecimal().ShouldBe(100_000m);
-        moi["SoTien"].GetDecimal().ShouldBe(150_000m);
+        var auditLog = (await GetAuditLogsAsync(voucher.Id)).Last();
+        auditLog.Action.ShouldBe(AuditAction.Update);
+        var oldValues = ReadJson(auditLog.OldValues);
+        var newValues = ReadJson(auditLog.NewValues);
+        oldValues.Keys.ShouldBe(["Amount"]);
+        newValues.Keys.ShouldBe(["Amount"]);
+        oldValues["Amount"].GetDecimal().ShouldBe(100_000m);
+        newValues["Amount"].GetDecimal().ShouldBe(150_000m);
     }
 
     [SqlServerFact]
-    public async Task Update_FillsModificationAuditColumns_AndKeepsCreationOnes()
+    public async Task SaveChanges_ChangedVoucher_FillsModificationColumnsAndKeepsCreationOnes()
     {
-        var voucher = await InsertAsync(NewVoucher());
+        var voucher = await AddAsync(CreateVoucher());
         var createdAt = _fixture.Clock.Now;
         _fixture.Clock.Advance(TimeSpan.FromMinutes(5));
-        _fixture.User.DangNhap(NguoiDungId + 1, "ketoan", canBoId: null, hoTen: "ketoan");
+        _fixture.User.SignIn(UserId + 1, "ketoan");
         try
         {
             await UpdateAsync(voucher.Id, v =>
             {
-                v.SoTien = 120_000;
-                v.NgayTao = DateTime.MinValue;
+                v.Amount = 120_000;
+                v.CreatedAt = DateTime.MinValue;
             });
         }
         finally
         {
-        _fixture.User.DangNhap(NguoiDungId, "thuquy", canBoId: null, hoTen: "thuquy");
+            _fixture.User.SignIn(UserId, "thuquy");
         }
 
-        await using var db = _fixture.CreatePlainContext();
-        var stored = await db.MauChungTu.SingleAsync(v => v.Id == voucher.Id);
-        stored.NgayTao.ShouldBe(createdAt);
-        stored.NguoiTaoId.ShouldBe(NguoiDungId);
-        stored.NgaySua.ShouldBe(_fixture.Clock.Now);
-        stored.NguoiSuaId.ShouldBe(NguoiDungId + 1);
+        await using var db = _fixture.CreateDbContext();
+        var savedVoucher = await db.SampleVoucher.SingleAsync(v => v.Id == voucher.Id);
+        savedVoucher.CreatedAt.ShouldBe(createdAt);
+        savedVoucher.CreatedById.ShouldBe(UserId);
+        savedVoucher.ModifiedAt.ShouldBe(_fixture.Clock.Now);
+        savedVoucher.ModifiedById.ShouldBe(UserId + 1);
     }
 
     [SqlServerFact]
-    public async Task Cancel_WritesHuyRow_NotSua()
+    public async Task SaveChanges_CancelledVoucher_WritesCancelRowNotUpdate()
     {
-        var voucher = await InsertAsync(NewVoucher());
+        var voucher = await AddAsync(CreateVoucher());
 
-        await UpdateAsync(voucher.Id, v => v.TrangThai = MauTrangThai.DaHuy);
+        await UpdateAsync(voucher.Id, v => v.Status = SampleStatus.Cancelled);
 
-        var row = (await LogOfAsync(voucher.Id)).Last();
-        row.HanhDong.ShouldBe(HanhDong.Huy);
-        Json(row.DuLieuCu)["TrangThai"].GetInt32().ShouldBe((int)MauTrangThai.DaGhiSo);
-        Json(row.DuLieuMoi)["TrangThai"].GetInt32().ShouldBe((int)MauTrangThai.DaHuy);
+        var auditLog = (await GetAuditLogsAsync(voucher.Id)).Last();
+        auditLog.Action.ShouldBe(AuditAction.Cancel);
+        ReadJson(auditLog.OldValues)["Status"].GetString().ShouldBe(nameof(SampleStatus.Posted));
+        ReadJson(auditLog.NewValues)["Status"].GetString().ShouldBe(nameof(SampleStatus.Cancelled));
     }
 
     [SqlServerFact]
-    public async Task UpdateWithoutRealChange_WritesNoRow()
+    public async Task SaveChanges_AlreadyCancelledVoucherEdited_WritesUpdateRow()
     {
-        var voucher = await InsertAsync(NewVoucher());
+        var voucher = await AddAsync(CreateVoucher());
+        await UpdateAsync(voucher.Id, v => v.Status = SampleStatus.Cancelled);
 
-        await UpdateAsync(voucher.Id, v => v.SoTien = v.SoTien);
+        await UpdateAsync(voucher.Id, v => v.Description = "Huỷ do ghi nhầm đối tượng");
 
-        (await LogOfAsync(voucher.Id)).ShouldHaveSingleItem().HanhDong.ShouldBe(HanhDong.Them);
+        var auditLog = (await GetAuditLogsAsync(voucher.Id)).Last();
+        auditLog.Action.ShouldBe(AuditAction.Update);
+        ReadJson(auditLog.NewValues).Keys.ShouldBe(["Description"]);
     }
 
     [SqlServerFact]
-    public async Task ExcludedProperty_NeverAppearsInTheJson_ButItsChangeIsStillLogged()
+    public async Task SaveChanges_NoRealChange_WritesNoRow()
     {
-        var voucher = await InsertAsync(NewVoucher());
+        var voucher = await AddAsync(CreateVoucher());
 
-        await UpdateAsync(voucher.Id, v => v.MaBiMat = "bí-mật-mới");
+        await UpdateAsync(voucher.Id, v => v.Amount = v.Amount);
 
-        var log = await LogOfAsync(voucher.Id);
-        log.Count.ShouldBe(2);
-        log[1].HanhDong.ShouldBe(HanhDong.Sua);
-        log.ShouldAllBe(n => !(n.DuLieuCu ?? "").Contains("bí-mật") && !(n.DuLieuMoi ?? "").Contains("bí-mật"));
-        log.ShouldAllBe(n => !(n.DuLieuCu ?? "").Contains("MaBiMat") && !(n.DuLieuMoi ?? "").Contains("MaBiMat"));
+        (await GetAuditLogsAsync(voucher.Id)).ShouldHaveSingleItem().Action.ShouldBe(AuditAction.Create);
     }
 
     [SqlServerFact]
-    public async Task FailingSave_RollsBackBothTheEntityAndItsAuditRows()
+    public async Task SaveChanges_DetachedUpdate_ThrowsAndWritesNothing()
+    {
+        var voucher = await AddAsync(CreateVoucher());
+        var detachedVoucher = CreateVoucher();
+        detachedVoucher.Id = voucher.Id;
+        detachedVoucher.Amount = 999_000;
+        detachedVoucher.RowVer = voucher.RowVer;
+
+        await using (var db = _fixture.CreateAuditedDbContext())
+        {
+            db.SampleVoucher.Update(detachedVoucher);
+
+            (await Should.ThrowAsync<InvalidOperationException>(() => db.SaveChangesAsync())).Message.ShouldContain("Load it");
+        }
+
+        await using var check = _fixture.CreateDbContext();
+        (await check.SampleVoucher.SingleAsync(v => v.Id == voucher.Id)).Amount.ShouldBe(100_000m);
+        (await GetAuditLogsAsync(voucher.Id)).ShouldHaveSingleItem().Action.ShouldBe(AuditAction.Create);
+    }
+
+    [SqlServerFact]
+    public async Task SaveChanges_ExcludedPropertyChanged_LogsTheChangeWithoutItsValue()
+    {
+        var voucher = await AddAsync(CreateVoucher());
+
+        await UpdateAsync(voucher.Id, v => v.Secret = "bí-mật-mới");
+
+        var auditLogs = await GetAuditLogsAsync(voucher.Id);
+        auditLogs.Count.ShouldBe(2);
+        auditLogs[1].Action.ShouldBe(AuditAction.Update);
+        auditLogs.ShouldAllBe(n => !(n.OldValues ?? "").Contains("bí-mật") && !(n.NewValues ?? "").Contains("bí-mật"));
+        auditLogs.ShouldAllBe(n => !(n.OldValues ?? "").Contains("Secret") && !(n.NewValues ?? "").Contains("Secret"));
+    }
+
+    [SqlServerFact]
+    public async Task SaveChanges_InsertFails_RollsBackBothTheEntityAndItsAuditRows()
     {
         var marker = Guid.NewGuid().ToString("N");
-        var logCount = await LogCountAsync();
+        var auditLogCount = await CountAuditLogsAsync();
 
-        await using (var db = _fixture.CreateAuditedContext())
+        await using (var db = _fixture.CreateAuditedDbContext())
         {
-            db.MauChungTu.Add(NewVoucher(marker));
-            // Violates CK_MauChungTu_TrangThai, so the batch fails after the first insert.
-            var invalid = NewVoucher(marker);
-            invalid.TrangThai = (MauTrangThai)9;
-            db.MauChungTu.Add(invalid);
+            db.SampleVoucher.Add(CreateVoucher(marker));
+            // Violates CK_SampleVoucher_Status, so the batch fails after the first insert.
+            var invalidVoucher = CreateVoucher(marker);
+            invalidVoucher.Status = (SampleStatus)9;
+            db.SampleVoucher.Add(invalidVoucher);
 
             await Should.ThrowAsync<DbUpdateException>(() => db.SaveChangesAsync());
         }
 
-        await using var check = _fixture.CreatePlainContext();
-        (await check.MauChungTu.CountAsync(v => v.NoiDung == marker)).ShouldBe(0);
-        (await LogCountAsync()).ShouldBe(logCount);
+        await using var check = _fixture.CreateDbContext();
+        (await check.SampleVoucher.CountAsync(v => v.Description == marker)).ShouldBe(0);
+        (await CountAuditLogsAsync()).ShouldBe(auditLogCount);
     }
 
     [SqlServerFact]
-    public async Task FailingAuditWrite_RollsBackTheEntityToo()
+    public async Task SaveChanges_RetryInSameContextAfterFailure_StoresOnlyTheRetry()
     {
-        const string reject = "TU-CHOI-NHAT-KY";
+        var marker = Guid.NewGuid().ToString("N");
+
+        await using (var db = _fixture.CreateAuditedDbContext())
+        {
+            db.SampleVoucher.Add(CreateVoucher(marker));
+            var invalidVoucher = CreateVoucher(marker);
+            invalidVoucher.Status = (SampleStatus)9;
+            db.SampleVoucher.Add(invalidVoucher);
+            await Should.ThrowAsync<DbUpdateException>(() => db.SaveChangesAsync());
+
+            // The failed save's own transaction is gone, so the retry can't commit leftovers of the failed batch.
+            db.Database.CurrentTransaction.ShouldBeNull();
+
+            invalidVoucher.Status = SampleStatus.Posted;
+            await db.SaveChangesAsync();
+        }
+
+        await using var check = _fixture.CreateDbContext();
+        var ids = await check.SampleVoucher.Where(v => v.Description == marker).Select(v => v.Id).ToListAsync();
+        ids.Count.ShouldBe(2);
+        foreach (var id in ids)
+            (await GetAuditLogsAsync(id)).ShouldHaveSingleItem().Action.ShouldBe(AuditAction.Create);
+    }
+
+    [SqlServerFact]
+    public async Task SaveChanges_AuditWriteFails_RollsBackTheEntityToo()
+    {
+        const string rejectMarker = "TU-CHOI-NHAT-KY";
         // Test-only constraint: an audit row mentioning the marker fails, after the voucher INSERT has succeeded.
         await _fixture.Database.ExecuteAsync($"""
-            IF OBJECT_ID('CK_Test_TuChoiNhatKy') IS NULL
-                ALTER TABLE NhatKyThaoTac ADD CONSTRAINT CK_Test_TuChoiNhatKy CHECK (DuLieuMoi NOT LIKE '%{reject}%')
+            IF OBJECT_ID('CK_Test_RejectAuditLog') IS NULL
+                ALTER TABLE AuditLog ADD CONSTRAINT CK_Test_RejectAuditLog CHECK (NewValues NOT LIKE '%{rejectMarker}%')
             """);
-        var marker = $"{reject}-{Guid.NewGuid():N}";
-        var logCount = await LogCountAsync();
+        var marker = $"{rejectMarker}-{Guid.NewGuid():N}";
+        var auditLogCount = await CountAuditLogsAsync();
 
-        await using (var db = _fixture.CreateAuditedContext())
+        await using (var db = _fixture.CreateAuditedDbContext())
         {
-            db.MauChungTu.Add(NewVoucher(marker));
+            db.SampleVoucher.Add(CreateVoucher(marker));
             await Should.ThrowAsync<DbUpdateException>(() => db.SaveChangesAsync());
 
             // The rejected log row must not stay queued for the context's next save.
-            db.ChangeTracker.Entries<NhatKyThaoTac>().ShouldBeEmpty();
+            db.ChangeTracker.Entries<AuditLog>().ShouldBeEmpty();
         }
 
-        await using var check = _fixture.CreatePlainContext();
-        (await check.MauChungTu.CountAsync(v => v.NoiDung == marker)).ShouldBe(0);
-        (await LogCountAsync()).ShouldBe(logCount);
+        await using var check = _fixture.CreateDbContext();
+        (await check.SampleVoucher.CountAsync(v => v.Description == marker)).ShouldBe(0);
+        (await CountAuditLogsAsync()).ShouldBe(auditLogCount);
     }
 
     [SqlServerFact]
-    public async Task CallerTransaction_IsJoined_SoItsRollbackUndoesTheAuditRowsToo()
+    public async Task SaveChanges_CallerTransactionRolledBack_UndoesTheAuditRowsToo()
     {
         var marker = Guid.NewGuid().ToString("N");
-        var logCount = await LogCountAsync();
+        var auditLogCount = await CountAuditLogsAsync();
 
-        await using (var db = _fixture.CreateAuditedContext())
+        await using (var db = _fixture.CreateAuditedDbContext())
         {
             await using var transaction = await db.Database.BeginTransactionAsync();
-            db.MauChungTu.Add(NewVoucher(marker));
+            db.SampleVoucher.Add(CreateVoucher(marker));
             await db.SaveChangesAsync();
 
             db.Database.CurrentTransaction.ShouldBeSameAs(transaction);
             await transaction.RollbackAsync();
         }
 
-        await using var check = _fixture.CreatePlainContext();
-        (await check.MauChungTu.CountAsync(v => v.NoiDung == marker)).ShouldBe(0);
-        (await LogCountAsync()).ShouldBe(logCount);
+        await using var check = _fixture.CreateDbContext();
+        (await check.SampleVoucher.CountAsync(v => v.Description == marker)).ShouldBe(0);
+        (await CountAuditLogsAsync()).ShouldBe(auditLogCount);
     }
 
     [SqlServerFact]
-    public async Task CallerTransaction_Committed_KeepsEntityAndAuditRow()
+    public async Task SaveChanges_CallerTransactionCommitted_KeepsEntityAndAuditRow()
     {
-        await using var db = _fixture.CreateAuditedContext();
+        await using var db = _fixture.CreateAuditedDbContext();
         await using var transaction = await db.Database.BeginTransactionAsync();
-        var voucher = NewVoucher();
-        db.MauChungTu.Add(voucher);
+        var voucher = CreateVoucher();
+        db.SampleVoucher.Add(voucher);
         await db.SaveChangesAsync();
         await transaction.CommitAsync();
 
-        (await LogOfAsync(voucher.Id)).ShouldHaveSingleItem().HanhDong.ShouldBe(HanhDong.Them);
+        (await GetAuditLogsAsync(voucher.Id)).ShouldHaveSingleItem().Action.ShouldBe(AuditAction.Create);
     }
 
     [SqlServerFact]
-    public void SynchronousSave_IsAuditedToo()
+    public void SaveChanges_Synchronous_IsAuditedToo()
     {
-        var voucher = NewVoucher();
-        using (var db = _fixture.CreateAuditedContext())
+        var voucher = CreateVoucher();
+        using (var db = _fixture.CreateAuditedDbContext())
         {
-            db.MauChungTu.Add(voucher);
+            db.SampleVoucher.Add(voucher);
             db.SaveChanges();
         }
 
-        LogOfAsync(voucher.Id).GetAwaiter().GetResult().ShouldHaveSingleItem().HanhDong.ShouldBe(HanhDong.Them);
+        GetAuditLogsAsync(voucher.Id).GetAwaiter().GetResult().ShouldHaveSingleItem().Action.ShouldBe(AuditAction.Create);
     }
 
     [SqlServerFact]
-    public async Task DeletingAnAuditedEntity_Throws()
+    public async Task SaveChanges_DeletedVoucher_Throws()
     {
-        var voucher = await InsertAsync(NewVoucher());
+        var voucher = await AddAsync(CreateVoucher());
 
-        await using var db = _fixture.CreateAuditedContext();
-        db.MauChungTu.Remove(await db.MauChungTu.SingleAsync(v => v.Id == voucher.Id));
+        await using var db = _fixture.CreateAuditedDbContext();
+        db.SampleVoucher.Remove(await db.SampleVoucher.SingleAsync(v => v.Id == voucher.Id));
 
         (await Should.ThrowAsync<InvalidOperationException>(() => db.SaveChangesAsync())).Message.ShouldContain("cancel");
     }
 
     [SqlServerFact]
-    public async Task ModifyingAnAuditRow_Throws()
+    public async Task SaveChanges_ModifiedAuditRow_Throws()
     {
-        var voucher = await InsertAsync(NewVoucher());
+        var voucher = await AddAsync(CreateVoucher());
 
-        await using var db = _fixture.CreateAuditedContext();
-        var row = await db.NhatKyThaoTac.FirstAsync(n => n.TenBang == "MauChungTu" && n.BanGhiId == voucher.Id);
-        db.Entry(row).Property(n => n.DuLieuMoi).CurrentValue = "{}";
+        await using var db = _fixture.CreateAuditedDbContext();
+        var auditLog = await db.AuditLog.FirstAsync(n => n.TableName == "SampleVoucher" && n.RecordId == voucher.Id);
+        db.Entry(auditLog).Property(n => n.NewValues).CurrentValue = "{}";
 
         (await Should.ThrowAsync<InvalidOperationException>(() => db.SaveChangesAsync())).Message.ShouldContain("append-only");
     }
 
     [SqlServerFact]
-    public async Task DeletingAnAuditRow_Throws()
+    public async Task SaveChanges_DeletedAuditRow_Throws()
     {
-        var voucher = await InsertAsync(NewVoucher());
+        var voucher = await AddAsync(CreateVoucher());
 
-        await using var db = _fixture.CreateAuditedContext();
-        db.NhatKyThaoTac.Remove(await db.NhatKyThaoTac.FirstAsync(n => n.TenBang == "MauChungTu" && n.BanGhiId == voucher.Id));
+        await using var db = _fixture.CreateAuditedDbContext();
+        db.AuditLog.Remove(await db.AuditLog.FirstAsync(n => n.TableName == "SampleVoucher" && n.RecordId == voucher.Id));
 
         Should.Throw<InvalidOperationException>(() => db.SaveChanges()).Message.ShouldContain("append-only");
     }

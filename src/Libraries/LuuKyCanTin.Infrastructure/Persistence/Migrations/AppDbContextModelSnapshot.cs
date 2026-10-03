@@ -23,289 +23,7 @@ namespace LuuKyCanTin.Infrastructure.Persistence.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("LuuKyCanTin.Domain.DanhMuc.CanBo", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("ChucVu")
-                        .HasMaxLength(100)
-                        .IsUnicode(true)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<bool>("DangCongTac")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true);
-
-                    b.Property<string>("HoTen")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .IsUnicode(true)
-                        .HasColumnType("nvarchar(100)")
-                        .UseCollation("Latin1_General_100_CI_AI");
-
-                    b.Property<bool>("LaQuanGiao")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
-                    b.Property<string>("MaCanBo")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(20)");
-
-                    b.Property<DateTime?>("NgaySua")
-                        .HasPrecision(0)
-                        .HasColumnType("datetime2(0)");
-
-                    b.Property<DateTime>("NgayTao")
-                        .HasPrecision(0)
-                        .HasColumnType("datetime2(0)");
-
-                    b.Property<int?>("NguoiSuaId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("NguoiTaoId")
-                        .HasColumnType("int");
-
-                    b.Property<byte[]>("RowVer")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("HoTen")
-                        .HasDatabaseName("IX_CanBo_HoTen");
-
-                    b.HasIndex("MaCanBo")
-                        .IsUnique();
-
-                    b.ToTable("CanBo", (string)null);
-                });
-
-            modelBuilder.Entity("LuuKyCanTin.Domain.DanhMuc.DoiTuong", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("BuongGiam")
-                        .HasMaxLength(50)
-                        .IsUnicode(true)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("HoTen")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .IsUnicode(true)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<byte>("LoaiDoiTuong")
-                        .HasColumnType("tinyint");
-
-                    b.Property<string>("MaSo")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(30)");
-
-                    b.Property<short?>("NamSinh")
-                        .HasColumnType("smallint");
-
-                    b.Property<DateOnly?>("NgayRa")
-                        .HasColumnType("date");
-
-                    b.Property<DateTime?>("NgaySua")
-                        .HasPrecision(0)
-                        .HasColumnType("datetime2(0)");
-
-                    b.Property<DateTime>("NgayTao")
-                        .HasPrecision(0)
-                        .HasColumnType("datetime2(0)");
-
-                    b.Property<DateOnly>("NgayVao")
-                        .HasColumnType("date");
-
-                    b.Property<int?>("NguoiSuaId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("NguoiTaoId")
-                        .HasColumnType("int");
-
-                    b.Property<byte[]>("RowVer")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
-                    b.Property<decimal>("SoDuLuuKy")
-                        .ValueGeneratedOnAdd()
-                        .HasPrecision(18)
-                        .HasColumnType("decimal(18,0)")
-                        .HasDefaultValue(0m);
-
-                    b.Property<byte>("TrangThai")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint")
-                        .HasDefaultValue((byte)1);
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("HoTen");
-
-                    b.HasIndex("MaSo")
-                        .IsUnique();
-
-                    b.ToTable("DoiTuong", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_DoiTuong_LoaiDoiTuong", "[LoaiDoiTuong] IN (1, 2)");
-
-                            t.HasCheckConstraint("CK_DoiTuong_NgayRa", "[TrangThai] = 1 OR [NgayRa] IS NOT NULL");
-
-                            t.HasCheckConstraint("CK_DoiTuong_SoDuLuuKy", "[SoDuLuuKy] >= 0");
-
-                            t.HasCheckConstraint("CK_DoiTuong_TrangThai", "[TrangThai] IN (1, 2, 3)");
-                        });
-                });
-
-            modelBuilder.Entity("LuuKyCanTin.Domain.HeThong.DemSoChungTu", b =>
-                {
-                    b.Property<string>("LoaiChungTu")
-                        .HasMaxLength(10)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(10)");
-
-                    b.Property<short>("Nam")
-                        .HasColumnType("smallint");
-
-                    b.Property<int>("SoHienTai")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(0);
-
-                    b.Property<string>("TienTo")
-                        .IsRequired()
-                        .HasMaxLength(10)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(10)");
-
-                    b.HasKey("LoaiChungTu", "Nam");
-
-                    b.ToTable("DemSoChungTu", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            LoaiChungTu = "BNT",
-                            Nam = (short)2026,
-                            SoHienTai = 0,
-                            TienTo = "BNT"
-                        });
-                });
-
-            modelBuilder.Entity("LuuKyCanTin.Domain.HeThong.NguoiDung", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int?>("CanBoId")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("DangHoatDong")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true);
-
-                    b.Property<DateTime?>("KhoaDen")
-                        .HasPrecision(0)
-                        .HasColumnType("datetime2(0)");
-
-                    b.Property<string>("MatKhauHash")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(200)");
-
-                    b.Property<DateTime?>("NgaySua")
-                        .HasPrecision(0)
-                        .HasColumnType("datetime2(0)");
-
-                    b.Property<DateTime>("NgayTao")
-                        .HasPrecision(0)
-                        .HasColumnType("datetime2(0)");
-
-                    b.Property<int?>("NguoiSuaId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("NguoiTaoId")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("PhaiDoiMatKhau")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
-                    b.Property<byte[]>("RowVer")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
-                    b.Property<byte>("SoLanSai")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint")
-                        .HasDefaultValue((byte)0);
-
-                    b.Property<string>("TenDangNhap")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .IsUnicode(true)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CanBoId")
-                        .IsUnique()
-                        .HasDatabaseName("UX_NguoiDung_CanBoId_DangHoatDong")
-                        .HasFilter("[DangHoatDong] = 1 AND [CanBoId] IS NOT NULL");
-
-                    b.HasIndex("TenDangNhap")
-                        .IsUnique();
-
-                    b.ToTable("NguoiDung", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_NguoiDung_CanBoId", "[CanBoId] IS NOT NULL OR [TenDangNhap] = 'admin'");
-                        });
-                });
-
-            modelBuilder.Entity("LuuKyCanTin.Domain.HeThong.NguoiDungVaiTro", b =>
-                {
-                    b.Property<int>("NguoiDungId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("VaiTroId")
-                        .HasColumnType("int");
-
-                    b.HasKey("NguoiDungId", "VaiTroId");
-
-                    b.HasIndex("VaiTroId");
-
-                    b.ToTable("NguoiDungVaiTro", (string)null);
-                });
-
-            modelBuilder.Entity("LuuKyCanTin.Domain.HeThong.NhatKyThaoTac", b =>
+            modelBuilder.Entity("LuuKyCanTin.Domain.Administration.AuditLog", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
@@ -313,58 +31,119 @@ namespace LuuKyCanTin.Infrastructure.Persistence.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
-                    b.Property<long?>("BanGhiId")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("DuLieuCu")
-                        .IsUnicode(true)
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("DuLieuMoi")
-                        .IsUnicode(true)
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("HanhDong")
+                    b.Property<string>("Action")
                         .IsRequired()
                         .HasMaxLength(20)
                         .IsUnicode(false)
                         .HasColumnType("varchar(20)");
 
-                    b.Property<string>("MayTram")
-                        .HasMaxLength(100)
+                    b.Property<string>("NewValues")
                         .IsUnicode(true)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("nvarchar(max)");
 
-                    b.Property<int?>("NguoiDungId")
-                        .HasColumnType("int");
+                    b.Property<DateTime>("OccurredAt")
+                        .HasPrecision(0)
+                        .HasColumnType("datetime2(0)");
 
-                    b.Property<string>("TenBang")
+                    b.Property<string>("OldValues")
+                        .IsUnicode(true)
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<long?>("RecordId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("TableName")
                         .HasMaxLength(50)
                         .IsUnicode(false)
                         .HasColumnType("varchar(50)");
 
-                    b.Property<DateTime>("ThoiDiem")
-                        .HasPrecision(0)
-                        .HasColumnType("datetime2(0)");
+                    b.Property<int?>("UserId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Workstation")
+                        .HasMaxLength(100)
+                        .IsUnicode(true)
+                        .HasColumnType("nvarchar(100)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ThoiDiem");
+                    b.HasIndex("OccurredAt");
 
-                    b.HasIndex("TenBang", "BanGhiId");
+                    b.HasIndex("TableName", "RecordId");
 
-                    b.ToTable("NhatKyThaoTac", null, t =>
+                    b.ToTable("AuditLog", null, t =>
                         {
-                            t.HasCheckConstraint("CK_NhatKyThaoTac_HanhDong", "[HanhDong] IN ('Them', 'Sua', 'Huy', 'In', 'Duyet', 'DangNhap')");
+                            t.HasCheckConstraint("CK_AuditLog_Action", "[Action] IN ('Them', 'Sua', 'Huy', 'In', 'Duyet', 'DangNhap')");
                         });
                 });
 
-            modelBuilder.Entity("LuuKyCanTin.Domain.HeThong.Quyen", b =>
+            modelBuilder.Entity("LuuKyCanTin.Domain.Administration.FacilityInfo", b =>
                 {
                     b.Property<int>("Id")
                         .HasColumnType("int");
 
-                    b.Property<string>("Ma")
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .IsUnicode(true)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasPrecision(0)
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<int>("CreatedById")
+                        .HasColumnType("int");
+
+                    b.Property<string>("FacilityName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .IsUnicode(true)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasPrecision(0)
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<int?>("ModifiedById")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ParentAgencyName")
+                        .HasMaxLength(200)
+                        .IsUnicode(true)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<byte[]>("RowVer")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("FacilityInfo", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_FacilityInfo_Id", "[Id] = 1");
+                        });
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Address = "",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            CreatedById = 0,
+                            FacilityName = "",
+                            RowVer = new byte[0]
+                        });
+                });
+
+            modelBuilder.Entity("LuuKyCanTin.Domain.Administration.Permission", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Code")
                         .IsRequired()
                         .HasMaxLength(50)
                         .IsUnicode(false)
@@ -376,7 +155,7 @@ namespace LuuKyCanTin.Infrastructure.Persistence.Migrations
                         .IsUnicode(false)
                         .HasColumnType("varchar(10)");
 
-                    b.Property<string>("Ten")
+                    b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(150)
                         .IsUnicode(true)
@@ -384,412 +163,351 @@ namespace LuuKyCanTin.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Ma")
+                    b.HasIndex("Code")
                         .IsUnique();
 
-                    b.ToTable("Quyen", (string)null);
+                    b.ToTable("Permission", (string)null);
 
                     b.HasData(
                         new
                         {
                             Id = 1,
-                            Ma = "HT.Xem",
+                            Code = "HT.Xem",
                             Module = "HT",
-                            Ten = "Xem — Hệ thống"
+                            Name = "Xem — Hệ thống"
                         },
                         new
                         {
                             Id = 2,
-                            Ma = "HT.Them",
+                            Code = "HT.Them",
                             Module = "HT",
-                            Ten = "Them — Hệ thống"
+                            Name = "Them — Hệ thống"
                         },
                         new
                         {
                             Id = 3,
-                            Ma = "HT.Sua",
+                            Code = "HT.Sua",
                             Module = "HT",
-                            Ten = "Sua — Hệ thống"
+                            Name = "Sua — Hệ thống"
                         },
                         new
                         {
                             Id = 4,
-                            Ma = "HT.Huy",
+                            Code = "HT.Huy",
                             Module = "HT",
-                            Ten = "Huy — Hệ thống"
+                            Name = "Huy — Hệ thống"
                         },
                         new
                         {
                             Id = 5,
-                            Ma = "HT.In",
+                            Code = "HT.In",
                             Module = "HT",
-                            Ten = "In — Hệ thống"
+                            Name = "In — Hệ thống"
                         },
                         new
                         {
                             Id = 6,
-                            Ma = "HT.Duyet",
+                            Code = "HT.Duyet",
                             Module = "HT",
-                            Ten = "Duyet — Hệ thống"
+                            Name = "Duyet — Hệ thống"
                         },
                         new
                         {
                             Id = 7,
-                            Ma = "DM.Xem",
+                            Code = "DM.Xem",
                             Module = "DM",
-                            Ten = "Xem — Danh mục"
+                            Name = "Xem — Danh mục"
                         },
                         new
                         {
                             Id = 8,
-                            Ma = "DM.Them",
+                            Code = "DM.Them",
                             Module = "DM",
-                            Ten = "Them — Danh mục"
+                            Name = "Them — Danh mục"
                         },
                         new
                         {
                             Id = 9,
-                            Ma = "DM.Sua",
+                            Code = "DM.Sua",
                             Module = "DM",
-                            Ten = "Sua — Danh mục"
+                            Name = "Sua — Danh mục"
                         },
                         new
                         {
                             Id = 10,
-                            Ma = "DM.Huy",
+                            Code = "DM.Huy",
                             Module = "DM",
-                            Ten = "Huy — Danh mục"
+                            Name = "Huy — Danh mục"
                         },
                         new
                         {
                             Id = 11,
-                            Ma = "DM.In",
+                            Code = "DM.In",
                             Module = "DM",
-                            Ten = "In — Danh mục"
+                            Name = "In — Danh mục"
                         },
                         new
                         {
                             Id = 12,
-                            Ma = "DM.Duyet",
+                            Code = "DM.Duyet",
                             Module = "DM",
-                            Ten = "Duyet — Danh mục"
+                            Name = "Duyet — Danh mục"
                         },
                         new
                         {
                             Id = 13,
-                            Ma = "LK-T.Xem",
+                            Code = "LK-T.Xem",
                             Module = "LK-T",
-                            Ten = "Xem — Tăng tiền lưu ký"
+                            Name = "Xem — Tăng tiền lưu ký"
                         },
                         new
                         {
                             Id = 14,
-                            Ma = "LK-T.Them",
+                            Code = "LK-T.Them",
                             Module = "LK-T",
-                            Ten = "Them — Tăng tiền lưu ký"
+                            Name = "Them — Tăng tiền lưu ký"
                         },
                         new
                         {
                             Id = 15,
-                            Ma = "LK-T.Sua",
+                            Code = "LK-T.Sua",
                             Module = "LK-T",
-                            Ten = "Sua — Tăng tiền lưu ký"
+                            Name = "Sua — Tăng tiền lưu ký"
                         },
                         new
                         {
                             Id = 16,
-                            Ma = "LK-T.Huy",
+                            Code = "LK-T.Huy",
                             Module = "LK-T",
-                            Ten = "Huy — Tăng tiền lưu ký"
+                            Name = "Huy — Tăng tiền lưu ký"
                         },
                         new
                         {
                             Id = 17,
-                            Ma = "LK-T.In",
+                            Code = "LK-T.In",
                             Module = "LK-T",
-                            Ten = "In — Tăng tiền lưu ký"
+                            Name = "In — Tăng tiền lưu ký"
                         },
                         new
                         {
                             Id = 18,
-                            Ma = "LK-T.Duyet",
+                            Code = "LK-T.Duyet",
                             Module = "LK-T",
-                            Ten = "Duyet — Tăng tiền lưu ký"
+                            Name = "Duyet — Tăng tiền lưu ký"
                         },
                         new
                         {
                             Id = 19,
-                            Ma = "LK-C.Xem",
+                            Code = "LK-C.Xem",
                             Module = "LK-C",
-                            Ten = "Xem — Giảm tiền lưu ký"
+                            Name = "Xem — Giảm tiền lưu ký"
                         },
                         new
                         {
                             Id = 20,
-                            Ma = "LK-C.Them",
+                            Code = "LK-C.Them",
                             Module = "LK-C",
-                            Ten = "Them — Giảm tiền lưu ký"
+                            Name = "Them — Giảm tiền lưu ký"
                         },
                         new
                         {
                             Id = 21,
-                            Ma = "LK-C.Sua",
+                            Code = "LK-C.Sua",
                             Module = "LK-C",
-                            Ten = "Sua — Giảm tiền lưu ký"
+                            Name = "Sua — Giảm tiền lưu ký"
                         },
                         new
                         {
                             Id = 22,
-                            Ma = "LK-C.Huy",
+                            Code = "LK-C.Huy",
                             Module = "LK-C",
-                            Ten = "Huy — Giảm tiền lưu ký"
+                            Name = "Huy — Giảm tiền lưu ký"
                         },
                         new
                         {
                             Id = 23,
-                            Ma = "LK-C.In",
+                            Code = "LK-C.In",
                             Module = "LK-C",
-                            Ten = "In — Giảm tiền lưu ký"
+                            Name = "In — Giảm tiền lưu ký"
                         },
                         new
                         {
                             Id = 24,
-                            Ma = "LK-C.Duyet",
+                            Code = "LK-C.Duyet",
                             Module = "LK-C",
-                            Ten = "Duyet — Giảm tiền lưu ký"
+                            Name = "Duyet — Giảm tiền lưu ký"
                         },
                         new
                         {
                             Id = 25,
-                            Ma = "LK-BC.Xem",
+                            Code = "LK-BC.Xem",
                             Module = "LK-BC",
-                            Ten = "Xem — Báo cáo lưu ký"
+                            Name = "Xem — Báo cáo lưu ký"
                         },
                         new
                         {
                             Id = 26,
-                            Ma = "LK-BC.Them",
+                            Code = "LK-BC.Them",
                             Module = "LK-BC",
-                            Ten = "Them — Báo cáo lưu ký"
+                            Name = "Them — Báo cáo lưu ký"
                         },
                         new
                         {
                             Id = 27,
-                            Ma = "LK-BC.Sua",
+                            Code = "LK-BC.Sua",
                             Module = "LK-BC",
-                            Ten = "Sua — Báo cáo lưu ký"
+                            Name = "Sua — Báo cáo lưu ký"
                         },
                         new
                         {
                             Id = 28,
-                            Ma = "LK-BC.Huy",
+                            Code = "LK-BC.Huy",
                             Module = "LK-BC",
-                            Ten = "Huy — Báo cáo lưu ký"
+                            Name = "Huy — Báo cáo lưu ký"
                         },
                         new
                         {
                             Id = 29,
-                            Ma = "LK-BC.In",
+                            Code = "LK-BC.In",
                             Module = "LK-BC",
-                            Ten = "In — Báo cáo lưu ký"
+                            Name = "In — Báo cáo lưu ký"
                         },
                         new
                         {
                             Id = 30,
-                            Ma = "LK-BC.Duyet",
+                            Code = "LK-BC.Duyet",
                             Module = "LK-BC",
-                            Ten = "Duyet — Báo cáo lưu ký"
+                            Name = "Duyet — Báo cáo lưu ký"
                         },
                         new
                         {
                             Id = 31,
-                            Ma = "NH.Xem",
+                            Code = "NH.Xem",
                             Module = "NH",
-                            Ten = "Xem — Nhập hàng"
+                            Name = "Xem — Nhập hàng"
                         },
                         new
                         {
                             Id = 32,
-                            Ma = "NH.Them",
+                            Code = "NH.Them",
                             Module = "NH",
-                            Ten = "Them — Nhập hàng"
+                            Name = "Them — Nhập hàng"
                         },
                         new
                         {
                             Id = 33,
-                            Ma = "NH.Sua",
+                            Code = "NH.Sua",
                             Module = "NH",
-                            Ten = "Sua — Nhập hàng"
+                            Name = "Sua — Nhập hàng"
                         },
                         new
                         {
                             Id = 34,
-                            Ma = "NH.Huy",
+                            Code = "NH.Huy",
                             Module = "NH",
-                            Ten = "Huy — Nhập hàng"
+                            Name = "Huy — Nhập hàng"
                         },
                         new
                         {
                             Id = 35,
-                            Ma = "NH.In",
+                            Code = "NH.In",
                             Module = "NH",
-                            Ten = "In — Nhập hàng"
+                            Name = "In — Nhập hàng"
                         },
                         new
                         {
                             Id = 36,
-                            Ma = "NH.Duyet",
+                            Code = "NH.Duyet",
                             Module = "NH",
-                            Ten = "Duyet — Nhập hàng"
+                            Name = "Duyet — Nhập hàng"
                         },
                         new
                         {
                             Id = 37,
-                            Ma = "BH.Xem",
+                            Code = "BH.Xem",
                             Module = "BH",
-                            Ten = "Xem — Bán hàng"
+                            Name = "Xem — Bán hàng"
                         },
                         new
                         {
                             Id = 38,
-                            Ma = "BH.Them",
+                            Code = "BH.Them",
                             Module = "BH",
-                            Ten = "Them — Bán hàng"
+                            Name = "Them — Bán hàng"
                         },
                         new
                         {
                             Id = 39,
-                            Ma = "BH.Sua",
+                            Code = "BH.Sua",
                             Module = "BH",
-                            Ten = "Sua — Bán hàng"
+                            Name = "Sua — Bán hàng"
                         },
                         new
                         {
                             Id = 40,
-                            Ma = "BH.Huy",
+                            Code = "BH.Huy",
                             Module = "BH",
-                            Ten = "Huy — Bán hàng"
+                            Name = "Huy — Bán hàng"
                         },
                         new
                         {
                             Id = 41,
-                            Ma = "BH.In",
+                            Code = "BH.In",
                             Module = "BH",
-                            Ten = "In — Bán hàng"
+                            Name = "In — Bán hàng"
                         },
                         new
                         {
                             Id = 42,
-                            Ma = "BH.Duyet",
+                            Code = "BH.Duyet",
                             Module = "BH",
-                            Ten = "Duyet — Bán hàng"
+                            Name = "Duyet — Bán hàng"
                         },
                         new
                         {
                             Id = 43,
-                            Ma = "HH-BC.Xem",
+                            Code = "HH-BC.Xem",
                             Module = "HH-BC",
-                            Ten = "Xem — Báo cáo hàng hóa"
+                            Name = "Xem — Báo cáo hàng hóa"
                         },
                         new
                         {
                             Id = 44,
-                            Ma = "HH-BC.Them",
+                            Code = "HH-BC.Them",
                             Module = "HH-BC",
-                            Ten = "Them — Báo cáo hàng hóa"
+                            Name = "Them — Báo cáo hàng hóa"
                         },
                         new
                         {
                             Id = 45,
-                            Ma = "HH-BC.Sua",
+                            Code = "HH-BC.Sua",
                             Module = "HH-BC",
-                            Ten = "Sua — Báo cáo hàng hóa"
+                            Name = "Sua — Báo cáo hàng hóa"
                         },
                         new
                         {
                             Id = 46,
-                            Ma = "HH-BC.Huy",
+                            Code = "HH-BC.Huy",
                             Module = "HH-BC",
-                            Ten = "Huy — Báo cáo hàng hóa"
+                            Name = "Huy — Báo cáo hàng hóa"
                         },
                         new
                         {
                             Id = 47,
-                            Ma = "HH-BC.In",
+                            Code = "HH-BC.In",
                             Module = "HH-BC",
-                            Ten = "In — Báo cáo hàng hóa"
+                            Name = "In — Báo cáo hàng hóa"
                         },
                         new
                         {
                             Id = 48,
-                            Ma = "HH-BC.Duyet",
+                            Code = "HH-BC.Duyet",
                             Module = "HH-BC",
-                            Ten = "Duyet — Báo cáo hàng hóa"
+                            Name = "Duyet — Báo cáo hàng hóa"
                         });
                 });
 
-            modelBuilder.Entity("LuuKyCanTin.Domain.HeThong.ThongTinDonVi", b =>
-                {
-                    b.Property<int>("Id")
-                        .HasColumnType("int");
-
-                    b.Property<string>("DiaChi")
-                        .IsRequired()
-                        .HasMaxLength(300)
-                        .IsUnicode(true)
-                        .HasColumnType("nvarchar(300)");
-
-                    b.Property<DateTime?>("NgaySua")
-                        .HasPrecision(0)
-                        .HasColumnType("datetime2(0)");
-
-                    b.Property<DateTime>("NgayTao")
-                        .HasPrecision(0)
-                        .HasColumnType("datetime2(0)");
-
-                    b.Property<int?>("NguoiSuaId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("NguoiTaoId")
-                        .HasColumnType("int");
-
-                    b.Property<byte[]>("RowVer")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
-                    b.Property<string>("TenCoQuanChuQuan")
-                        .HasMaxLength(200)
-                        .IsUnicode(true)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("TenDonVi")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .IsUnicode(true)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("ThongTinDonVi", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_ThongTinDonVi_Id", "[Id] = 1");
-                        });
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            DiaChi = "",
-                            NgayTao = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            NguoiTaoId = 0,
-                            RowVer = new byte[0],
-                            TenDonVi = ""
-                        });
-                });
-
-            modelBuilder.Entity("LuuKyCanTin.Domain.HeThong.VaiTro", b =>
+            modelBuilder.Entity("LuuKyCanTin.Domain.Administration.Role", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -797,25 +515,31 @@ namespace LuuKyCanTin.Infrastructure.Persistence.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("Ma")
+                    b.Property<string>("Code")
                         .IsRequired()
                         .HasMaxLength(30)
                         .IsUnicode(false)
                         .HasColumnType("varchar(30)");
 
-                    b.Property<DateTime?>("NgaySua")
+                    b.Property<DateTime>("CreatedAt")
                         .HasPrecision(0)
                         .HasColumnType("datetime2(0)");
 
-                    b.Property<DateTime>("NgayTao")
+                    b.Property<int>("CreatedById")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("ModifiedAt")
                         .HasPrecision(0)
                         .HasColumnType("datetime2(0)");
 
-                    b.Property<int?>("NguoiSuaId")
+                    b.Property<int?>("ModifiedById")
                         .HasColumnType("int");
 
-                    b.Property<int>("NguoiTaoId")
-                        .HasColumnType("int");
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .IsUnicode(true)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<byte[]>("RowVer")
                         .IsConcurrencyToken()
@@ -823,374 +547,485 @@ namespace LuuKyCanTin.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
 
-                    b.Property<string>("Ten")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .IsUnicode(true)
-                        .HasColumnType("nvarchar(100)");
-
                     b.HasKey("Id");
 
-                    b.HasIndex("Ma")
+                    b.HasIndex("Code")
                         .IsUnique();
 
-                    b.ToTable("VaiTro", (string)null);
+                    b.ToTable("Role", (string)null);
 
                     b.HasData(
                         new
                         {
                             Id = 1,
-                            Ma = "QUAN_TRI",
-                            NgayTao = new DateTime(2026, 10, 2, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            NguoiTaoId = 0,
-                            RowVer = new byte[0],
-                            Ten = "Quản trị hệ thống"
+                            Code = "QUAN_TRI",
+                            CreatedAt = new DateTime(2026, 10, 2, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            CreatedById = 0,
+                            Name = "Quản trị hệ thống",
+                            RowVer = new byte[0]
                         },
                         new
                         {
                             Id = 2,
-                            Ma = "LUU_KY",
-                            NgayTao = new DateTime(2026, 10, 2, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            NguoiTaoId = 0,
-                            RowVer = new byte[0],
-                            Ten = "Cán bộ theo dõi tiền lưu ký"
+                            Code = "LUU_KY",
+                            CreatedAt = new DateTime(2026, 10, 2, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            CreatedById = 0,
+                            Name = "Cán bộ theo dõi tiền lưu ký",
+                            RowVer = new byte[0]
                         },
                         new
                         {
                             Id = 3,
-                            Ma = "CAN_TIN",
-                            NgayTao = new DateTime(2026, 10, 2, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            NguoiTaoId = 0,
-                            RowVer = new byte[0],
-                            Ten = "Cán bộ căn tin / bán hàng"
+                            Code = "CAN_TIN",
+                            CreatedAt = new DateTime(2026, 10, 2, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            CreatedById = 0,
+                            Name = "Cán bộ căn tin / bán hàng",
+                            RowVer = new byte[0]
                         },
                         new
                         {
                             Id = 4,
-                            Ma = "QUAN_GIAO",
-                            NgayTao = new DateTime(2026, 10, 2, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            NguoiTaoId = 0,
-                            RowVer = new byte[0],
-                            Ten = "Cán bộ quản giáo"
+                            Code = "QUAN_GIAO",
+                            CreatedAt = new DateTime(2026, 10, 2, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            CreatedById = 0,
+                            Name = "Cán bộ quản giáo",
+                            RowVer = new byte[0]
                         },
                         new
                         {
                             Id = 5,
-                            Ma = "LANH_DAO",
-                            NgayTao = new DateTime(2026, 10, 2, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            NguoiTaoId = 0,
-                            RowVer = new byte[0],
-                            Ten = "Chỉ huy phụ trách / Lãnh đạo đơn vị"
+                            Code = "LANH_DAO",
+                            CreatedAt = new DateTime(2026, 10, 2, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            CreatedById = 0,
+                            Name = "Chỉ huy phụ trách / Lãnh đạo đơn vị",
+                            RowVer = new byte[0]
                         },
                         new
                         {
                             Id = 6,
-                            Ma = "KE_TOAN",
-                            NgayTao = new DateTime(2026, 10, 2, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            NguoiTaoId = 0,
-                            RowVer = new byte[0],
-                            Ten = "Kế toán đơn vị"
+                            Code = "KE_TOAN",
+                            CreatedAt = new DateTime(2026, 10, 2, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            CreatedById = 0,
+                            Name = "Kế toán đơn vị",
+                            RowVer = new byte[0]
                         });
                 });
 
-            modelBuilder.Entity("LuuKyCanTin.Domain.HeThong.VaiTroQuyen", b =>
+            modelBuilder.Entity("LuuKyCanTin.Domain.Administration.RolePermission", b =>
                 {
-                    b.Property<int>("VaiTroId")
+                    b.Property<int>("RoleId")
                         .HasColumnType("int");
 
-                    b.Property<int>("QuyenId")
+                    b.Property<int>("PermissionId")
                         .HasColumnType("int");
 
-                    b.HasKey("VaiTroId", "QuyenId");
+                    b.HasKey("RoleId", "PermissionId");
 
-                    b.HasIndex("QuyenId");
+                    b.HasIndex("PermissionId");
 
-                    b.ToTable("VaiTroQuyen", (string)null);
+                    b.ToTable("RolePermission", (string)null);
 
                     b.HasData(
                         new
                         {
-                            VaiTroId = 1,
-                            QuyenId = 1
+                            RoleId = 1,
+                            PermissionId = 1
                         },
                         new
                         {
-                            VaiTroId = 1,
-                            QuyenId = 2
+                            RoleId = 1,
+                            PermissionId = 2
                         },
                         new
                         {
-                            VaiTroId = 1,
-                            QuyenId = 3
+                            RoleId = 1,
+                            PermissionId = 3
                         },
                         new
                         {
-                            VaiTroId = 1,
-                            QuyenId = 4
+                            RoleId = 1,
+                            PermissionId = 4
                         },
                         new
                         {
-                            VaiTroId = 1,
-                            QuyenId = 5
+                            RoleId = 1,
+                            PermissionId = 5
                         },
                         new
                         {
-                            VaiTroId = 1,
-                            QuyenId = 6
+                            RoleId = 1,
+                            PermissionId = 6
                         },
                         new
                         {
-                            VaiTroId = 1,
-                            QuyenId = 7
+                            RoleId = 1,
+                            PermissionId = 7
                         },
                         new
                         {
-                            VaiTroId = 1,
-                            QuyenId = 8
+                            RoleId = 1,
+                            PermissionId = 8
                         },
                         new
                         {
-                            VaiTroId = 1,
-                            QuyenId = 9
+                            RoleId = 1,
+                            PermissionId = 9
                         },
                         new
                         {
-                            VaiTroId = 1,
-                            QuyenId = 10
+                            RoleId = 1,
+                            PermissionId = 10
                         },
                         new
                         {
-                            VaiTroId = 1,
-                            QuyenId = 11
+                            RoleId = 1,
+                            PermissionId = 11
                         },
                         new
                         {
-                            VaiTroId = 1,
-                            QuyenId = 12
+                            RoleId = 1,
+                            PermissionId = 12
                         },
                         new
                         {
-                            VaiTroId = 2,
-                            QuyenId = 13
+                            RoleId = 2,
+                            PermissionId = 13
                         },
                         new
                         {
-                            VaiTroId = 2,
-                            QuyenId = 14
+                            RoleId = 2,
+                            PermissionId = 14
                         },
                         new
                         {
-                            VaiTroId = 2,
-                            QuyenId = 15
+                            RoleId = 2,
+                            PermissionId = 15
                         },
                         new
                         {
-                            VaiTroId = 2,
-                            QuyenId = 16
+                            RoleId = 2,
+                            PermissionId = 16
                         },
                         new
                         {
-                            VaiTroId = 2,
-                            QuyenId = 17
+                            RoleId = 2,
+                            PermissionId = 17
                         },
                         new
                         {
-                            VaiTroId = 2,
-                            QuyenId = 19
+                            RoleId = 2,
+                            PermissionId = 19
                         },
                         new
                         {
-                            VaiTroId = 2,
-                            QuyenId = 20
+                            RoleId = 2,
+                            PermissionId = 20
                         },
                         new
                         {
-                            VaiTroId = 2,
-                            QuyenId = 21
+                            RoleId = 2,
+                            PermissionId = 21
                         },
                         new
                         {
-                            VaiTroId = 2,
-                            QuyenId = 22
+                            RoleId = 2,
+                            PermissionId = 22
                         },
                         new
                         {
-                            VaiTroId = 2,
-                            QuyenId = 23
+                            RoleId = 2,
+                            PermissionId = 23
                         },
                         new
                         {
-                            VaiTroId = 2,
-                            QuyenId = 25
+                            RoleId = 2,
+                            PermissionId = 25
                         },
                         new
                         {
-                            VaiTroId = 2,
-                            QuyenId = 26
+                            RoleId = 2,
+                            PermissionId = 26
                         },
                         new
                         {
-                            VaiTroId = 2,
-                            QuyenId = 27
+                            RoleId = 2,
+                            PermissionId = 27
                         },
                         new
                         {
-                            VaiTroId = 2,
-                            QuyenId = 28
+                            RoleId = 2,
+                            PermissionId = 28
                         },
                         new
                         {
-                            VaiTroId = 2,
-                            QuyenId = 29
+                            RoleId = 2,
+                            PermissionId = 29
                         },
                         new
                         {
-                            VaiTroId = 2,
-                            QuyenId = 7
+                            RoleId = 2,
+                            PermissionId = 7
                         },
                         new
                         {
-                            VaiTroId = 3,
-                            QuyenId = 31
+                            RoleId = 3,
+                            PermissionId = 31
                         },
                         new
                         {
-                            VaiTroId = 3,
-                            QuyenId = 32
+                            RoleId = 3,
+                            PermissionId = 32
                         },
                         new
                         {
-                            VaiTroId = 3,
-                            QuyenId = 33
+                            RoleId = 3,
+                            PermissionId = 33
                         },
                         new
                         {
-                            VaiTroId = 3,
-                            QuyenId = 34
+                            RoleId = 3,
+                            PermissionId = 34
                         },
                         new
                         {
-                            VaiTroId = 3,
-                            QuyenId = 35
+                            RoleId = 3,
+                            PermissionId = 35
                         },
                         new
                         {
-                            VaiTroId = 3,
-                            QuyenId = 36
+                            RoleId = 3,
+                            PermissionId = 36
                         },
                         new
                         {
-                            VaiTroId = 3,
-                            QuyenId = 37
+                            RoleId = 3,
+                            PermissionId = 37
                         },
                         new
                         {
-                            VaiTroId = 3,
-                            QuyenId = 38
+                            RoleId = 3,
+                            PermissionId = 38
                         },
                         new
                         {
-                            VaiTroId = 3,
-                            QuyenId = 39
+                            RoleId = 3,
+                            PermissionId = 39
                         },
                         new
                         {
-                            VaiTroId = 3,
-                            QuyenId = 40
+                            RoleId = 3,
+                            PermissionId = 40
                         },
                         new
                         {
-                            VaiTroId = 3,
-                            QuyenId = 41
+                            RoleId = 3,
+                            PermissionId = 41
                         },
                         new
                         {
-                            VaiTroId = 3,
-                            QuyenId = 42
+                            RoleId = 3,
+                            PermissionId = 42
                         },
                         new
                         {
-                            VaiTroId = 3,
-                            QuyenId = 43
+                            RoleId = 3,
+                            PermissionId = 43
                         },
                         new
                         {
-                            VaiTroId = 3,
-                            QuyenId = 44
+                            RoleId = 3,
+                            PermissionId = 44
                         },
                         new
                         {
-                            VaiTroId = 3,
-                            QuyenId = 45
+                            RoleId = 3,
+                            PermissionId = 45
                         },
                         new
                         {
-                            VaiTroId = 3,
-                            QuyenId = 46
+                            RoleId = 3,
+                            PermissionId = 46
                         },
                         new
                         {
-                            VaiTroId = 3,
-                            QuyenId = 47
+                            RoleId = 3,
+                            PermissionId = 47
                         },
                         new
                         {
-                            VaiTroId = 3,
-                            QuyenId = 48
+                            RoleId = 3,
+                            PermissionId = 48
                         },
                         new
                         {
-                            VaiTroId = 3,
-                            QuyenId = 25
+                            RoleId = 3,
+                            PermissionId = 25
                         },
                         new
                         {
-                            VaiTroId = 4,
-                            QuyenId = 25
+                            RoleId = 4,
+                            PermissionId = 25
                         },
                         new
                         {
-                            VaiTroId = 5,
-                            QuyenId = 18
+                            RoleId = 5,
+                            PermissionId = 18
                         },
                         new
                         {
-                            VaiTroId = 5,
-                            QuyenId = 24
+                            RoleId = 5,
+                            PermissionId = 24
                         },
                         new
                         {
-                            VaiTroId = 5,
-                            QuyenId = 36
+                            RoleId = 5,
+                            PermissionId = 36
                         },
                         new
                         {
-                            VaiTroId = 5,
-                            QuyenId = 25
+                            RoleId = 5,
+                            PermissionId = 25
                         },
                         new
                         {
-                            VaiTroId = 5,
-                            QuyenId = 43
+                            RoleId = 5,
+                            PermissionId = 43
                         },
                         new
                         {
-                            VaiTroId = 5,
-                            QuyenId = 1
+                            RoleId = 5,
+                            PermissionId = 1
                         },
                         new
                         {
-                            VaiTroId = 6,
-                            QuyenId = 25
+                            RoleId = 6,
+                            PermissionId = 25
                         },
                         new
                         {
-                            VaiTroId = 6,
-                            QuyenId = 43
+                            RoleId = 6,
+                            PermissionId = 43
                         });
                 });
 
-            modelBuilder.Entity("LuuKyCanTin.Domain.LuuKy.ChungTuLuuKy", b =>
+            modelBuilder.Entity("LuuKyCanTin.Domain.Administration.User", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasPrecision(0)
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<int>("CreatedById")
+                        .HasColumnType("int");
+
+                    b.Property<byte>("FailedAttemptCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint")
+                        .HasDefaultValue((byte)0);
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<DateTime?>("LockedUntil")
+                        .HasPrecision(0)
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasPrecision(0)
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<int?>("ModifiedById")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("MustChangePassword")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<byte[]>("RowVer")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("UserName")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .IsUnicode(true)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserName")
+                        .IsUnique();
+
+                    b.ToTable("User", (string)null);
+                });
+
+            modelBuilder.Entity("LuuKyCanTin.Domain.Administration.UserRole", b =>
+                {
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("RoleId")
+                        .HasColumnType("int");
+
+                    b.HasKey("UserId", "RoleId");
+
+                    b.HasIndex("RoleId");
+
+                    b.ToTable("UserRole", (string)null);
+                });
+
+            modelBuilder.Entity("LuuKyCanTin.Domain.Administration.VoucherCounter", b =>
+                {
+                    b.Property<string>("VoucherTypeCode")
+                        .HasMaxLength(10)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(10)");
+
+                    b.Property<short>("Year")
+                        .HasColumnType("smallint");
+
+                    b.Property<int>("CurrentNumber")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<string>("Prefix")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(10)");
+
+                    b.HasKey("VoucherTypeCode", "Year");
+
+                    b.ToTable("VoucherCounter", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            VoucherTypeCode = "BNT",
+                            Year = (short)2026,
+                            CurrentNumber = 0,
+                            Prefix = "BNT"
+                        });
+                });
+
+            modelBuilder.Entity("LuuKyCanTin.Domain.Custody.CustodyVoucher", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
@@ -1198,70 +1033,79 @@ namespace LuuKyCanTin.Infrastructure.Persistence.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
-                    b.Property<int>("DoiTuongId")
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18)
+                        .HasColumnType("decimal(18,0)");
+
+                    b.Property<string>("AmountInWords")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .IsUnicode(true)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<decimal>("BalanceAfter")
+                        .HasPrecision(18)
+                        .HasColumnType("decimal(18,0)");
+
+                    b.Property<decimal>("BalanceBefore")
+                        .HasPrecision(18)
+                        .HasColumnType("decimal(18,0)");
+
+                    b.Property<string>("CancellationReason")
+                        .HasMaxLength(300)
+                        .IsUnicode(true)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasPrecision(0)
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<int?>("CancelledById")
                         .HasColumnType("int");
 
-                    b.Property<byte>("HinhThuc")
-                        .HasColumnType("tinyint");
+                    b.Property<DateTime>("CreatedAt")
+                        .HasPrecision(0)
+                        .HasColumnType("datetime2(0)");
 
-                    b.Property<string>("HoTenDoiTuong")
+                    b.Property<int>("CreatedById")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .IsUnicode(true)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("InmateFullName")
                         .IsRequired()
                         .HasMaxLength(100)
                         .IsUnicode(true)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<byte>("LoaiDoiTuong")
+                    b.Property<int>("InmateId")
+                        .HasColumnType("int");
+
+                    b.Property<byte>("InmateType")
                         .HasColumnType("tinyint");
 
-                    b.Property<byte>("LoaiPhieu")
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasPrecision(0)
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<int?>("ModifiedById")
+                        .HasColumnType("int");
+
+                    b.Property<byte>("PaymentMethod")
                         .HasColumnType("tinyint");
 
-                    b.Property<string>("LyDoHuy")
-                        .HasMaxLength(300)
-                        .IsUnicode(true)
-                        .HasColumnType("nvarchar(300)");
+                    b.Property<short>("PrintCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("smallint")
+                        .HasDefaultValue((short)0);
 
-                    b.Property<DateOnly>("NgayChungTu")
+                    b.Property<DateOnly?>("ReceivedDate")
                         .HasColumnType("date");
 
-                    b.Property<DateTime?>("NgayHuy")
-                        .HasPrecision(0)
-                        .HasColumnType("datetime2(0)");
-
-                    b.Property<DateOnly?>("NgayNhan")
-                        .HasColumnType("date");
-
-                    b.Property<DateTime?>("NgaySua")
-                        .HasPrecision(0)
-                        .HasColumnType("datetime2(0)");
-
-                    b.Property<DateTime>("NgayTao")
-                        .HasPrecision(0)
-                        .HasColumnType("datetime2(0)");
-
-                    b.Property<byte>("NghiepVu")
-                        .HasColumnType("tinyint");
-
-                    b.Property<string>("NguoiGuiHoTen")
-                        .HasMaxLength(100)
-                        .IsUnicode(true)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<int?>("NguoiHuyId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("NguoiSuaId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("NguoiTaoId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("NoiDung")
-                        .HasMaxLength(500)
-                        .IsUnicode(true)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("QuanHe")
+                    b.Property<string>("Relationship")
                         .HasMaxLength(50)
                         .IsUnicode(true)
                         .HasColumnType("nvarchar(50)");
@@ -1272,125 +1116,262 @@ namespace LuuKyCanTin.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
 
-                    b.Property<string>("SoChungTu")
+                    b.Property<string>("SenderAccountNumber")
+                        .HasMaxLength(30)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(30)");
+
+                    b.Property<string>("SenderFullName")
+                        .HasMaxLength(100)
+                        .IsUnicode(true)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("SourceDocumentNumber")
+                        .HasMaxLength(30)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(30)");
+
+                    b.Property<byte>("Status")
+                        .HasColumnType("tinyint");
+
+                    b.Property<byte>("TransactionType")
+                        .HasColumnType("tinyint");
+
+                    b.Property<DateOnly>("VoucherDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("VoucherNumber")
                         .IsRequired()
                         .HasMaxLength(20)
                         .IsUnicode(false)
                         .HasColumnType("varchar(20)");
 
-                    b.Property<decimal>("SoDuSau")
-                        .HasPrecision(18)
-                        .HasColumnType("decimal(18,0)");
-
-                    b.Property<decimal>("SoDuTruoc")
-                        .HasPrecision(18)
-                        .HasColumnType("decimal(18,0)");
-
-                    b.Property<short>("SoLanIn")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("smallint")
-                        .HasDefaultValue((short)0);
-
-                    b.Property<string>("SoPhieuGoc")
-                        .HasMaxLength(30)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(30)");
-
-                    b.Property<string>("SoTaiKhoanNguoiGui")
-                        .HasMaxLength(30)
-                        .IsUnicode(false)
-                        .HasColumnType("varchar(30)");
-
-                    b.Property<decimal>("SoTien")
-                        .HasPrecision(18)
-                        .HasColumnType("decimal(18,0)");
-
-                    b.Property<string>("SoTienBangChu")
-                        .IsRequired()
-                        .HasMaxLength(300)
-                        .IsUnicode(true)
-                        .HasColumnType("nvarchar(300)");
-
-                    b.Property<byte>("TrangThai")
+                    b.Property<byte>("VoucherType")
                         .HasColumnType("tinyint");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("NgayChungTu")
-                        .HasFilter("[TrangThai] = 2");
+                    b.HasIndex("VoucherDate")
+                        .HasFilter("[Status] = 2");
 
-                    b.HasIndex("SoChungTu")
+                    b.HasIndex("VoucherNumber")
                         .IsUnique();
 
-                    b.HasIndex("DoiTuongId", "NgayChungTu", "Id");
+                    b.HasIndex("InmateId", "VoucherDate", "Id");
 
-                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("DoiTuongId", "NgayChungTu", "Id"), new[] { "LoaiPhieu", "SoTien", "TrangThai" });
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("InmateId", "VoucherDate", "Id"), new[] { "VoucherType", "Amount", "Status" });
 
-                    b.ToTable("ChungTuLuuKy", null, t =>
+                    b.ToTable("CustodyVoucher", null, t =>
                         {
-                            t.HasCheckConstraint("CK_ChungTuLuuKy_ChuyenKhoan", "[HinhThuc] <> 2 OR [SoTaiKhoanNguoiGui] IS NOT NULL");
+                            t.HasCheckConstraint("CK_CustodyVoucher_Amount", "[Amount] > 0");
 
-                            t.HasCheckConstraint("CK_ChungTuLuuKy_HinhThuc", "[HinhThuc] IN (1, 2)");
+                            t.HasCheckConstraint("CK_CustodyVoucher_BankTransfer", "[PaymentMethod] <> 2 OR [SenderAccountNumber] IS NOT NULL");
 
-                            t.HasCheckConstraint("CK_ChungTuLuuKy_Huy", "[TrangThai] <> 3 OR ([LyDoHuy] IS NOT NULL AND [NgayHuy] IS NOT NULL AND [NguoiHuyId] IS NOT NULL)");
+                            t.HasCheckConstraint("CK_CustodyVoucher_Cancellation", "[Status] <> 3 OR ([CancellationReason] IS NOT NULL AND [CancelledAt] IS NOT NULL AND [CancelledById] IS NOT NULL)");
 
-                            t.HasCheckConstraint("CK_ChungTuLuuKy_LoaiDoiTuong", "[LoaiDoiTuong] IN (1, 2)");
+                            t.HasCheckConstraint("CK_CustodyVoucher_InmateType", "[InmateType] IN (1, 2)");
 
-                            t.HasCheckConstraint("CK_ChungTuLuuKy_LoaiPhieu", "[LoaiPhieu] IN (1, 2)");
+                            t.HasCheckConstraint("CK_CustodyVoucher_PaymentMethod", "[PaymentMethod] IN (1, 2)");
 
-                            t.HasCheckConstraint("CK_ChungTuLuuKy_NghiepVu", "[NghiepVu] IN (11, 12, 13, 14, 21, 22, 23, 24, 25)");
+                            t.HasCheckConstraint("CK_CustodyVoucher_Status", "[Status] IN (1, 2, 3)");
 
-                            t.HasCheckConstraint("CK_ChungTuLuuKy_NghiepVu_LoaiPhieu", "[NghiepVu] / 10 = [LoaiPhieu]");
+                            t.HasCheckConstraint("CK_CustodyVoucher_TransactionType", "[TransactionType] IN (11, 12, 13, 14, 21, 22, 23, 24, 25)");
 
-                            t.HasCheckConstraint("CK_ChungTuLuuKy_SoTien", "[SoTien] > 0");
+                            t.HasCheckConstraint("CK_CustodyVoucher_TransactionType_VoucherType", "[TransactionType] / 10 = [VoucherType]");
 
-                            t.HasCheckConstraint("CK_ChungTuLuuKy_TrangThai", "[TrangThai] IN (1, 2, 3)");
+                            t.HasCheckConstraint("CK_CustodyVoucher_VoucherType", "[VoucherType] IN (1, 2)");
                         });
                 });
 
-            modelBuilder.Entity("LuuKyCanTin.Domain.HeThong.NguoiDung", b =>
+            modelBuilder.Entity("LuuKyCanTin.Domain.MasterData.Inmate", b =>
                 {
-                    b.HasOne("LuuKyCanTin.Domain.DanhMuc.CanBo", null)
-                        .WithMany()
-                        .HasForeignKey("CanBoId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateOnly>("AdmissionDate")
+                        .HasColumnType("date");
+
+                    b.Property<short?>("BirthYear")
+                        .HasColumnType("smallint");
+
+                    b.Property<string>("Cell")
+                        .HasMaxLength(50)
+                        .IsUnicode(true)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasPrecision(0)
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<int>("CreatedById")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("CustodyBalance")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18)
+                        .HasColumnType("decimal(18,0)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .IsUnicode(true)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("InmateCode")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(30)");
+
+                    b.Property<byte>("InmateType")
+                        .HasColumnType("tinyint");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasPrecision(0)
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<int?>("ModifiedById")
+                        .HasColumnType("int");
+
+                    b.Property<DateOnly?>("ReleaseDate")
+                        .HasColumnType("date");
+
+                    b.Property<byte[]>("RowVer")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<byte>("Status")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint")
+                        .HasDefaultValue((byte)1);
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FullName");
+
+                    b.HasIndex("InmateCode")
+                        .IsUnique();
+
+                    b.ToTable("Inmate", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Inmate_CustodyBalance", "[CustodyBalance] >= 0");
+
+                            t.HasCheckConstraint("CK_Inmate_InmateType", "[InmateType] IN (1, 2)");
+
+                            t.HasCheckConstraint("CK_Inmate_ReleaseDate", "[Status] = 1 OR [ReleaseDate] IS NOT NULL");
+
+                            t.HasCheckConstraint("CK_Inmate_Status", "[Status] IN (1, 2, 3)");
+                        });
                 });
 
-            modelBuilder.Entity("LuuKyCanTin.Domain.HeThong.NguoiDungVaiTro", b =>
+            modelBuilder.Entity("LuuKyCanTin.Domain.MasterData.Officer", b =>
                 {
-                    b.HasOne("LuuKyCanTin.Domain.HeThong.NguoiDung", null)
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasPrecision(0)
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<int>("CreatedById")
+                        .HasColumnType("int");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .IsUnicode(true)
+                        .HasColumnType("nvarchar(100)")
+                        .UseCollation("Latin1_General_100_CI_AI");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsSupervisingOfficer")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasPrecision(0)
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<int?>("ModifiedById")
+                        .HasColumnType("int");
+
+                    b.Property<string>("OfficerCode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<string>("Position")
+                        .HasMaxLength(100)
+                        .IsUnicode(true)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<byte[]>("RowVer")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FullName")
+                        .HasDatabaseName("IX_Officer_FullName");
+
+                    b.HasIndex("OfficerCode")
+                        .IsUnique();
+
+                    b.ToTable("Officer", (string)null);
+                });
+
+            modelBuilder.Entity("LuuKyCanTin.Domain.Administration.RolePermission", b =>
+                {
+                    b.HasOne("LuuKyCanTin.Domain.Administration.Permission", null)
                         .WithMany()
-                        .HasForeignKey("NguoiDungId")
+                        .HasForeignKey("PermissionId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("LuuKyCanTin.Domain.HeThong.VaiTro", null)
+                    b.HasOne("LuuKyCanTin.Domain.Administration.Role", null)
                         .WithMany()
-                        .HasForeignKey("VaiTroId")
+                        .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("LuuKyCanTin.Domain.HeThong.VaiTroQuyen", b =>
+            modelBuilder.Entity("LuuKyCanTin.Domain.Administration.UserRole", b =>
                 {
-                    b.HasOne("LuuKyCanTin.Domain.HeThong.Quyen", null)
+                    b.HasOne("LuuKyCanTin.Domain.Administration.Role", null)
                         .WithMany()
-                        .HasForeignKey("QuyenId")
+                        .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("LuuKyCanTin.Domain.HeThong.VaiTro", null)
+                    b.HasOne("LuuKyCanTin.Domain.Administration.User", null)
                         .WithMany()
-                        .HasForeignKey("VaiTroId")
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("LuuKyCanTin.Domain.LuuKy.ChungTuLuuKy", b =>
+            modelBuilder.Entity("LuuKyCanTin.Domain.Custody.CustodyVoucher", b =>
                 {
-                    b.HasOne("LuuKyCanTin.Domain.DanhMuc.DoiTuong", null)
+                    b.HasOne("LuuKyCanTin.Domain.MasterData.Inmate", null)
                         .WithMany()
-                        .HasForeignKey("DoiTuongId")
+                        .HasForeignKey("InmateId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });

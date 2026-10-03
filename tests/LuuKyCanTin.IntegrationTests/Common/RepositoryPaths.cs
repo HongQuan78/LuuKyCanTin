@@ -6,10 +6,10 @@ internal static class RepositoryPaths
 
     private static string FindRoot()
     {
-        for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir is not null; dir = dir.Parent)
+        for (var directory = new DirectoryInfo(AppContext.BaseDirectory); directory is not null; directory = directory.Parent)
         {
-            if (File.Exists(Path.Combine(dir.FullName, "LuuKyCanTin.slnx")))
-                return dir.FullName;
+            if (File.Exists(Path.Combine(directory.FullName, "LuuKyCanTin.slnx")))
+                return directory.FullName;
         }
 
         throw new InvalidOperationException("Could not find LuuKyCanTin.slnx above " + AppContext.BaseDirectory);

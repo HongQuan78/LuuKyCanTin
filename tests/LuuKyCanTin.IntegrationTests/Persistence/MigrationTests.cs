@@ -6,18 +6,18 @@ using Shouldly;
 namespace LuuKyCanTin.IntegrationTests.Persistence;
 
 [Collection(SqlServerCollection.Name)]
-public class MigrationTests(SqlServerFixture fixture)
+public sealed class MigrationTests(SqlServerFixture fixture)
 {
     private const string CollationSql = "SELECT CONVERT(nvarchar(128), DATABASEPROPERTYEX(DB_NAME(), 'Collation'))";
 
     [SqlServerFact]
     public async Task Migrate_EmptyServer_CreatesDatabaseWithVietnameseCollation()
     {
-        (await fixture.Database.ScalarAsync(CollationSql)).ShouldBe(AppDbContext.Collation);
+        (await fixture.Database.GetScalarAsync(CollationSql)).ShouldBe(AppDbContext.Collation);
     }
 
     [SqlServerFact]
-    public async Task Migrate_AppliesEveryMigration()
+    public async Task Migrate_NewDatabase_AppliesEveryMigration()
     {
         await using var db = fixture.Database.CreateDbContext();
 
@@ -30,10 +30,10 @@ public class MigrationTests(SqlServerFixture fixture)
     {
         await using var database = new TestDatabase();
         await database.CreateEmptyAsync();
-        (await database.ScalarAsync(CollationSql)).ShouldNotBe(AppDbContext.Collation);
+        (await database.GetScalarAsync(CollationSql)).ShouldNotBe(AppDbContext.Collation);
 
         await database.MigrateAsync();
 
-        (await database.ScalarAsync(CollationSql)).ShouldBe(AppDbContext.Collation);
+        (await database.GetScalarAsync(CollationSql)).ShouldBe(AppDbContext.Collation);
     }
 }

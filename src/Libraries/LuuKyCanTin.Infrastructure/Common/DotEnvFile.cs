@@ -42,12 +42,12 @@ public static class DotEnvFile
             if (separator <= 0)
                 throw new FormatException($"{FileName}: line {lineNumber} is not in the form KEY=VALUE.");
 
-            pairs.Add(new(line[..separator].Trim(), Unquote(line[(separator + 1)..].Trim())));
+            pairs.Add(new(line[..separator].Trim(), StripQuotes(line[(separator + 1)..].Trim())));
         }
 
         return pairs;
     }
 
-    private static string Unquote(string value) =>
+    private static string StripQuotes(string value) =>
         value.Length >= 2 && (value[0] is '"' or '\'') && value[^1] == value[0] ? value[1..^1] : value;
 }
