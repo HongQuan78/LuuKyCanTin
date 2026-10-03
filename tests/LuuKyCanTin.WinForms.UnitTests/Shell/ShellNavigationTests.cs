@@ -10,8 +10,10 @@ public class ShellNavigationTests
     private readonly INavigator _navigator = Substitute.For<INavigator>();
     private int _homeCount;
     private int _signOutCount;
+    private int _lockCount;
 
-    private NavigationModel Create() => ShellNavigation.Create(_navigator, () => _homeCount++, () => _signOutCount++);
+    private NavigationModel Create() =>
+        ShellNavigation.Create(_navigator, () => _homeCount++, () => _signOutCount++, () => _lockCount++);
 
     [Fact]
     public void Create_Sections_ListBusinessThenManagementGroupsWithBuiltScreensOnly()
@@ -51,16 +53,29 @@ public class ShellNavigationTests
     }
 
     [Fact]
-    public void Open_HomeAndSignOut_CallTheShellActions()
+    public void Open_HomeLockAndSignOut_CallTheShellActions()
     {
         var model = Create();
 
         model.Home.Open();
+        Item(model, ShellNavigation.LockSessionKey).Open();
         Item(model, ShellNavigation.SignOutKey).Open();
 
         _homeCount.ShouldBe(1);
+        _lockCount.ShouldBe(1);
         _signOutCount.ShouldBe(1);
         _navigator.ReceivedCalls().ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void LockSession_IsInTheSystemGroupOnCtrlLWithoutAPermission()
+    {
+        var item = Item(Create(), ShellNavigation.LockSessionKey);
+
+        item.Caption.ShouldBe("Kh&oá máy");
+        item.PermissionCode.ShouldBeNull();
+        item.Shortcut.ShouldBe(Keys.Control | Keys.L);
+        item.ShortcutText.ShouldBe("Ctrl+L");
     }
 
     [Fact]

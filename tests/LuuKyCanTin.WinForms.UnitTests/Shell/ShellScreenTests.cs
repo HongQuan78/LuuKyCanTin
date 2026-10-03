@@ -14,7 +14,7 @@ namespace LuuKyCanTin.WinForms.UnitTests.Shell;
 public class ShellScreenTests
 {
     private static NavigationModel Navigation() =>
-        ShellNavigation.Create(Substitute.For<INavigator>(), () => { }, () => { });
+        ShellNavigation.Create(Substitute.For<INavigator>(), () => { }, () => { }, () => { });
 
     [Fact]
     public void LoginForm_Mnemonics_AreUnique()
@@ -92,6 +92,25 @@ public class ShellScreenTests
             Should.NotThrow(() => view.ShowRuleResults(PasswordPolicy.Evaluate("", "")));
         });
     }
+
+    [Fact]
+    public void LockScreenForm_HasUniqueMnemonicsAndShowsTheUser()
+    {
+        StaThread.Run(() =>
+        {
+            using var form = new LockScreenForm();
+            ILockScreenView view = form;
+            view.Title = "Lưu ký – Căn tin";
+            view.ShowUser("NL", "Nguyễn Thị Lan");
+
+            MnemonicAssert.HasUniqueMnemonics(form);
+            form.AcceptButton.ShouldNotBeNull();
+            form.FormBorderStyle.ShouldBe(FormBorderStyle.None);
+        });
+    }
+
+    // The overlay's cover/disable behaviour touches Application.OpenForms, which is process-global and shared with
+    // every other test running in parallel, so it is verified by the manual check instead of a unit test.
 
     [Fact]
     public void MainForm_WithTheNavigation_HasUniqueMnemonics()

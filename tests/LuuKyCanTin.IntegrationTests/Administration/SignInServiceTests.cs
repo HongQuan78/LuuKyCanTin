@@ -254,6 +254,96 @@ public sealed class SignInServiceTests : IClassFixture<AppDatabaseFixture>, IAsy
     }
 
     [SqlServerFact]
+    public async Task Reauthenticate_WrongPassword_IncrementsFailedAttempts()
+    {
+        var account = await CreateAccountAsync();
+        await _fixture.SignInAsync(account);
+        await using var db = NewContext();
+
+        var result = await CreateSignInService(db).ReauthenticateAsync("sai-mat-khau");
+
+        result.Status.ShouldBe(SignInStatus.InvalidCredentials);
+        await using var check = _fixture.Database.CreateDbContext();
+        (await check.User.SingleAsync(u => u.Id == account.Id)).FailedAttemptCount.ShouldBe((byte)1);
+        _fixture.User.SignOut();
+    }
+
+    [SqlServerFact]
+    public async Task Reauthenticate_FifthFailure_LocksTheAccount()
+    {
+        var account = await CreateAccountAsync();
+        await using (var setup = NewContext())
+        {
+            var user = await setup.User.SingleAsync(u => u.Id == account.Id);
+            user.FailedAttemptCount = User.MaxFailedAttempts - 1;
+            await setup.SaveChangesAsync();
+        }
+
+        await _fixture.SignInAsync(account);
+        await using var db = NewContext();
+
+        var result = await CreateSignInService(db).ReauthenticateAsync("sai-mat-khau");
+
+        result.Status.ShouldBe(SignInStatus.AccountLocked);
+        await using var check = _fixture.Database.CreateDbContext();
+        var after = await check.User.SingleAsync(u => u.Id == account.Id);
+        after.LockedUntil.ShouldBe(_fixture.Clock.Now.AddMinutes(15));
+        var log = await GetAccountAuditLogsAsync(account.Id);
+        log.Count(n => n.Action == AuditAction.SignIn && HasEvent(n, SignInEvent.AccountLocked)).ShouldBe(1);
+        _fixture.User.SignOut();
+    }
+
+    [SqlServerFact]
+    public async Task Reauthenticate_CorrectPassword_WritesTheUnlockEvent()
+    {
+        var account = await CreateAccountAsync();
+        await _fixture.SignInAsync(account);
+        await using var db = NewContext();
+
+        var result = await CreateSignInService(db).ReauthenticateAsync(InitialPassword);
+
+        result.Succeeded.ShouldBeTrue();
+        var log = await GetAccountAuditLogsAsync(account.Id);
+        log.Count(n => n.Action == AuditAction.SignIn && HasEvent(n, SignInEvent.UnlockSession)).ShouldBe(1);
+        _fixture.User.SignOut();
+    }
+
+    [SqlServerFact]
+    public async Task Reauthenticate_InactiveAccount_IsRefused()
+    {
+        var account = await CreateAccountAsync();
+        await _fixture.SignInAsync(account);
+        await using (var setup = NewContext())
+        {
+            var user = await setup.User.SingleAsync(u => u.Id == account.Id);
+            user.IsActive = false;
+            await setup.SaveChangesAsync();
+        }
+
+        await using var db = NewContext();
+        var result = await CreateSignInService(db).ReauthenticateAsync(InitialPassword);
+
+        result.Status.ShouldBe(SignInStatus.AccountInactive);
+        _fixture.User.SignOut();
+    }
+
+    [SqlServerFact]
+    public async Task LockSession_WritesTheLockEventWithTheKind()
+    {
+        var account = await CreateAccountAsync();
+        await _fixture.SignInAsync(account);
+        await using var db = NewContext();
+
+        await CreateSignInService(db).LockSessionAsync(SessionLockKind.Manual);
+
+        var log = await GetAccountAuditLogsAsync(account.Id);
+        log.Count(n => n.Action == AuditAction.SignIn
+            && HasEvent(n, SignInEvent.LockSession)
+            && n.NewValues!.Contains($"\"Kind\":\"{SessionLockKind.Manual.ToCode()}\"")).ShouldBe(1);
+        _fixture.User.SignOut();
+    }
+
+    [SqlServerFact]
     public async Task ChangePassword_NeverWritesThePasswordHashToTheAuditLog()
     {
         var account = await CreateAccountAsync(mustChangePassword: true);

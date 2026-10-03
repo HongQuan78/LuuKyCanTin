@@ -11,7 +11,7 @@ using Shouldly;
 namespace LuuKyCanTin.WinForms.UnitTests.Shell;
 
 // Presenters are tested against a fake View: no Form is ever created.
-public class MainPresenterTests
+public class MainPresenterTests : IDisposable
 {
     private static readonly WorkstationInfo Workstation = new("SRV / LuuKyCanTin", true, "QUAY-01", "v1.0.0");
 
@@ -23,6 +23,8 @@ public class MainPresenterTests
     private readonly IAuditLogWriter _auditLog = Substitute.For<IAuditLogWriter>();
     private readonly ISignedInUserQuery _signedInUser = Substitute.For<ISignedInUserQuery>();
     private readonly FakeClock _clock = new(new DateTime(2026, 10, 2, 9, 0, 0));
+    private readonly List<MainPresenter> _presenters = [];
+    private long _elapsed;
     private NavigationModel? _navigation;
 
     public MainPresenterTests()
@@ -34,13 +36,22 @@ public class MainPresenterTests
         _session.HasPermission(Arg.Any<string>()).Returns(true);
     }
 
-    private MainPresenter NewPresenter(string title = "X")
+    private MainPresenter NewPresenter(string title = "X", IdleMonitor? idleMonitor = null)
     {
         var failedSignIns = new FailedSignInService(_store, _clock, new SignInOptions(), _auditLog);
         var signIn = new SignInService(_store, _hasher, _session, _auditLog, _clock, failedSignIns);
-        return new MainPresenter(
+        var presenter = new MainPresenter(
             _view, Options.Create(new AppOptions { Title = title }), _navigator,
-            FakeScopeFactory.Create(signIn, _signedInUser), _clock, Workstation, _session);
+            FakeScopeFactory.Create(signIn, _signedInUser), _clock, Workstation, _session,
+            idleMonitor ?? new IdleMonitor(TimeSpan.FromMinutes(5), () => _elapsed));
+        _presenters.Add(presenter);
+        return presenter;
+    }
+
+    public void Dispose()
+    {
+        foreach (var presenter in _presenters)
+            presenter.Dispose();
     }
 
     private async Task LoadAsync()
@@ -173,6 +184,109 @@ public class MainPresenterTests
         _session.Received(1).SignOut();
         await _auditLog.Received(1).WriteAsync(
             AuditAction.SignIn, "User", 3, Arg.Any<object?>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task NavigationRequested_LockSession_ShowsTheLockScreenAndWritesTheAuditRow()
+    {
+        _session.UserId.Returns(3);
+        _session.UserName.Returns("admin");
+        var locked = new TaskCompletionSource();
+        _navigator.When(n => n.OpenLockScreen(
+                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<Action>(), Arg.Any<Action>()))
+            .Do(_ => locked.TrySetResult());
+        NewPresenter("Tiêu đề từ cấu hình");
+        await LoadAsync();
+
+        Navigate(ShellNavigation.LockSessionKey);
+
+        await locked.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        _navigator.Received(1).OpenLockScreen(
+            "Tiêu đề từ cấu hình", "NL", "Nguyễn Thị Lan", Arg.Any<Action>(), Arg.Any<Action>());
+        await _auditLog.Received(1).WriteAsync(
+            AuditAction.SignIn, "User", 3,
+            Arg.Is<object?>(o => o!.ToString()!.Contains($"Event = {SignInEvent.LockSession}")
+                && o.ToString()!.Contains($"Kind = {SessionLockKind.Manual.ToCode()}")),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task IdleTimeout_OpensTheLockScreenWithAnAutomaticAuditRow()
+    {
+        _session.UserId.Returns(3);
+        _session.UserName.Returns("admin");
+        var locked = new TaskCompletionSource();
+        _navigator.When(n => n.OpenLockScreen(
+                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<Action>(), Arg.Any<Action>()))
+            .Do(_ => locked.TrySetResult());
+        var auditWritten = new TaskCompletionSource();
+        _auditLog.WriteAsync(
+                Arg.Any<AuditAction>(), Arg.Any<string?>(), Arg.Any<long?>(), Arg.Any<object?>(), Arg.Any<CancellationToken>())
+            .Returns(_ =>
+            {
+                auditWritten.TrySetResult();
+                return Task.CompletedTask;
+            });
+        var monitor = new IdleMonitor(TimeSpan.FromMinutes(5), () => _elapsed);
+        NewPresenter(idleMonitor: monitor);
+        await LoadAsync();
+
+        _elapsed += (long)TimeSpan.FromMinutes(5).TotalMilliseconds;
+        monitor.CheckIdle();
+
+        await locked.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await auditWritten.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await _auditLog.Received(1).WriteAsync(
+            AuditAction.SignIn, "User", 3,
+            Arg.Is<object?>(o => o!.ToString()!.Contains($"Event = {SignInEvent.LockSession}")
+                && o.ToString()!.Contains($"Kind = {SessionLockKind.Automatic.ToCode()}")),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task LockSession_AuditWriteFails_StillLocksTheScreen()
+    {
+        _session.UserId.Returns(3);
+        _session.UserName.Returns("admin");
+        _auditLog.WriteAsync(
+                Arg.Any<AuditAction>(), Arg.Any<string?>(), Arg.Any<long?>(), Arg.Any<object?>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromException(new InvalidOperationException("db down")));
+        var locked = new TaskCompletionSource();
+        _navigator.When(n => n.OpenLockScreen(
+                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<Action>(), Arg.Any<Action>()))
+            .Do(_ => locked.TrySetResult());
+        NewPresenter();
+        await LoadAsync();
+
+        Navigate(ShellNavigation.LockSessionKey);
+
+        await locked.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        _navigator.Received(1).OpenLockScreen(
+            Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<Action>(), Arg.Any<Action>());
+        _view.DidNotReceive().ShowError(Arg.Any<string>());
+    }
+
+    [Fact]
+    public async Task LockScreen_SignOut_LeavesTheShell()
+    {
+        _session.UserId.Returns(3);
+        _session.UserName.Returns("admin");
+        Action? onSignedOut = null;
+        var locked = new TaskCompletionSource();
+        _navigator.When(n => n.OpenLockScreen(
+                Arg.Any<string>(), Arg.Any<string>(), Arg.Any<string>(), Arg.Any<Action>(), Arg.Do<Action>(a => onSignedOut = a)))
+            .Do(_ => locked.TrySetResult());
+        var closed = new TaskCompletionSource();
+        _view.When(v => v.CloseShell()).Do(_ => closed.TrySetResult());
+        var presenter = NewPresenter();
+        await LoadAsync();
+
+        Navigate(ShellNavigation.LockSessionKey);
+        await locked.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        onSignedOut!();
+
+        await closed.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        presenter.IsSignedOut.ShouldBeTrue();
     }
 
     [Fact]

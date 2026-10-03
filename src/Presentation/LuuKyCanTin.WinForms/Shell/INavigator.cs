@@ -26,4 +26,10 @@ public interface INavigator
 
     /// <summary>Opens the voluntary change-password dialog for the signed-in user.</summary>
     void OpenChangePassword();
+
+    /// <summary>
+    /// Shows the lock overlay over the whole shell (story 2.7). It is modeless and owned by the shell, so every open
+    /// dialog keeps its state while locked. The callbacks tell the shell that the session resumed or ended.
+    /// </summary>
+    void OpenLockScreen(string title, string initials, string displayName, Action onUnlocked, Action onSignedOut);
 }

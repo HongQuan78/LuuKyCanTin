@@ -210,6 +210,148 @@ public class SignInServiceTests
         _hasher.Received(1).Verify("bất kỳ", Arg.Any<string>());
     }
 
+    private void SeedSignedInAccount(byte failedAttemptCount = 0, bool isActive = true)
+    {
+        SeedAccount(failedAttemptCount);
+        _user.IsActive = isActive;
+        _session.UserId.Returns(3);
+        _session.UserName.Returns("admin");
+        _store.FindByIdAsync(3, Arg.Any<CancellationToken>()).Returns(_user);
+    }
+
+    [Fact]
+    public async Task Reauthenticate_WrongPassword_CountsTheAttemptAndKeepsTheSession()
+    {
+        SeedSignedInAccount();
+        _hasher.Verify("sai", ValidHash).Returns(false);
+
+        var result = await _service.ReauthenticateAsync("sai");
+
+        result.Status.ShouldBe(SignInStatus.InvalidCredentials);
+        result.Message.ShouldBe(SignInService.InvalidCredentialsMessage);
+        _user.FailedAttemptCount.ShouldBe((byte)1);
+        _session.DidNotReceive().SignIn(
+            Arg.Any<int>(), Arg.Any<string>(), Arg.Any<int?>(), Arg.Any<string?>(), Arg.Any<IReadOnlyCollection<string>>());
+        await _auditLog.Received(1).WriteAsync(
+            AuditAction.SignIn, "User", 3,
+            Arg.Is<object?>(o => o!.ToString()!.Contains($"Event = {SignInEvent.FailedSignIn}")),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Reauthenticate_FifthWrongPassword_LocksTheAccount()
+    {
+        SeedSignedInAccount(failedAttemptCount: User.MaxFailedAttempts - 1);
+        _hasher.Verify("sai", ValidHash).Returns(false);
+
+        var result = await _service.ReauthenticateAsync("sai");
+
+        result.Status.ShouldBe(SignInStatus.AccountLocked);
+        result.Message.ShouldBe(SignInService.AccountLockedMessage);
+        _user.LockedUntil.ShouldBe(Now.AddMinutes(15));
+        await _auditLog.Received(1).WriteAsync(
+            AuditAction.SignIn, "User", 3,
+            Arg.Is<object?>(o => o!.ToString()!.Contains($"Event = {SignInEvent.AccountLocked}")),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Reauthenticate_CorrectPassword_ResetsTheCountersAndWritesTheUnlockEvent()
+    {
+        SeedSignedInAccount(failedAttemptCount: 3);
+        _hasher.Verify("LuuKy@2026", ValidHash).Returns(true);
+
+        var result = await _service.ReauthenticateAsync("LuuKy@2026");
+
+        result.Succeeded.ShouldBeTrue();
+        _user.FailedAttemptCount.ShouldBe((byte)0);
+        _user.LockedUntil.ShouldBeNull();
+        // The session stays; a re-auth must never swap the signed-in user.
+        _session.DidNotReceive().SignIn(
+            Arg.Any<int>(), Arg.Any<string>(), Arg.Any<int?>(), Arg.Any<string?>(), Arg.Any<IReadOnlyCollection<string>>());
+        await _auditLog.Received(1).WriteAsync(
+            AuditAction.SignIn, "User", 3,
+            Arg.Is<object?>(o => o!.ToString()!.Contains($"Event = {SignInEvent.UnlockSession}")),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Reauthenticate_InactiveAccount_IsRefusedWithoutCheckingThePassword()
+    {
+        SeedSignedInAccount(isActive: false);
+
+        var result = await _service.ReauthenticateAsync("LuuKy@2026");
+
+        result.Status.ShouldBe(SignInStatus.AccountInactive);
+        result.Message.ShouldBe(SignInService.AccountLockedMessage);
+        _hasher.DidNotReceive().Verify(Arg.Any<string>(), Arg.Any<string>());
+    }
+
+    [Fact]
+    public async Task Reauthenticate_LockedAccount_IsRefusedWithoutCheckingThePassword()
+    {
+        SeedSignedInAccount();
+        _user.LockedUntil = Now.AddMinutes(5);
+
+        var result = await _service.ReauthenticateAsync("LuuKy@2026");
+
+        result.Status.ShouldBe(SignInStatus.AccountLocked);
+        _hasher.DidNotReceive().Verify(Arg.Any<string>(), Arg.Any<string>());
+    }
+
+    [Fact]
+    public async Task Reauthenticate_WithoutASession_FailsLikeAnInactiveAccount()
+    {
+        _session.UserId.Returns((int?)null);
+
+        var result = await _service.ReauthenticateAsync("LuuKy@2026");
+
+        result.Status.ShouldBe(SignInStatus.AccountInactive);
+        await _store.DidNotReceive().FindByIdAsync(Arg.Any<int>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Reauthenticate_WhenAChangeIsForced_ReturnsPasswordChangeRequiredWithoutTheUnlockEvent()
+    {
+        SeedSignedInAccount();
+        _user.MustChangePassword = true;
+        _hasher.Verify("LuuKy@2026", ValidHash).Returns(true);
+
+        var result = await _service.ReauthenticateAsync("LuuKy@2026");
+
+        result.MustChangePassword.ShouldBeTrue();
+        _user.FailedAttemptCount.ShouldBe((byte)0);
+        await _auditLog.DidNotReceive().WriteAsync(
+            Arg.Any<AuditAction>(), Arg.Any<string?>(), Arg.Any<long?>(),
+            Arg.Is<object?>(o => o!.ToString()!.Contains(SignInEvent.UnlockSession)),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task LockSession_WritesTheEventWithItsKind()
+    {
+        _session.UserId.Returns(3);
+
+        await _service.LockSessionAsync(SessionLockKind.Manual);
+
+        await _auditLog.Received(1).WriteAsync(
+            AuditAction.SignIn, "User", 3,
+            Arg.Is<object?>(o => o!.ToString()!.Contains($"Event = {SignInEvent.LockSession}")
+                && o.ToString()!.Contains($"Kind = {SessionLockKind.Manual.ToCode()}")),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task LockSession_WithoutASession_WritesNothing()
+    {
+        _session.UserId.Returns((int?)null);
+
+        await _service.LockSessionAsync(SessionLockKind.Automatic);
+
+        await _auditLog.DidNotReceive().WriteAsync(
+            Arg.Any<AuditAction>(), Arg.Any<string?>(), Arg.Any<long?>(), Arg.Any<object?>(), Arg.Any<CancellationToken>());
+    }
+
     [Fact]
     public async Task SignOut_WritesTheEventThenClearsTheSession()
     {

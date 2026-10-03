@@ -71,4 +71,13 @@ internal sealed class Navigator(IServiceScopeFactory scopes, IContentHost host, 
         _ = new RolePresenter(page, scopes, currentUser);
         return page;
     });
+
+    public void OpenLockScreen(
+        string title, string initials, string displayName, Action onUnlocked, Action onSignedOut)
+    {
+        var form = new LockScreenForm();
+        _ = new LockScreenPresenter(form, scopes, title, initials, displayName, onUnlocked, onSignedOut);
+        // Show, not ShowDialog: open dialogs keep their state, and the overlay disables them itself.
+        form.Show(host);
+    }
 }

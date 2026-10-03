@@ -10,7 +10,7 @@ namespace LuuKyCanTin.WinForms.UnitTests.Shell;
 public class ShellNavigationFilterTests
 {
     private static NavigationModel Model() =>
-        ShellNavigation.Create(Substitute.For<INavigator>(), () => { }, () => { });
+        ShellNavigation.Create(Substitute.For<INavigator>(), () => { }, () => { }, () => { });
 
     private static NavigationModel Visible(params string[] granted) =>
         ShellNavigation.BuildVisible(Model(), granted.Contains);
@@ -42,6 +42,7 @@ public class ShellNavigationFilterTests
 
         model.Home.Key.ShouldBe(ShellNavigation.HomeKey);
         model.AllItems.Select(i => i.Key).ShouldContain(ShellNavigation.ChangePasswordKey);
+        model.AllItems.Select(i => i.Key).ShouldContain(ShellNavigation.LockSessionKey);
         model.AllItems.Select(i => i.Key).ShouldContain(ShellNavigation.SignOutKey);
         model.Groups.Select(g => g.Key).ShouldContain("administration");
     }

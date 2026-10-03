@@ -56,6 +56,7 @@ internal sealed class ShellApplicationContext(IServiceProvider services) : Appli
         main.FormClosed += (_, _) =>
         {
             var isSignedOut = presenter.IsSignedOut;
+            presenter.Dispose();
             main.Dispose();
 
             if (isSignedOut)

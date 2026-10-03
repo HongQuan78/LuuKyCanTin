@@ -11,4 +11,6 @@ public static class SignInEvent
     public const string AccountLocked = "KhoaTaiKhoan";
     public const string SignOut = "DangXuat";
     public const string PasswordChanged = "DoiMatKhau";
+    public const string LockSession = "KhoaPhien";
+    public const string UnlockSession = "MoKhoaPhien";
 }

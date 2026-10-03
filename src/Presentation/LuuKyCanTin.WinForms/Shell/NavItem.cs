@@ -14,8 +14,21 @@ public sealed record NavItem(string Key, string Caption, Action Open)
     /// <summary>The global shortcut that opens the entry from anywhere in the shell, or <see cref="Keys.None"/>.</summary>
     public Keys Shortcut { get; init; } = Keys.None;
 
-    public string ShortcutText => Shortcut == Keys.None ? "" : Shortcut.ToString();
+    /// <summary>How the shortcut is shown in the sidebar: "F2", "Ctrl+L". Never the OS-localized keys converter.</summary>
+    public string ShortcutText => Shortcut == Keys.None ? "" : FormatShortcut(Shortcut);
 
     /// <summary>Set when the entry also appears as a quick-action tile on Trang chủ.</summary>
     public NavTile? Tile { get; init; }
+
+    private static string FormatShortcut(Keys keys)
+    {
+        var text = "";
+        if ((keys & Keys.Control) != Keys.None)
+            text += "Ctrl+";
+        if ((keys & Keys.Shift) != Keys.None)
+            text += "Shift+";
+        if ((keys & Keys.Alt) != Keys.None)
+            text += "Alt+";
+        return text + (keys & Keys.KeyCode);
+    }
 }

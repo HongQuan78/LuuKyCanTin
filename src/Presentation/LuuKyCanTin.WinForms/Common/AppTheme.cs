@@ -100,13 +100,17 @@ internal static class AppTheme
     /// <summary>The Windows icon font: 12pt in navigation, 10.5pt in buttons, 18pt in tiles.</summary>
     public static Font IconFont(float size)
     {
-        if (!IconFonts.TryGetValue(size, out var font))
+        // Unit tests build screens on several STA threads at once, so the cache must be safe to fill concurrently.
+        lock (IconFonts)
         {
-            font = new Font(IconFontFamilyName, size);
-            IconFonts[size] = font;
-        }
+            if (!IconFonts.TryGetValue(size, out var font))
+            {
+                font = new Font(IconFontFamilyName, size);
+                IconFonts[size] = font;
+            }
 
-        return font;
+            return font;
+        }
     }
 
     // ---- Spacing (px at 96 DPI) ----------------------------------------------------------------------------------

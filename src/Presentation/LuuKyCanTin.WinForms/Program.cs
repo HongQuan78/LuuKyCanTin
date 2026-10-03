@@ -12,6 +12,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Serilog;
 using WinFormsApp = System.Windows.Forms.Application;
 
@@ -74,6 +75,10 @@ internal static class Program
         builder.Services.AddSerilog();
 
         builder.Services.Configure<AppOptions>(builder.Configuration.GetSection(AppOptions.SectionName));
+        builder.Services.AddSessionOptions(builder.Configuration, builder.Environment.IsDevelopment());
+        // One monitor per shell session; it is disposed with the session's MainPresenter.
+        builder.Services.AddTransient(sp =>
+            new IdleMonitor(sp.GetRequiredService<IOptions<SessionOptions>>().Value.IdleTimeout));
         builder.Services.AddApplication();
         builder.Services.AddInfrastructure(builder.Configuration);
         builder.Services.AddSingleton(WorkstationInfo.Create(
@@ -105,6 +110,8 @@ internal static class Program
         Log.Information("LuuKyCanTin starting");
         // A business error that escapes to the top logs who hit it; the handler is installed before DI exists.
         GlobalExceptionHandler.CurrentUser = host.Services.GetRequiredService<ICurrentUser>();
+        // Fail fast on an invalid idle-lock setting, before any window opens.
+        _ = host.Services.GetRequiredService<IOptions<SessionOptions>>().Value;
 
         // Workstations never migrate: they only check, and refuse to run against a different schema.
         if (!IsDatabaseVersionCurrent(host.Services))

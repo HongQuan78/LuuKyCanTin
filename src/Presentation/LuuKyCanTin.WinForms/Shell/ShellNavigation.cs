@@ -16,12 +16,13 @@ public static class ShellNavigation
     public const string AccountsKey = "administration.accounts";
     public const string RolesKey = "administration.roles";
     public const string ChangePasswordKey = "administration.change-password";
+    public const string LockSessionKey = "administration.lock-session";
     public const string SignOutKey = "administration.sign-out";
 
     private const string BusinessSection = "NGHIỆP VỤ";
     private const string ManagementSection = "QUẢN LÝ";
 
-    public static NavigationModel Create(INavigator navigator, Action showHome, Action signOut) => new(
+    public static NavigationModel Create(INavigator navigator, Action showHome, Action signOut, Action lockSession) => new(
         new NavItem(HomeKey, "&Trang chủ", showHome) { Glyph = Glyphs.Home },
         [
             new NavGroup("custody", BusinessSection, "&Lưu ký", Glyphs.Custody,
@@ -54,8 +55,9 @@ public static class ShellNavigation
                 {
                     PermissionCode = PermissionCodes.Administration.View,
                 },
-                // Change password and sign-out act on the caller's own account: every signed-in user sees them.
+                // Change password, lock and sign-out act on the caller's own session: every signed-in user sees them.
                 new NavItem(ChangePasswordKey, "Đổi &mật khẩu", navigator.OpenChangePassword),
+                new NavItem(LockSessionKey, "Kh&oá máy", lockSession) { Shortcut = Keys.Control | Keys.L },
                 new NavItem(SignOutKey, "Đăng &xuất", signOut),
             ]),
         ]);

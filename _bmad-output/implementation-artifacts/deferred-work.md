@@ -67,3 +67,16 @@
 - source_spec: `_bmad-output/implementation-artifacts/stories/epic-02/2-6-segregation-of-duties-policy.md`
   summary: GlobalExceptionHandler keeps a hand-maintained list of Domain business exceptions instead of a Domain marker interface.
   evidence: BusinessRuleException lives in Application, so Domain exceptions cannot derive from it; both Domain exceptions are recognized by an explicit type list whose only tie is a comment. A Domain marker interface would make a future business exception show correctly by construction.
+
+- source_spec: `_bmad-output/implementation-artifacts/stories/epic-02/2-7-session-auto-lock.md`
+  summary: Forms opened after the lock overlay are not re-disabled (the overlay disables only the forms open at lock time).
+  evidence: DisableOtherForms snapshots Application.OpenForms at OnLoad; a background-opened window would appear above the overlay. The 500 ms watch timer mitigates it but a permanent shell-level locked state is the real fix.
+- source_spec: `_bmad-output/implementation-artifacts/stories/epic-02/2-7-session-auto-lock.md`
+  summary: Input inside the WebView2 PDF preview may not reset the idle timer.
+  evidence: The preview is a separate HWND that can swallow messages before the WinForms message filter; hooking WebView2 input events or pausing the idle monitor while the preview is open would settle it. Needs the interactive desktop.
+- source_spec: `_bmad-output/implementation-artifacts/stories/epic-02/2-7-session-auto-lock.md`
+  summary: The manual end-to-end check (dialog text survives Ctrl+L, real idle timeout, WebView2 input) was not run.
+  evidence: The check needs an interactive desktop; all automated levels are green and the remaining manual steps are recorded here.
+- source_spec: `_bmad-output/implementation-artifacts/stories/epic-02/2-7-session-auto-lock.md`
+  summary: Shell close does not remove the application message filter in any test (no ShellApplicationContext seam).
+  evidence: MainPresenter.Dispose removes the filter and disposes the monitor, but nothing asserts it; a per-session leak is possible if the call is dropped. A lifecycle seam or a filter-count test would settle it.
