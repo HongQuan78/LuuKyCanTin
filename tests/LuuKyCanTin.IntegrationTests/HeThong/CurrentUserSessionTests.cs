@@ -3,30 +3,30 @@ using Shouldly;
 
 namespace LuuKyCanTin.IntegrationTests.HeThong;
 
-public class CurrentUserSessionTests
+public sealed class CurrentUserSessionTests
 {
     [Fact]
-    public void BeforeSignIn_NobodyIsSignedIn()
+    public void DaDangNhap_BeforeDangNhap_IsFalseWithNoUser()
     {
-        var session = new CurrentUserSession();
+        var phien = new CurrentUserSession();
 
-        session.DaDangNhap.ShouldBeFalse();
-        session.NguoiDungId.ShouldBeNull();
-        session.TenDangNhap.ShouldBeNull();
+        phien.DaDangNhap.ShouldBeFalse();
+        phien.NguoiDungId.ShouldBeNull();
+        phien.TenDangNhap.ShouldBeNull();
     }
 
     [Fact]
     public void DangNhap_ThenDangXuat_SetsAndClearsTheUser()
     {
-        var session = new CurrentUserSession();
+        var phien = new CurrentUserSession();
 
-        session.DangNhap(3, "thuquy");
-        session.DaDangNhap.ShouldBeTrue();
-        session.NguoiDungId.ShouldBe(3);
-        session.TenDangNhap.ShouldBe("thuquy");
+        phien.DangNhap(3, "thuquy");
+        phien.DaDangNhap.ShouldBeTrue();
+        phien.NguoiDungId.ShouldBe(3);
+        phien.TenDangNhap.ShouldBe("thuquy");
 
-        session.DangXuat();
-        session.DaDangNhap.ShouldBeFalse();
-        session.NguoiDungId.ShouldBeNull();
+        phien.DangXuat();
+        phien.DaDangNhap.ShouldBeFalse();
+        phien.NguoiDungId.ShouldBeNull();
     }
 }

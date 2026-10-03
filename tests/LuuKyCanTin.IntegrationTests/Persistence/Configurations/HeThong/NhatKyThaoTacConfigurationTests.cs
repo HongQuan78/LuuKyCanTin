@@ -5,24 +5,24 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Shouldly;
 
-namespace LuuKyCanTin.IntegrationTests.Persistence;
+namespace LuuKyCanTin.IntegrationTests.Persistence.Configurations.HeThong;
 
-public class NhatKyThaoTacModelTests
+public sealed class NhatKyThaoTacConfigurationTests
 {
     private static readonly DbContextOptions<AppDbContext> Options = new DbContextOptionsBuilder<AppDbContext>()
         .UseSqlServer("Server=unused")
         .Options;
 
-    private static IEntityType EntityType()
+    private static IEntityType LayEntityType()
     {
         using var context = new AppDbContext(Options);
         return context.GetService<IDesignTimeModel>().Model.FindEntityType(typeof(NhatKyThaoTac))!;
     }
 
     [Fact]
-    public void Table_IsNhatKyThaoTac()
+    public void Configure_AnyModel_MapsToTableNhatKyThaoTac()
     {
-        EntityType().GetTableName().ShouldBe("NhatKyThaoTac");
+        LayEntityType().GetTableName().ShouldBe("NhatKyThaoTac");
     }
 
     [Theory]
@@ -35,32 +35,32 @@ public class NhatKyThaoTacModelTests
     [InlineData(nameof(NhatKyThaoTac.BanGhiId), "bigint", true)]
     [InlineData(nameof(NhatKyThaoTac.DuLieuCu), "nvarchar(max)", true)]
     [InlineData(nameof(NhatKyThaoTac.DuLieuMoi), "nvarchar(max)", true)]
-    public void Column_MatchesTheDatabaseDesign(string name, string columnType, bool nullable)
+    public void Configure_Column_MatchesTheDatabaseDesign(string name, string columnType, bool nullable)
     {
-        var property = EntityType().FindProperty(name)!;
+        var property = LayEntityType().FindProperty(name)!;
 
         property.GetColumnType().ShouldBe(columnType);
         property.IsNullable.ShouldBe(nullable);
     }
 
     [Fact]
-    public void Id_IsIdentity()
+    public void Configure_Id_IsIdentity()
     {
-        EntityType().FindProperty(nameof(NhatKyThaoTac.Id))!.GetValueGenerationStrategy()
+        LayEntityType().FindProperty(nameof(NhatKyThaoTac.Id))!.GetValueGenerationStrategy()
             .ShouldBe(SqlServerValueGenerationStrategy.IdentityColumn);
     }
 
     [Fact]
-    public void HanhDong_IsCheckedAgainstTheEnumNames()
+    public void Configure_HanhDong_IsCheckedAgainstTheEnumNames()
     {
-        EntityType().GetCheckConstraints().ShouldHaveSingleItem().Sql
+        LayEntityType().GetCheckConstraints().ShouldHaveSingleItem().Sql
             .ShouldBe("[HanhDong] IN ('Them', 'Sua', 'Huy', 'In', 'Duyet', 'DangNhap')");
     }
 
     [Fact]
-    public void Indexes_SupportSearchByRecordAndByTime()
+    public void Configure_Indexes_SupportSearchByRecordAndByTime()
     {
-        EntityType().GetIndexes().Select(i => string.Join(",", i.Properties.Select(p => p.Name)))
+        LayEntityType().GetIndexes().Select(i => string.Join(",", i.Properties.Select(p => p.Name)))
             .ShouldBe(["TenBang,BanGhiId", "ThoiDiem"], ignoreOrder: true);
     }
 }

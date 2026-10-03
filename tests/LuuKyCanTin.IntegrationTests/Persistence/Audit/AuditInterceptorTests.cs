@@ -7,7 +7,7 @@ using Shouldly;
 
 namespace LuuKyCanTin.IntegrationTests.Persistence.Audit;
 
-public class AuditInterceptorTests : IClassFixture<AuditDatabaseFixture>
+public sealed class AuditInterceptorTests : IClassFixture<AuditDatabaseFixture>
 {
     private const int NguoiDungId = 7;
 
@@ -19,7 +19,7 @@ public class AuditInterceptorTests : IClassFixture<AuditDatabaseFixture>
         _fixture.User.DangNhap(NguoiDungId, "thuquy");
     }
 
-    private static MauChungTu NewVoucher(string noiDung = "Nộp tiền lưu ký") => new()
+    private static MauChungTu TaoChungTu(string noiDung = "Nộp tiền lưu ký") => new()
     {
         SoTien = 100_000,
         NgayChungTu = new DateOnly(2026, 10, 1),
@@ -28,99 +28,100 @@ public class AuditInterceptorTests : IClassFixture<AuditDatabaseFixture>
         MaBiMat = "bí-mật-ban-đầu",
     };
 
-    private async Task<MauChungTu> InsertAsync(MauChungTu voucher)
+    private async Task<MauChungTu> ThemAsync(MauChungTu chungTu)
     {
-        await using var db = _fixture.CreateAuditedContext();
-        db.MauChungTu.Add(voucher);
+        await using var db = _fixture.TaoDbContextCoNhatKy();
+        db.MauChungTu.Add(chungTu);
         await db.SaveChangesAsync();
-        return voucher;
+        return chungTu;
     }
 
-    private async Task UpdateAsync(int id, Action<MauChungTu> change)
+    private async Task SuaAsync(int id, Action<MauChungTu> thayDoi)
     {
         // Load, change, save: the "before" values come from the tracked query.
-        await using var db = _fixture.CreateAuditedContext();
-        change(await db.MauChungTu.SingleAsync(v => v.Id == id));
+        await using var db = _fixture.TaoDbContextCoNhatKy();
+        thayDoi(await db.MauChungTu.SingleAsync(v => v.Id == id));
         await db.SaveChangesAsync();
     }
 
-    private async Task<List<NhatKyThaoTac>> LogOfAsync(int id)
+    private async Task<List<NhatKyThaoTac>> LayNhatKyAsync(int id)
     {
-        await using var db = _fixture.CreatePlainContext();
+        await using var db = _fixture.TaoDbContext();
         return await db.NhatKyThaoTac.Where(n => n.TenBang == "MauChungTu" && n.BanGhiId == id).OrderBy(n => n.Id).ToListAsync();
     }
 
-    private async Task<int> LogCountAsync()
+    private async Task<int> LaySoDongNhatKyAsync()
     {
-        await using var db = _fixture.CreatePlainContext();
+        await using var db = _fixture.TaoDbContext();
         return await db.NhatKyThaoTac.CountAsync();
     }
 
-    private static Dictionary<string, JsonElement> Json(string? json) =>
+    private static Dictionary<string, JsonElement> DocJson(string? json) =>
         JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json.ShouldNotBeNull())!;
 
     [SqlServerFact]
-    public async Task Insert_WritesThemRowWithNewValues()
+    public async Task SaveChanges_NewVoucher_WritesThemRowWithNewValues()
     {
-        var voucher = await InsertAsync(NewVoucher());
+        var chungTu = await ThemAsync(TaoChungTu());
 
-        var row = (await LogOfAsync(voucher.Id)).ShouldHaveSingleItem();
+        var nhatKy = (await LayNhatKyAsync(chungTu.Id)).ShouldHaveSingleItem();
 
-        row.HanhDong.ShouldBe(HanhDong.Them);
-        row.ThoiDiem.ShouldBe(_fixture.Clock.Now);
-        row.NguoiDungId.ShouldBe(NguoiDungId);
-        row.MayTram.ShouldBe(Environment.MachineName);
-        row.DuLieuCu.ShouldBeNull();
-        var moi = Json(row.DuLieuMoi);
-        moi["Id"].GetInt32().ShouldBe(voucher.Id);
+        nhatKy.HanhDong.ShouldBe(HanhDong.Them);
+        nhatKy.ThoiDiem.ShouldBe(_fixture.Clock.Now);
+        nhatKy.NguoiDungId.ShouldBe(NguoiDungId);
+        nhatKy.MayTram.ShouldBe(Environment.MachineName);
+        nhatKy.DuLieuCu.ShouldBeNull();
+        var moi = DocJson(nhatKy.DuLieuMoi);
+        moi["Id"].GetInt32().ShouldBe(chungTu.Id);
         moi["SoTien"].GetDecimal().ShouldBe(100_000m);
         moi["NoiDung"].GetString().ShouldBe("Nộp tiền lưu ký");
+        moi["TrangThai"].GetString().ShouldBe(nameof(MauTrangThai.DaGhiSo));
         moi.Keys.ShouldNotContain("RowVer");
         moi.Keys.ShouldNotContain("NgayTao");
         moi.Keys.ShouldNotContain("NguoiTaoId");
     }
 
     [SqlServerFact]
-    public async Task Insert_KeepsVietnameseReadableInTheJson()
+    public async Task SaveChanges_VietnameseText_StaysReadableInTheJson()
     {
-        var voucher = await InsertAsync(NewVoucher());
+        var chungTu = await ThemAsync(TaoChungTu());
 
-        (await LogOfAsync(voucher.Id)).ShouldHaveSingleItem().DuLieuMoi.ShouldNotBeNull().ShouldContain("\"NoiDung\":\"Nộp tiền lưu ký\"");
+        (await LayNhatKyAsync(chungTu.Id)).ShouldHaveSingleItem().DuLieuMoi.ShouldNotBeNull().ShouldContain("\"NoiDung\":\"Nộp tiền lưu ký\"");
     }
 
     [SqlServerFact]
-    public async Task Insert_StoresTheActionAsText()
+    public async Task SaveChanges_NewVoucher_StoresTheActionAsText()
     {
-        var voucher = await InsertAsync(NewVoucher());
+        var chungTu = await ThemAsync(TaoChungTu());
 
-        (await _fixture.Database.LayGiaTriAsync($"SELECT HanhDong FROM NhatKyThaoTac WHERE TenBang = 'MauChungTu' AND BanGhiId = {voucher.Id}"))
+        (await _fixture.Database.LayGiaTriAsync($"SELECT HanhDong FROM NhatKyThaoTac WHERE TenBang = 'MauChungTu' AND BanGhiId = {chungTu.Id}"))
             .ShouldBe("Them");
     }
 
     [SqlServerFact]
-    public async Task Insert_FillsCreationAuditColumns()
+    public async Task SaveChanges_NewVoucher_FillsCreationAuditColumns()
     {
-        var voucher = await InsertAsync(NewVoucher());
+        var chungTu = await ThemAsync(TaoChungTu());
 
-        await using var db = _fixture.CreatePlainContext();
-        var stored = await db.MauChungTu.SingleAsync(v => v.Id == voucher.Id);
-        stored.NgayTao.ShouldBe(_fixture.Clock.Now);
-        stored.NguoiTaoId.ShouldBe(NguoiDungId);
-        stored.NgaySua.ShouldBeNull();
-        stored.NguoiSuaId.ShouldBeNull();
+        await using var db = _fixture.TaoDbContext();
+        var chungTuDaLuu = await db.MauChungTu.SingleAsync(v => v.Id == chungTu.Id);
+        chungTuDaLuu.NgayTao.ShouldBe(_fixture.Clock.Now);
+        chungTuDaLuu.NguoiTaoId.ShouldBe(NguoiDungId);
+        chungTuDaLuu.NgaySua.ShouldBeNull();
+        chungTuDaLuu.NguoiSuaId.ShouldBeNull();
     }
 
     [SqlServerFact]
-    public async Task Update_WritesSuaRowWithOnlyTheChangedColumns()
+    public async Task SaveChanges_ChangedVoucher_WritesSuaRowWithOnlyTheChangedColumns()
     {
-        var voucher = await InsertAsync(NewVoucher());
+        var chungTu = await ThemAsync(TaoChungTu());
 
-        await UpdateAsync(voucher.Id, v => v.SoTien = 150_000);
+        await SuaAsync(chungTu.Id, v => v.SoTien = 150_000);
 
-        var row = (await LogOfAsync(voucher.Id)).Last();
-        row.HanhDong.ShouldBe(HanhDong.Sua);
-        var cu = Json(row.DuLieuCu);
-        var moi = Json(row.DuLieuMoi);
+        var nhatKy = (await LayNhatKyAsync(chungTu.Id)).Last();
+        nhatKy.HanhDong.ShouldBe(HanhDong.Sua);
+        var cu = DocJson(nhatKy.DuLieuCu);
+        var moi = DocJson(nhatKy.DuLieuMoi);
         cu.Keys.ShouldBe(["SoTien"]);
         moi.Keys.ShouldBe(["SoTien"]);
         cu["SoTien"].GetDecimal().ShouldBe(100_000m);
@@ -128,15 +129,15 @@ public class AuditInterceptorTests : IClassFixture<AuditDatabaseFixture>
     }
 
     [SqlServerFact]
-    public async Task Update_FillsModificationAuditColumns_AndKeepsCreationOnes()
+    public async Task SaveChanges_ChangedVoucher_FillsModificationColumnsAndKeepsCreationOnes()
     {
-        var voucher = await InsertAsync(NewVoucher());
-        var createdAt = _fixture.Clock.Now;
+        var chungTu = await ThemAsync(TaoChungTu());
+        var ngayTao = _fixture.Clock.Now;
         _fixture.Clock.Advance(TimeSpan.FromMinutes(5));
         _fixture.User.DangNhap(NguoiDungId + 1, "ketoan");
         try
         {
-            await UpdateAsync(voucher.Id, v =>
+            await SuaAsync(chungTu.Id, v =>
             {
                 v.SoTien = 120_000;
                 v.NgayTao = DateTime.MinValue;
@@ -147,176 +148,237 @@ public class AuditInterceptorTests : IClassFixture<AuditDatabaseFixture>
             _fixture.User.DangNhap(NguoiDungId, "thuquy");
         }
 
-        await using var db = _fixture.CreatePlainContext();
-        var stored = await db.MauChungTu.SingleAsync(v => v.Id == voucher.Id);
-        stored.NgayTao.ShouldBe(createdAt);
-        stored.NguoiTaoId.ShouldBe(NguoiDungId);
-        stored.NgaySua.ShouldBe(_fixture.Clock.Now);
-        stored.NguoiSuaId.ShouldBe(NguoiDungId + 1);
+        await using var db = _fixture.TaoDbContext();
+        var chungTuDaLuu = await db.MauChungTu.SingleAsync(v => v.Id == chungTu.Id);
+        chungTuDaLuu.NgayTao.ShouldBe(ngayTao);
+        chungTuDaLuu.NguoiTaoId.ShouldBe(NguoiDungId);
+        chungTuDaLuu.NgaySua.ShouldBe(_fixture.Clock.Now);
+        chungTuDaLuu.NguoiSuaId.ShouldBe(NguoiDungId + 1);
     }
 
     [SqlServerFact]
-    public async Task Cancel_WritesHuyRow_NotSua()
+    public async Task SaveChanges_CancelledVoucher_WritesHuyRowNotSua()
     {
-        var voucher = await InsertAsync(NewVoucher());
+        var chungTu = await ThemAsync(TaoChungTu());
 
-        await UpdateAsync(voucher.Id, v => v.TrangThai = MauTrangThai.DaHuy);
+        await SuaAsync(chungTu.Id, v => v.TrangThai = MauTrangThai.DaHuy);
 
-        var row = (await LogOfAsync(voucher.Id)).Last();
-        row.HanhDong.ShouldBe(HanhDong.Huy);
-        Json(row.DuLieuCu)["TrangThai"].GetInt32().ShouldBe((int)MauTrangThai.DaGhiSo);
-        Json(row.DuLieuMoi)["TrangThai"].GetInt32().ShouldBe((int)MauTrangThai.DaHuy);
+        var nhatKy = (await LayNhatKyAsync(chungTu.Id)).Last();
+        nhatKy.HanhDong.ShouldBe(HanhDong.Huy);
+        DocJson(nhatKy.DuLieuCu)["TrangThai"].GetString().ShouldBe(nameof(MauTrangThai.DaGhiSo));
+        DocJson(nhatKy.DuLieuMoi)["TrangThai"].GetString().ShouldBe(nameof(MauTrangThai.DaHuy));
     }
 
     [SqlServerFact]
-    public async Task UpdateWithoutRealChange_WritesNoRow()
+    public async Task SaveChanges_AlreadyCancelledVoucherEdited_WritesSuaRow()
     {
-        var voucher = await InsertAsync(NewVoucher());
+        var chungTu = await ThemAsync(TaoChungTu());
+        await SuaAsync(chungTu.Id, v => v.TrangThai = MauTrangThai.DaHuy);
 
-        await UpdateAsync(voucher.Id, v => v.SoTien = v.SoTien);
+        await SuaAsync(chungTu.Id, v => v.NoiDung = "Huỷ do ghi nhầm đối tượng");
 
-        (await LogOfAsync(voucher.Id)).ShouldHaveSingleItem().HanhDong.ShouldBe(HanhDong.Them);
+        var nhatKy = (await LayNhatKyAsync(chungTu.Id)).Last();
+        nhatKy.HanhDong.ShouldBe(HanhDong.Sua);
+        DocJson(nhatKy.DuLieuMoi).Keys.ShouldBe(["NoiDung"]);
     }
 
     [SqlServerFact]
-    public async Task ExcludedProperty_NeverAppearsInTheJson_ButItsChangeIsStillLogged()
+    public async Task SaveChanges_NoRealChange_WritesNoRow()
     {
-        var voucher = await InsertAsync(NewVoucher());
+        var chungTu = await ThemAsync(TaoChungTu());
 
-        await UpdateAsync(voucher.Id, v => v.MaBiMat = "bí-mật-mới");
+        await SuaAsync(chungTu.Id, v => v.SoTien = v.SoTien);
 
-        var log = await LogOfAsync(voucher.Id);
-        log.Count.ShouldBe(2);
-        log[1].HanhDong.ShouldBe(HanhDong.Sua);
-        log.ShouldAllBe(n => !(n.DuLieuCu ?? "").Contains("bí-mật") && !(n.DuLieuMoi ?? "").Contains("bí-mật"));
-        log.ShouldAllBe(n => !(n.DuLieuCu ?? "").Contains("MaBiMat") && !(n.DuLieuMoi ?? "").Contains("MaBiMat"));
+        (await LayNhatKyAsync(chungTu.Id)).ShouldHaveSingleItem().HanhDong.ShouldBe(HanhDong.Them);
     }
 
     [SqlServerFact]
-    public async Task FailingSave_RollsBackBothTheEntityAndItsAuditRows()
+    public async Task SaveChanges_DetachedUpdate_ThrowsAndWritesNothing()
     {
-        var marker = Guid.NewGuid().ToString("N");
-        var logCount = await LogCountAsync();
+        var chungTu = await ThemAsync(TaoChungTu());
+        var chungTuTachRoi = TaoChungTu();
+        chungTuTachRoi.Id = chungTu.Id;
+        chungTuTachRoi.SoTien = 999_000;
+        chungTuTachRoi.RowVer = chungTu.RowVer;
 
-        await using (var db = _fixture.CreateAuditedContext())
+        await using (var db = _fixture.TaoDbContextCoNhatKy())
         {
-            db.MauChungTu.Add(NewVoucher(marker));
+            db.MauChungTu.Update(chungTuTachRoi);
+
+            (await Should.ThrowAsync<InvalidOperationException>(() => db.SaveChangesAsync())).Message.ShouldContain("Load it");
+        }
+
+        await using var dbKiemTra = _fixture.TaoDbContext();
+        (await dbKiemTra.MauChungTu.SingleAsync(v => v.Id == chungTu.Id)).SoTien.ShouldBe(100_000m);
+        (await LayNhatKyAsync(chungTu.Id)).ShouldHaveSingleItem().HanhDong.ShouldBe(HanhDong.Them);
+    }
+
+    [SqlServerFact]
+    public async Task SaveChanges_ExcludedPropertyChanged_LogsTheChangeWithoutItsValue()
+    {
+        var chungTu = await ThemAsync(TaoChungTu());
+
+        await SuaAsync(chungTu.Id, v => v.MaBiMat = "bí-mật-mới");
+
+        var danhSachNhatKy = await LayNhatKyAsync(chungTu.Id);
+        danhSachNhatKy.Count.ShouldBe(2);
+        danhSachNhatKy[1].HanhDong.ShouldBe(HanhDong.Sua);
+        danhSachNhatKy.ShouldAllBe(n => !(n.DuLieuCu ?? "").Contains("bí-mật") && !(n.DuLieuMoi ?? "").Contains("bí-mật"));
+        danhSachNhatKy.ShouldAllBe(n => !(n.DuLieuCu ?? "").Contains("MaBiMat") && !(n.DuLieuMoi ?? "").Contains("MaBiMat"));
+    }
+
+    [SqlServerFact]
+    public async Task SaveChanges_InsertFails_RollsBackBothTheEntityAndItsAuditRows()
+    {
+        var dauHieu = Guid.NewGuid().ToString("N");
+        var soDongNhatKy = await LaySoDongNhatKyAsync();
+
+        await using (var db = _fixture.TaoDbContextCoNhatKy())
+        {
+            db.MauChungTu.Add(TaoChungTu(dauHieu));
             // Violates CK_MauChungTu_TrangThai, so the batch fails after the first insert.
-            var invalid = NewVoucher(marker);
-            invalid.TrangThai = (MauTrangThai)9;
-            db.MauChungTu.Add(invalid);
+            var chungTuSai = TaoChungTu(dauHieu);
+            chungTuSai.TrangThai = (MauTrangThai)9;
+            db.MauChungTu.Add(chungTuSai);
 
             await Should.ThrowAsync<DbUpdateException>(() => db.SaveChangesAsync());
         }
 
-        await using var check = _fixture.CreatePlainContext();
-        (await check.MauChungTu.CountAsync(v => v.NoiDung == marker)).ShouldBe(0);
-        (await LogCountAsync()).ShouldBe(logCount);
+        await using var dbKiemTra = _fixture.TaoDbContext();
+        (await dbKiemTra.MauChungTu.CountAsync(v => v.NoiDung == dauHieu)).ShouldBe(0);
+        (await LaySoDongNhatKyAsync()).ShouldBe(soDongNhatKy);
     }
 
     [SqlServerFact]
-    public async Task FailingAuditWrite_RollsBackTheEntityToo()
+    public async Task SaveChanges_RetryInSameContextAfterFailure_StoresOnlyTheRetry()
     {
-        const string reject = "TU-CHOI-NHAT-KY";
+        var dauHieu = Guid.NewGuid().ToString("N");
+
+        await using (var db = _fixture.TaoDbContextCoNhatKy())
+        {
+            db.MauChungTu.Add(TaoChungTu(dauHieu));
+            var chungTuSai = TaoChungTu(dauHieu);
+            chungTuSai.TrangThai = (MauTrangThai)9;
+            db.MauChungTu.Add(chungTuSai);
+            await Should.ThrowAsync<DbUpdateException>(() => db.SaveChangesAsync());
+
+            // The failed save's own transaction is gone, so the retry can't commit leftovers of the failed batch.
+            db.Database.CurrentTransaction.ShouldBeNull();
+
+            chungTuSai.TrangThai = MauTrangThai.DaGhiSo;
+            await db.SaveChangesAsync();
+        }
+
+        await using var dbKiemTra = _fixture.TaoDbContext();
+        var danhSachId = await dbKiemTra.MauChungTu.Where(v => v.NoiDung == dauHieu).Select(v => v.Id).ToListAsync();
+        danhSachId.Count.ShouldBe(2);
+        foreach (var id in danhSachId)
+            (await LayNhatKyAsync(id)).ShouldHaveSingleItem().HanhDong.ShouldBe(HanhDong.Them);
+    }
+
+    [SqlServerFact]
+    public async Task SaveChanges_AuditWriteFails_RollsBackTheEntityToo()
+    {
+        const string tuChoi = "TU-CHOI-NHAT-KY";
         // Test-only constraint: an audit row mentioning the marker fails, after the voucher INSERT has succeeded.
         await _fixture.Database.ThucThiAsync($"""
             IF OBJECT_ID('CK_Test_TuChoiNhatKy') IS NULL
-                ALTER TABLE NhatKyThaoTac ADD CONSTRAINT CK_Test_TuChoiNhatKy CHECK (DuLieuMoi NOT LIKE '%{reject}%')
+                ALTER TABLE NhatKyThaoTac ADD CONSTRAINT CK_Test_TuChoiNhatKy CHECK (DuLieuMoi NOT LIKE '%{tuChoi}%')
             """);
-        var marker = $"{reject}-{Guid.NewGuid():N}";
-        var logCount = await LogCountAsync();
+        var dauHieu = $"{tuChoi}-{Guid.NewGuid():N}";
+        var soDongNhatKy = await LaySoDongNhatKyAsync();
 
-        await using (var db = _fixture.CreateAuditedContext())
+        await using (var db = _fixture.TaoDbContextCoNhatKy())
         {
-            db.MauChungTu.Add(NewVoucher(marker));
+            db.MauChungTu.Add(TaoChungTu(dauHieu));
             await Should.ThrowAsync<DbUpdateException>(() => db.SaveChangesAsync());
 
             // The rejected log row must not stay queued for the context's next save.
             db.ChangeTracker.Entries<NhatKyThaoTac>().ShouldBeEmpty();
         }
 
-        await using var check = _fixture.CreatePlainContext();
-        (await check.MauChungTu.CountAsync(v => v.NoiDung == marker)).ShouldBe(0);
-        (await LogCountAsync()).ShouldBe(logCount);
+        await using var dbKiemTra = _fixture.TaoDbContext();
+        (await dbKiemTra.MauChungTu.CountAsync(v => v.NoiDung == dauHieu)).ShouldBe(0);
+        (await LaySoDongNhatKyAsync()).ShouldBe(soDongNhatKy);
     }
 
     [SqlServerFact]
-    public async Task CallerTransaction_IsJoined_SoItsRollbackUndoesTheAuditRowsToo()
+    public async Task SaveChanges_CallerTransactionRolledBack_UndoesTheAuditRowsToo()
     {
-        var marker = Guid.NewGuid().ToString("N");
-        var logCount = await LogCountAsync();
+        var dauHieu = Guid.NewGuid().ToString("N");
+        var soDongNhatKy = await LaySoDongNhatKyAsync();
 
-        await using (var db = _fixture.CreateAuditedContext())
+        await using (var db = _fixture.TaoDbContextCoNhatKy())
         {
             await using var transaction = await db.Database.BeginTransactionAsync();
-            db.MauChungTu.Add(NewVoucher(marker));
+            db.MauChungTu.Add(TaoChungTu(dauHieu));
             await db.SaveChangesAsync();
 
             db.Database.CurrentTransaction.ShouldBeSameAs(transaction);
             await transaction.RollbackAsync();
         }
 
-        await using var check = _fixture.CreatePlainContext();
-        (await check.MauChungTu.CountAsync(v => v.NoiDung == marker)).ShouldBe(0);
-        (await LogCountAsync()).ShouldBe(logCount);
+        await using var dbKiemTra = _fixture.TaoDbContext();
+        (await dbKiemTra.MauChungTu.CountAsync(v => v.NoiDung == dauHieu)).ShouldBe(0);
+        (await LaySoDongNhatKyAsync()).ShouldBe(soDongNhatKy);
     }
 
     [SqlServerFact]
-    public async Task CallerTransaction_Committed_KeepsEntityAndAuditRow()
+    public async Task SaveChanges_CallerTransactionCommitted_KeepsEntityAndAuditRow()
     {
-        await using var db = _fixture.CreateAuditedContext();
+        await using var db = _fixture.TaoDbContextCoNhatKy();
         await using var transaction = await db.Database.BeginTransactionAsync();
-        var voucher = NewVoucher();
-        db.MauChungTu.Add(voucher);
+        var chungTu = TaoChungTu();
+        db.MauChungTu.Add(chungTu);
         await db.SaveChangesAsync();
         await transaction.CommitAsync();
 
-        (await LogOfAsync(voucher.Id)).ShouldHaveSingleItem().HanhDong.ShouldBe(HanhDong.Them);
+        (await LayNhatKyAsync(chungTu.Id)).ShouldHaveSingleItem().HanhDong.ShouldBe(HanhDong.Them);
     }
 
     [SqlServerFact]
-    public void SynchronousSave_IsAuditedToo()
+    public void SaveChanges_Synchronous_IsAuditedToo()
     {
-        var voucher = NewVoucher();
-        using (var db = _fixture.CreateAuditedContext())
+        var chungTu = TaoChungTu();
+        using (var db = _fixture.TaoDbContextCoNhatKy())
         {
-            db.MauChungTu.Add(voucher);
+            db.MauChungTu.Add(chungTu);
             db.SaveChanges();
         }
 
-        LogOfAsync(voucher.Id).GetAwaiter().GetResult().ShouldHaveSingleItem().HanhDong.ShouldBe(HanhDong.Them);
+        LayNhatKyAsync(chungTu.Id).GetAwaiter().GetResult().ShouldHaveSingleItem().HanhDong.ShouldBe(HanhDong.Them);
     }
 
     [SqlServerFact]
-    public async Task DeletingAnAuditedEntity_Throws()
+    public async Task SaveChanges_DeletedVoucher_Throws()
     {
-        var voucher = await InsertAsync(NewVoucher());
+        var chungTu = await ThemAsync(TaoChungTu());
 
-        await using var db = _fixture.CreateAuditedContext();
-        db.MauChungTu.Remove(await db.MauChungTu.SingleAsync(v => v.Id == voucher.Id));
+        await using var db = _fixture.TaoDbContextCoNhatKy();
+        db.MauChungTu.Remove(await db.MauChungTu.SingleAsync(v => v.Id == chungTu.Id));
 
         (await Should.ThrowAsync<InvalidOperationException>(() => db.SaveChangesAsync())).Message.ShouldContain("cancel");
     }
 
     [SqlServerFact]
-    public async Task ModifyingAnAuditRow_Throws()
+    public async Task SaveChanges_ModifiedAuditRow_Throws()
     {
-        var voucher = await InsertAsync(NewVoucher());
+        var chungTu = await ThemAsync(TaoChungTu());
 
-        await using var db = _fixture.CreateAuditedContext();
-        var row = await db.NhatKyThaoTac.FirstAsync(n => n.TenBang == "MauChungTu" && n.BanGhiId == voucher.Id);
-        db.Entry(row).Property(n => n.DuLieuMoi).CurrentValue = "{}";
+        await using var db = _fixture.TaoDbContextCoNhatKy();
+        var nhatKy = await db.NhatKyThaoTac.FirstAsync(n => n.TenBang == "MauChungTu" && n.BanGhiId == chungTu.Id);
+        db.Entry(nhatKy).Property(n => n.DuLieuMoi).CurrentValue = "{}";
 
         (await Should.ThrowAsync<InvalidOperationException>(() => db.SaveChangesAsync())).Message.ShouldContain("append-only");
     }
 
     [SqlServerFact]
-    public async Task DeletingAnAuditRow_Throws()
+    public async Task SaveChanges_DeletedAuditRow_Throws()
     {
-        var voucher = await InsertAsync(NewVoucher());
+        var chungTu = await ThemAsync(TaoChungTu());
 
-        await using var db = _fixture.CreateAuditedContext();
-        db.NhatKyThaoTac.Remove(await db.NhatKyThaoTac.FirstAsync(n => n.TenBang == "MauChungTu" && n.BanGhiId == voucher.Id));
+        await using var db = _fixture.TaoDbContextCoNhatKy();
+        db.NhatKyThaoTac.Remove(await db.NhatKyThaoTac.FirstAsync(n => n.TenBang == "MauChungTu" && n.BanGhiId == chungTu.Id));
 
         Should.Throw<InvalidOperationException>(() => db.SaveChanges()).Message.ShouldContain("append-only");
     }

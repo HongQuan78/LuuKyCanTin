@@ -72,7 +72,7 @@ public sealed class InfrastructureRegistrationTests
     }
 
     [Fact]
-    public void AddInfrastructure_SharesOneSignedInUserAcrossScopes()
+    public void AddInfrastructure_TwoScopes_ShareOneSignedInUser()
     {
         using var provider = TaoProvider(ConnectionString);
         using var scope = provider.CreateScope();
@@ -82,20 +82,20 @@ public sealed class InfrastructureRegistrationTests
     }
 
     [Fact]
-    public void AddInfrastructure_GivesEachDbContextItsOwnAuditInterceptor()
+    public void AddInfrastructure_TwoScopes_GetTheirOwnAuditInterceptor()
     {
         using var provider = TaoProvider(ConnectionString);
         using var scope1 = provider.CreateScope();
         using var scope2 = provider.CreateScope();
 
-        var interceptor1 = InterceptorOf(scope1.ServiceProvider.GetRequiredService<AppDbContext>());
-        var interceptor2 = InterceptorOf(scope2.ServiceProvider.GetRequiredService<AppDbContext>());
+        var interceptor1 = LayAuditInterceptor(scope1.ServiceProvider.GetRequiredService<AppDbContext>());
+        var interceptor2 = LayAuditInterceptor(scope2.ServiceProvider.GetRequiredService<AppDbContext>());
 
         interceptor1.ShouldNotBeNull();
         interceptor1.ShouldNotBeSameAs(interceptor2);
     }
 
-    private static AuditInterceptor? InterceptorOf(DbContext db) => db.GetService<IDbContextOptions>()
+    private static AuditInterceptor? LayAuditInterceptor(DbContext db) => db.GetService<IDbContextOptions>()
         .Extensions.OfType<CoreOptionsExtension>().Single()
         .Interceptors?.OfType<AuditInterceptor>().SingleOrDefault();
 

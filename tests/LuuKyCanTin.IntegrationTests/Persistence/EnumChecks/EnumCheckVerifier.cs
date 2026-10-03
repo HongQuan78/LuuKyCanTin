@@ -27,8 +27,8 @@ public static class EnumCheckVerifier
             // Every constraint on the column has to hold, so only values they all accept are allowed.
             var allowed = allowedSets.Aggregate((a, b) => [.. a.Intersect(b)]);
             // Stored value -> how to name it in a message.
-            var enumValues = column.StoredAsName
-                ? Enum.GetNames(column.EnumType).ToDictionary(n => Quote(n), n => n)
+            var enumValues = column.LaLuuTheoTen
+                ? Enum.GetNames(column.EnumType).ToDictionary(n => ThemDauNhay(n), n => n)
                 : Enum.GetValues(column.EnumType).Cast<object>().ToDictionary(
                     v => Convert.ToInt64(v, CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture),
                     v => $"{v}={Convert.ToInt64(v, CultureInfo.InvariantCulture)}");
@@ -66,7 +66,7 @@ public static class EnumCheckVerifier
             .Select(m => m.Groups[1].Value)
             .Concat(Regex.Matches(definition, name + @"\s+IN\s*\(((?:" + value + @"|[\s,])*)\)", RegexOptions.IgnoreCase)
                 .SelectMany(m => Regex.Matches(m.Groups[1].Value, value).Select(v => v.Value)))
-            .Select(Normalize);
+            .Select(ChuanHoa);
 
         // A single-column check with no = or IN (e.g. [TrangThai] > 0) is not an enum list either; an empty set
         // here would wipe out the intersection and report every enum value as disallowed.
@@ -74,15 +74,15 @@ public static class EnumCheckVerifier
         return allowed.Count == 0 ? null : allowed;
     }
 
-    private static string Normalize(string literal)
+    private static string ChuanHoa(string literal)
     {
         var text = Regex.Match(literal, "'([^']*)'");
         return text.Success
-            ? Quote(text.Groups[1].Value)
+            ? ThemDauNhay(text.Groups[1].Value)
             : long.Parse(literal.Trim(' ', '(', ')'), CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture);
     }
 
-    private static string Quote(string name) => $"'{name}'";
+    private static string ThemDauNhay(string name) => $"'{name}'";
 
     private static bool LaGiongNhau(string a, string b) => string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
 }

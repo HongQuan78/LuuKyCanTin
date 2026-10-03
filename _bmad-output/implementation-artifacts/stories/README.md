@@ -10,7 +10,7 @@ Source of the stories: `_bmad-output/planning-artifacts/epics/epic-NN-*.md`. Eac
 |---|---|---|---|---|
 | 1.1 Solution skeleton, host and CI | [1-1-solution-skeleton-host-ci.md](epic-01/1-1-solution-skeleton-host-ci.md) | M | — | done |
 | 1.2 Database migrations, schema-version check, enum ↔ CHECK test | [1-2-database-migrations-schema-version-enum-check.md](epic-01/1-2-database-migrations-schema-version-enum-check.md) | M | 1.1 | done |
-| 1.3 IClock and automatic audit-log interceptor | [1-3-iclock-audit-log-interceptor.md](epic-01/1-3-iclock-audit-log-interceptor.md) | M | 1.2 | review |
+| 1.3 IClock and automatic audit-log interceptor | [1-3-iclock-audit-log-interceptor.md](epic-01/1-3-iclock-audit-log-interceptor.md) | M | 1.2 | done |
 | 1.4 Amount in Vietnamese words | [1-4-amount-in-vietnamese-words.md](epic-01/1-4-amount-in-vietnamese-words.md) | S | 1.1 | review |
 | 1.5 Spike: QuestPDF printing with Vietnamese fonts | [1-5-spike-questpdf-vietnamese-printing.md](epic-01/1-5-spike-questpdf-vietnamese-printing.md) | M (spike) | 1.1 | done |
 | 1.6 Spike: Velopack updates from a LAN shared folder | [1-6-spike-velopack-lan-updates.md](epic-01/1-6-spike-velopack-lan-updates.md) | M (spike) | 1.1 | done |

@@ -2,7 +2,7 @@
 story: "1.3"
 epic: 1
 title: IClock and automatic audit-log interceptor
-status: review
+status: done
 size: M
 backlogItems: [NEN-05, NEN-06]
 frsCovered: []
@@ -12,7 +12,7 @@ dependsOn: ["1.2"]
 
 # Story 1.3: IClock and automatic audit-log interceptor
 
-Status: review
+Status: done
 
 ## Story
 
@@ -90,6 +90,39 @@ So that every operation can be traced and nobody can alter records silently.
   - [x] `IGhiNhatKy` writes a `DangNhap` row with the right user, machine and time (from a `FakeClock`).
   - [x] Unit: the `HanhDong` decision logic as a pure function (entry state + old/new `DaHuy` → `HanhDong`).
 
+### Review Findings
+
+Code review 2026-10-03 (diff `4306fe5^..4306fe5`, verified against HEAD `15773af`).
+
+- [x] [Review][Decision] A detached `Update()`/`Attach` save of an `IAuditable` entity writes no audit row. EF sets `OriginalValue == CurrentValue` on every property, so the value-comparer filter in `GhiNhan` drops them all and returns null. The UPDATE still runs and `NgaySua`/`NguoiSuaId` are still stamped. A cancellation done this way is not logged as `Huy` either. No `src` code uses `Update`/`Attach` today, but nothing stops the next voucher service from doing so. Options: (a) throw when a Modified `IAuditable` entry has flagged columns but none really changed ("load, change, save"); (b) read the "before" values from `GetDatabaseValues()` (one extra query per modified voucher); (c) keep the code as is and only document it. **Resolved: (a).** `GhiNhan` throws in that case. The throw broke `VaiTroService.CapNhatQuyenAsync` (story 2.3), which marked the whole role `Modified` only to bump `RowVer`, so that method now flags just `NgaySua`. That still issues the UPDATE and keeps the concurrency check. [src/Libraries/LuuKyCanTin.Infrastructure/Persistence/Interceptors/AuditInterceptor.cs:188]
+- [x] [Review][Decision] AC 4 says "anything … through EF" must fail on an update or delete of `NhatKyThaoTac`. `ExecuteUpdate`/`ExecuteDelete` are EF APIs that bypass the `SaveChanges` guard, and the DB `DENY` waits for Epic 7. No `src` code calls them today. Options: (a) add a `DbCommandInterceptor` that rejects `UPDATE`/`DELETE` commands on `NhatKyThaoTac`; (b) accept the gap until Epic 7 and note it in AC 4's Completion Notes. **Resolved: (b).** Recorded in the Completion Notes and `deferred-work.md`. [src/Libraries/LuuKyCanTin.Infrastructure/Persistence/Interceptors/AuditInterceptor.cs:145]
+- [x] [Review][Decision] Enum values inside `DuLieuCu`/`DuLieuMoi` are serialized as numbers (`"TrangThai":3`). `HanhDong` is stored as its name precisely so the log reads well. Adding `JsonStringEnumConverter` to `NhatKyFactory` makes them names (`"DaHuy"`). That is cheap now and costly once log rows have piled up in the field. Options: (a) names; (b) keep numbers. **Resolved: (a).** [src/Libraries/LuuKyCanTin.Infrastructure/HeThong/NhatKyFactory.cs:12]
+- [x] [Review][Patch] Rename story 1.3 code to `docs/conventions/naming-conventions.md`. The user asked for this explicitly. It covers `XacDinhHanhDong.Tu`, `KhoaCua`, `ToJson`, `ChuanBi` (a bool return that doesn't read as a question), `DuocGhiGiaTri`, `now` locals, collection names, `EnumModel.IsStoredAsName`/`EnumColumn.StoredAsName`, `EnumCheckVerifier.Normalize`/`Quote`, test helpers (`NewVoucher`, `InsertAsync`, `CreateAuditedContext`, …) and test-method names. Names prescribed by the spec or CLAUDE.md stay (`IAuditable`, `AuditInterceptor`, `ICurrentUser`, `CurrentUserSession`, `IClock`, `FakeClock.Advance`).
+- [x] [Review][Patch] `TimeProvider.System` (`GetLocalNow`/`GetUtcNow`) reads the system clock and is not banned. [src/BannedSymbols.txt:1]
+- [x] [Review][Patch] No test edits a voucher that is already cancelled. Hard-coding `daHuyTruoc = false` at line 192 keeps every test green, while a later edit of a cancelled voucher would be logged as a second `Huy`. [src/Libraries/LuuKyCanTin.Infrastructure/Persistence/Interceptors/AuditInterceptor.cs:192]
+- [x] [Review][Patch] The rollback on a failed save is masked by disposal. `FailingSave_RollsBack…` checks only after the context is disposed, so deleting `SaveChangesFailedAsync` stays green. `DoiTuongStore.ThemAsync` catches `DbUpdateException` and keeps the scope. Add a retry-in-the-same-context test. [src/Libraries/LuuKyCanTin.Infrastructure/Persistence/Interceptors/AuditInterceptor.cs:124]
+- [x] [Review][Defer] The "flagged but unchanged" comparer filter in `GhiNhan` is never exercised. `UpdateWithoutRealChange_WritesNoRow` leaves the entry `Unchanged`, so `GhiNhan` never runs. [src/Libraries/LuuKyCanTin.Infrastructure/Persistence/Interceptors/AuditInterceptor.cs:200] — deferred: no caller flags properties without changing them. Settle together with the detached-update decision.
+- [x] [Review][Defer] No model test enforces the `IAuditable` invariants: a single integer key (otherwise `BanGhiId` is null) and `ICoTrangThaiHuy` on every voucher (otherwise a cancellation is logged as `Sua`). [src/Libraries/LuuKyCanTin.Infrastructure/Persistence/Interceptors/AuditInterceptor.cs:234] — deferred: every current `IAuditable` (`CanBo`, `NguoiDung`, `VaiTro`, `ChungTuLuuKy`) has an int key, and `ChungTuLuuKy` implements `ICoTrangThaiHuy`. Add the test when Epic 3 adds more vouchers.
+- [x] [Review][Defer] CLAUDE.md doesn't mention the text-stored enum exception (`HanhDong` as `varchar` names, with `HasConversion<string>()` before `HasEnumCheck`). [CLAUDE.md] — deferred: the fix edits an agent-context file.
+
+**Rejected:**
+- `SaveChanges(acceptAllChangesOnSuccess: false)` makes the nested log save write the voucher again. Rejected (`low`): no caller uses that overload, and a fix adds a guard.
+- A failed log write inside a caller's transaction leaves the voucher in that transaction. Rejected (`low`): the exception propagates, every caller disposes its transaction without committing on an exception, and the Completion Notes already say to discard the context.
+- The change tracker no longer matches the DB after a failed log write. Rejected (`low`): documented in the Completion Notes, and the one-scope-per-operation rule discards the context.
+- A rollback exception masks the original error, and `CommitAsync` uses the caller's token. Rejected (`low`): either way the user sees a failure, and the fix adds guards.
+- The stamp and the log row read the clock and user separately (`SavingChanges` vs `SavedChanges`). Rejected (`low`): the difference is under a second, or a user switch mid-save, and the fix adds parameters.
+- `CurrentUserSession` getters can tear between properties, which contradicts its comment. Rejected (`low`): every consumer reads only `NguoiDungId`.
+- A failed `GhiAsync` leaves its row `Added`. Rejected (`low`): the next save on the same scope fails the same way, and the fix adds a guard.
+- `NguoiTaoId = 0` when nobody is signed in. Rejected (`low`): there is no FK on `NguoiTaoId`, and the seed data uses 0 as well, as decided in the Completion Notes.
+- `HasEnumCheck` depends on call order. Rejected (`low`): it is documented on the method, and the LocalDB enum test in CI catches a misorder.
+- Owned types, complex properties, TPC and entity splitting. Rejected (`false`): the model has none.
+- `MauChungTu.SoTien` is `decimal`. Rejected (`false`): `decimal(18,0)` is the project's money convention (`ConfigureConventions`).
+- `CurrentUserSession` can't be set from Application. Rejected (`false`): `ICurrentUserSession` exists since story 2.2.
+- `IGhiNhatKy.GhiAsync` saves the whole unit of work. Rejected: by design, and documented in its `<remarks>`.
+- The cancellation reason is not checked. Rejected: out of scope (the voucher state machine stories).
+- `XacDinhHanhDong` depends on `EntityState` and lives in Infrastructure. Rejected (`low`): it maps an EF state, so Infrastructure is the right layer.
+- Missing tests for a sync log-write failure, `SaveChangesCanceled`, a cancellation with no user, and mixed audited and unaudited saves. Rejected (`low`): no named failure beyond the rollback patch above.
+
 ## Dev Notes
 
 ### Current codebase state
@@ -141,6 +174,8 @@ Claude Opus 5.5 (Amelia / bmad-agent-dev). Implemented directly from this story 
 - **`HanhDong` is stored as its name.** `HasEnumCheck` now emits `IN ('Them', …)` when the property was converted with `HasConversion<string>()`, so configure the conversion first. The enum ↔ CHECK verifier understands quoted values (`'A'`, `N'A'`, and `IN` lists). Name-stored columns are checked against enum names. The tinyint test skips them, and a separate `EveryEnum_IsDeclaredByte` test keeps the `: byte` rule for every enum.
 - **Transaction.** The interceptor opens its own transaction only when a save has something to log and no caller transaction exists. Otherwise it joins the caller's. Log rows are built in `SavedChanges`, after IDENTITY ids exist, and saved through the same context behind a re-entrancy flag. If the log write fails, the owned transaction is rolled back and the queued log rows are detached. The entity's tracker state has already been accepted at that point, so discard the context after such a failure, which the one-scope-per-operation rule does anyway.
 - **No signed-in user.** On insert, `NguoiTaoId` (non-nullable) gets `0` when nobody is signed in (seeding, admin commands). The log row keeps `NguoiDungId = null`. Story 1.8 may revisit this once `NguoiDung` exists.
+- **AC 4 and bulk EF writes.** The `SaveChanges` guard rejects any update or delete of `NhatKyThaoTac`. `ExecuteUpdate`/`ExecuteDelete` bypass interceptors, so nothing blocks them until Epic 7 applies `DENY UPDATE, DELETE` at the database (review decision). No code calls them on the log.
+- **Load, change, save.** Saving a Modified `IAuditable` whose flagged columns all equal their original values (a detached `Update()`/`Attach`) throws, because the log could not tell what changed. To bump `RowVer` without a real change, flag only a bookkeeping column (`NgaySua`), as `VaiTroService` does.
 - **Secrets.** `[KhongGhiNhatKy]` (Domain attribute) keeps a property's values out of the JSON. A change to that property alone still writes a `Sua` row with empty `{}` JSON, so the change isn't silent. `NguoiDung.MatKhauHash` (Story 1.8) must carry this attribute.
 - **Edits never rewrite creation stamps.** On Modified, `NgayTao`/`NguoiTaoId` are reset to their original values.
 - `NhatKyThaoTac.NguoiDungId` has no FK, per the Dev Notes recommendation (recorded on the configuration). `MayTram`/`TenBang` are nullable, as the column list gives no NOT NULL for them.
@@ -158,16 +193,20 @@ Claude Opus 5.5 (Amelia / bmad-agent-dev). Implemented directly from this story 
 - `src/Libraries/LuuKyCanTin.Application/Abstractions/IClock.cs`, `ICurrentUser.cs`, `IGhiNhatKy.cs` (new; `.gitkeep` removed)
 - `src/Libraries/LuuKyCanTin.Infrastructure/Common/SystemClock.cs` (new)
 - `src/Libraries/LuuKyCanTin.Infrastructure/HeThong/CurrentUserSession.cs`, `NhatKyFactory.cs`, `GhiNhatKy.cs` (new; `.gitkeep` removed)
-- `src/Libraries/LuuKyCanTin.Infrastructure/Persistence/Interceptors/AuditInterceptor.cs`, `XacDinhHanhDong.cs` (new)
+- `src/Libraries/LuuKyCanTin.Infrastructure/Persistence/Interceptors/AuditInterceptor.cs`, `HanhDongNhatKy.cs` (new; renamed from `XacDinhHanhDong.cs` in review)
+- `src/Libraries/LuuKyCanTin.Application/HeThong/VaiTroService.cs` (modified in review: flag `NgaySua` instead of the whole entity)
 - `src/Libraries/LuuKyCanTin.Infrastructure/Persistence/Configurations/HeThong/NhatKyThaoTacConfiguration.cs` (new)
 - `src/Libraries/LuuKyCanTin.Infrastructure/Persistence/Configurations/Common/EnumCheckExtensions.cs` (modified)
 - `src/Libraries/LuuKyCanTin.Infrastructure/Persistence/AppDbContext.cs`, `DependencyInjection.cs` (modified)
 - `src/Libraries/LuuKyCanTin.Infrastructure/Persistence/Migrations/20261001151151_AddNhatKyThaoTac.cs`, `.Designer.cs` (new), `AppDbContextModelSnapshot.cs` (modified)
-- `tests/LuuKyCanTin.IntegrationTests/TestUtilities/FakeClock.cs` (new)
-- `tests/LuuKyCanTin.IntegrationTests/Persistence/Audit/AuditDatabaseFixture.cs`, `AuditInterceptorTests.cs`, `XacDinhHanhDongTests.cs` (new)
-- `tests/LuuKyCanTin.IntegrationTests/HeThong/GhiNhatKyTests.cs`, `CurrentUserSessionTests.cs`, `ClockTests.cs` (new)
-- `tests/LuuKyCanTin.IntegrationTests/Persistence/NhatKyThaoTacModelTests.cs`, `Architecture/BannedApiTests.cs` (new)
-- `tests/LuuKyCanTin.IntegrationTests/Persistence/EnumChecks/EnumCheckVerifier.cs`, `EnumCheckVerifierTests.cs`, `EnumModel.cs`, `EnumModelTests.cs` (modified)
+- `tests/LuuKyCanTin.IntegrationTests/TestUtilities/FakeClock.cs`, `FakeClockTests.cs` (new)
+- `tests/LuuKyCanTin.IntegrationTests/Persistence/Audit/AuditDatabaseFixture.cs`, `AuditInterceptorTests.cs` (new)
+- `tests/LuuKyCanTin.IntegrationTests/Persistence/Interceptors/HanhDongNhatKyTests.cs` (new; renamed from `Persistence/Audit/XacDinhHanhDongTests.cs` in review)
+- `tests/LuuKyCanTin.IntegrationTests/HeThong/GhiNhatKyTests.cs`, `CurrentUserSessionTests.cs` (new)
+- `tests/LuuKyCanTin.IntegrationTests/Common/SystemClockTests.cs` (new; renamed from `HeThong/ClockTests.cs` in review)
+- `tests/LuuKyCanTin.IntegrationTests/Persistence/Configurations/HeThong/NhatKyThaoTacConfigurationTests.cs` (new; renamed from `Persistence/NhatKyThaoTacModelTests.cs` in review)
+- `tests/LuuKyCanTin.IntegrationTests/Architecture/BannedApiTests.cs` (new)
+- `tests/LuuKyCanTin.IntegrationTests/Persistence/EnumChecks/EnumCheckVerifier.cs`, `EnumCheckVerifierTests.cs`, `EnumColumn.cs`, `EnumModel.cs`, `EnumModelTests.cs` (modified)
 - `tests/LuuKyCanTin.IntegrationTests/Persistence/InfrastructureRegistrationTests.cs`, `TestModel/MauChungTu.cs` (modified)
 
 ## Change Log
@@ -176,3 +215,4 @@ Claude Opus 5.5 (Amelia / bmad-agent-dev). Implemented directly from this story 
 |---|---|
 | 2026-10-01 | Story file created from Epic 1 |
 | 2026-10-01 | Implemented: IClock + banned-API analyzer, NhatKyThaoTac + migration, audit interceptor, IGhiNhatKy; status → review |
+| 2026-10-03 | Code review: 3 decisions resolved, 4 patches applied (naming-convention rename, `TimeProvider.System` ban, new tests for an edit after cancellation and a retry after a failed save), detached-update guard, enum names in the audit JSON, 3 deferred; status → done |

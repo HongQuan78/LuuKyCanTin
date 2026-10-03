@@ -17,7 +17,7 @@ public sealed class EnumModelTests
         .Options;
 
     [Fact]
-    public void EveryEnum_IsDeclaredByte()
+    public void LayCotEnum_EveryEnumColumn_IsDeclaredByte()
     {
         using var db = new AppDbContext(ModelOnlyOptions);
 
@@ -33,7 +33,7 @@ public sealed class EnumModelTests
         using var db = new AppDbContext(ModelOnlyOptions);
 
         EnumModel.LayThuocTinhEnum(db)
-            .Where(p => !EnumModel.IsStoredAsName(p) && p.GetColumnType() != "tinyint")
+            .Where(p => !EnumModel.LaLuuTheoTen(p) && p.GetColumnType() != "tinyint")
             .Select(p => $"{p.DeclaringType.DisplayName()}.{p.Name} is {p.GetColumnType()}; declare the enum ': byte'")
             .ShouldBeEmpty();
     }
@@ -47,7 +47,7 @@ public sealed class EnumModelTests
         [
             new EnumColumn(EnumModel.DefaultSchema, "MauChungTu", "TrangThai", typeof(MauTrangThai)),
             new EnumColumn(EnumModel.DefaultSchema, "MauChungTu", "TrangThaiTruoc", typeof(MauTrangThai)),
-            new EnumColumn(EnumModel.DefaultSchema, "NhatKyThaoTac", "HanhDong", typeof(HanhDong), StoredAsName: true),
+            new EnumColumn(EnumModel.DefaultSchema, "NhatKyThaoTac", "HanhDong", typeof(HanhDong), LaLuuTheoTen: true),
             new EnumColumn(EnumModel.DefaultSchema, "DoiTuong", "LoaiDoiTuong", typeof(LoaiDoiTuong)),
             new EnumColumn(EnumModel.DefaultSchema, "DoiTuong", "TrangThai", typeof(TrangThaiDoiTuong)),
             new EnumColumn(EnumModel.DefaultSchema, "ChungTuLuuKy", "LoaiPhieu", typeof(LoaiPhieu)),

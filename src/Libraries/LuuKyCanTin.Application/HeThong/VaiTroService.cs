@@ -53,9 +53,11 @@ public sealed class VaiTroService(IAppDbContext db, IKiemTraQuyen kiemTraQuyen, 
             db.VaiTroQuyen.Add(new VaiTroQuyen { VaiTroId = vaiTroId, QuyenId = quyenTheoMa[ma] });
 
         // Touch the role so its row version changes: two administrators editing the same role then conflict.
+        // Flag only a bookkeeping column; marking the whole entity Modified looks like a detached Update() to the
+        // audit interceptor, which refuses it.
         var entry = db.Entry(vaiTro);
         entry.Property(v => v.RowVer).OriginalValue = rowVer;
-        entry.State = EntityState.Modified;
+        entry.Property(v => v.NgaySua).IsModified = true;
 
         await db.SaveChangesAsync(ct);
         await ghiNhatKy.GhiAsync(

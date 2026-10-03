@@ -4,9 +4,9 @@ using Microsoft.EntityFrameworkCore;
 namespace LuuKyCanTin.Infrastructure.Persistence.Interceptors;
 
 /// <summary>Which audit action a saved change is.</summary>
-internal static class XacDinhHanhDong
+internal static class HanhDongNhatKy
 {
-    public static HanhDong Tu(EntityState state, bool daHuyTruoc, bool daHuySau) => state switch
+    public static HanhDong XacDinh(EntityState state, bool daHuyTruoc, bool daHuySau) => state switch
     {
         EntityState.Added => HanhDong.Them,
         EntityState.Modified => !daHuyTruoc && daHuySau ? HanhDong.Huy : HanhDong.Sua,

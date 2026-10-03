@@ -76,19 +76,19 @@ public sealed class EnumCheckVerifierTests
         EnumCheckVerifier.KiemTra([TrangThai], checks).ShouldHaveSingleItem().ShouldContain("DaHuy=3");
     }
 
-    private static readonly EnumColumn TrangThaiTheoTen = TrangThai with { StoredAsName = true };
+    private static readonly EnumColumn TrangThaiTheoTen = TrangThai with { LaLuuTheoTen = true };
 
     [Theory]
     [InlineData("([TrangThai]='Nhap' OR [TrangThai]='DaGhiSo' OR [TrangThai]='DaHuy')")]
     [InlineData("([TrangThai]=N'Nhap' OR [TrangThai]=N'DaGhiSo' OR [TrangThai]=N'DaHuy')")]
     [InlineData("([TrangThai] IN ('Nhap', 'DaGhiSo', 'DaHuy'))")]
-    public void NameStoredColumn_MatchingConstraint_HasNoProblems(string definition)
+    public void KiemTra_NameStoredMatchingConstraint_HasNoProblems(string definition)
     {
         EnumCheckVerifier.KiemTra([TrangThaiTheoTen], [TaoCheck(definition)]).ShouldBeEmpty();
     }
 
     [Fact]
-    public void NameStoredColumn_NameMissingFromConstraint_IsReported()
+    public void KiemTra_NameStoredNameMissingFromConstraint_IsReported()
     {
         var problems = EnumCheckVerifier.KiemTra([TrangThaiTheoTen], [TaoCheck("([TrangThai]='Nhap' OR [TrangThai]='DaGhiSo')")]);
 
@@ -96,7 +96,7 @@ public sealed class EnumCheckVerifierTests
     }
 
     [Fact]
-    public void NameStoredColumn_ExtraNameInConstraint_IsReported()
+    public void KiemTra_NameStoredExtraNameInConstraint_IsReported()
     {
         var problems = EnumCheckVerifier.KiemTra(
             [TrangThaiTheoTen], [TaoCheck("([TrangThai]='Nhap' OR [TrangThai]='DaGhiSo' OR [TrangThai]='DaHuy' OR [TrangThai]='Moi')")]);
@@ -105,7 +105,7 @@ public sealed class EnumCheckVerifierTests
     }
 
     [Fact]
-    public void NameStoredColumn_NumericConstraint_IsReported()
+    public void KiemTra_NameStoredNumericConstraint_IsReported()
     {
         // A tinyint-style CHECK on a text column means the conversion and the constraint disagree.
         EnumCheckVerifier.KiemTra([TrangThaiTheoTen], [TaoCheck("([TrangThai]=(1) OR [TrangThai]=(2) OR [TrangThai]=(3))")])
