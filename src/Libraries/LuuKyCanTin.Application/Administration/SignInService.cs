@@ -49,7 +49,11 @@ public sealed class SignInService(
         // The session is set even when a change is forced: the shell stays closed until the change succeeds.
         user.RecordSuccessfulSignIn();
         await userStore.SaveAsync(user, ct);
-        session.SignIn(user.Id, user.UserName);
+        // The built-in admin has no officer record; everywhere else the name is loaded, and the fallback is rare.
+        var officerFullName = user.OfficerId is { } officerId
+            ? await userStore.GetOfficerFullNameAsync(officerId, ct)
+            : null;
+        session.SignIn(user.Id, user.UserName, user.OfficerId, officerFullName ?? user.UserName);
         await auditLog.WriteAsync(
             AuditAction.SignIn, "User", user.Id,
             new { Event = SignInEvent.SignIn, UserName = user.UserName }, ct);

@@ -31,6 +31,7 @@ public class ShellNavigationTests
     [InlineData(ShellNavigation.DepositReceiptKey)]
     [InlineData(ShellNavigation.OfficersKey)]
     [InlineData(ShellNavigation.AddInmateKey)]
+    [InlineData(ShellNavigation.AccountsKey)]
     [InlineData(ShellNavigation.RolesKey)]
     [InlineData(ShellNavigation.ChangePasswordKey)]
     public void Open_EachScreenItem_CallsItsNavigatorMethod(string key)
@@ -42,6 +43,7 @@ public class ShellNavigationTests
             ShellNavigation.DepositReceiptKey => nameof(INavigator.OpenDepositReceipt),
             ShellNavigation.OfficersKey => nameof(INavigator.OpenOfficers),
             ShellNavigation.AddInmateKey => nameof(INavigator.OpenAddInmate),
+            ShellNavigation.AccountsKey => nameof(INavigator.OpenAccounts),
             ShellNavigation.RolesKey => nameof(INavigator.OpenRoles),
             _ => nameof(INavigator.OpenChangePassword),
         };

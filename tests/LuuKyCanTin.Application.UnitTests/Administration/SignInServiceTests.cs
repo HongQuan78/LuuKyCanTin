@@ -57,9 +57,22 @@ public class SignInServiceTests
         _user.FailedAttemptCount.ShouldBe((byte)0);
         _user.LockedUntil.ShouldBeNull();
         await _store.Received(1).SaveAsync(_user, Arg.Any<CancellationToken>());
-        _session.Received(1).SignIn(3, "admin");
+        _session.Received(1).SignIn(3, "admin", null, "admin");
         await _auditLog.Received(1).WriteAsync(
             AuditAction.SignIn, "User", 3, Arg.Any<object?>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task CorrectPasswordForAStaffAccount_LoadsTheStaffNameIntoTheSession()
+    {
+        SeedAccount();
+        _user.OfficerId = 7;
+        _hasher.Verify("LuuKy@2026", ValidHash).Returns(true);
+        _store.GetOfficerFullNameAsync(7, Arg.Any<CancellationToken>()).Returns("Nguyễn Văn Thủ Quỹ");
+
+        await _service.SignInAsync("admin", "LuuKy@2026");
+
+        _session.Received(1).SignIn(3, "admin", 7, "Nguyễn Văn Thủ Quỹ");
     }
 
     [Fact]
@@ -72,7 +85,7 @@ public class SignInServiceTests
 
         result.Succeeded.ShouldBeTrue();
         result.MustChangePassword.ShouldBeTrue();
-        _session.Received(1).SignIn(3, "admin");
+        _session.Received(1).SignIn(3, "admin", null, "admin");
     }
 
     [Fact]
@@ -87,7 +100,7 @@ public class SignInServiceTests
         result.Message.ShouldBe(SignInService.InvalidCredentialsMessage);
         _user.FailedAttemptCount.ShouldBe((byte)1);
         await _store.Received(1).SaveAsync(_user, Arg.Any<CancellationToken>());
-        _session.DidNotReceive().SignIn(Arg.Any<int>(), Arg.Any<string>());
+        _session.DidNotReceive().SignIn(Arg.Any<int>(), Arg.Any<string>(), Arg.Any<int?>(), Arg.Any<string?>());
         await _auditLog.Received(1).WriteAsync(
             AuditAction.SignIn, "User", 3,
             Arg.Is<object?>(o => o!.ToString()!.Contains($"Event = {SignInEvent.FailedSignIn}")),

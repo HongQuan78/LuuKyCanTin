@@ -2,6 +2,7 @@ using LuuKyCanTin.Application.Abstractions;
 using LuuKyCanTin.Application.Administration;
 using LuuKyCanTin.Application.Common;
 using LuuKyCanTin.Domain.Administration;
+using LuuKyCanTin.Domain.MasterData;
 using LuuKyCanTin.Infrastructure.Administration;
 using LuuKyCanTin.Infrastructure.Persistence;
 using LuuKyCanTin.IntegrationTests.Common;
@@ -34,8 +35,13 @@ public sealed class RoleServiceTests : IClassFixture<AppDatabaseFixture>, IAsync
 
     private RoleService CreateService(AppDbContext db)
     {
+        var userStore = new UserStore(db);
         var auditLog = new AuditLogWriter(db, new AuditLogFactory(_fixture.Clock, _fixture.User));
-        return new RoleService(db, new PermissionChecker(db, _fixture.User), auditLog);
+        return new RoleService(
+            db,
+            new PermissionChecker(db, _fixture.User),
+            auditLog,
+            new LastAdministratorGuard(db, userStore));
     }
 
     private IPermissionChecker CreatePermissionChecker(AppDbContext db) => new PermissionChecker(db, _fixture.User);
@@ -44,15 +50,25 @@ public sealed class RoleServiceTests : IClassFixture<AppDatabaseFixture>, IAsync
     {
         await using var db = _fixture.Database.CreateDbContext();
         var user = await db.User.SingleAsync(u => u.UserName == userName);
-        _fixture.User.SignIn(user.Id, user.UserName);
+        _fixture.User.SignIn(user.Id, user.UserName, user.OfficerId, user.UserName);
     }
 
     private async Task<User> CreateUserAsync(string? roleCode)
     {
         await using var db = NewContext();
+        // Outside the built-in admin, every account must belong to a staff member (CK_User_OfficerId).
+        var officer = new Officer(
+            "T" + Guid.NewGuid().ToString("N")[..12].ToUpperInvariant(),
+            "Cán bộ " + Guid.NewGuid().ToString("N")[..6],
+            "Cán bộ",
+            isSupervisingOfficer: false);
+        db.Officer.Add(officer);
+        await db.SaveChangesAsync();
+
         var user = new User
         {
             UserName = "u" + Guid.NewGuid().ToString("N")[..12],
+            OfficerId = officer.Id,
             PasswordHash = "PBKDF2-SHA256$1$abc$def",
             IsActive = true,
         };
@@ -212,7 +228,7 @@ public sealed class RoleServiceTests : IClassFixture<AppDatabaseFixture>, IAsync
     public async Task UpdatePermissions_WithoutPermission_WritesNothing()
     {
         var user = await CreateUserAsync(roleCode: null);
-        _fixture.User.SignIn(user.Id, user.UserName);
+        _fixture.User.SignIn(user.Id, user.UserName, user.OfficerId, user.UserName);
 
         await using var db = NewContext();
         var service = CreateService(db);
@@ -256,7 +272,7 @@ public sealed class RoleServiceTests : IClassFixture<AppDatabaseFixture>, IAsync
     public async Task Require_WithoutRole_IsDenied()
     {
         var user = await CreateUserAsync(roleCode: null);
-        _fixture.User.SignIn(user.Id, user.UserName);
+        _fixture.User.SignIn(user.Id, user.UserName, user.OfficerId, user.UserName);
         await using var db = NewContext();
 
         await Should.ThrowAsync<PermissionDeniedException>(() => CreatePermissionChecker(db).RequireAsync(PermissionCodes.Administration.Update));
@@ -274,7 +290,7 @@ public sealed class RoleServiceTests : IClassFixture<AppDatabaseFixture>, IAsync
             await db.SaveChangesAsync();
         }
 
-        _fixture.User.SignIn(user.Id, user.UserName);
+        _fixture.User.SignIn(user.Id, user.UserName, user.OfficerId, user.UserName);
         await using var checkDb = NewContext();
 
         await Should.ThrowAsync<PermissionDeniedException>(() => CreatePermissionChecker(checkDb).RequireAsync(PermissionCodes.Administration.Update));
@@ -285,7 +301,7 @@ public sealed class RoleServiceTests : IClassFixture<AppDatabaseFixture>, IAsync
     public async Task Require_RoleRevoked_LosesPermissionImmediately()
     {
         var user = await CreateUserAsync(RoleCodes.Administrator);
-        _fixture.User.SignIn(user.Id, user.UserName);
+        _fixture.User.SignIn(user.Id, user.UserName, user.OfficerId, user.UserName);
         await using (var db = NewContext())
             await Should.NotThrowAsync(() => CreatePermissionChecker(db).RequireAsync(PermissionCodes.Administration.Update));
 

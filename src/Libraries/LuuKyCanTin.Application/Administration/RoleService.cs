@@ -5,7 +5,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LuuKyCanTin.Application.Administration;
 
-public sealed class RoleService(IAppDbContext db, IPermissionChecker permissionChecker, IAuditLogWriter auditLog) : IRoleService
+public sealed class RoleService(
+    IAppDbContext db,
+    IPermissionChecker permissionChecker,
+    IAuditLogWriter auditLog,
+    LastAdministratorGuard lastAdministratorGuard) : IRoleService
 {
     public const string RoleNotFoundMessage = "Không tìm thấy vai trò.";
     public const string InvalidPermissionCodeMessage = "Mã quyền không hợp lệ: ";
@@ -30,12 +34,14 @@ public sealed class RoleService(IAppDbContext db, IPermissionChecker permissionC
         // Authorization first, before any read or transaction, so a refused call writes nothing at all.
         await permissionChecker.RequireAsync(PermissionCodes.Administration.Update, ct);
 
-        // TODO: last-admin guard once Story 2.4 builds it: removing PermissionCodes.Administration.Update from the last administrator role
-        // must be refused.
-
+        // The catalogue check is in memory, so it may run before the transaction.
         var invalidCodes = permissionCode.Where(code => PermissionCodes.All.All(q => q.Code != code)).ToList();
         if (invalidCodes.Count > 0)
             throw new BusinessRuleException(InvalidPermissionCodeMessage + string.Join(", ", invalidCodes));
+
+        // Serializable: the last-administrator guard and the write must be one atomic unit, so two administrators
+        // cannot remove each other's administration permission at the same moment. The rows involved are few.
+        await using var transaction = await db.BeginTransactionAsync(TransactionIsolation.Serializable, ct);
 
         var role = await db.Role.SingleOrDefaultAsync(v => v.Id == roleId, ct)
             ?? throw new BusinessRuleException(RoleNotFoundMessage);
@@ -46,7 +52,8 @@ public sealed class RoleService(IAppDbContext db, IPermissionChecker permissionC
         var newCodes = permissionCode.ToHashSet(StringComparer.Ordinal);
         var idByCode = PermissionCodes.All.ToDictionary(q => q.Code, q => q.Id, StringComparer.Ordinal);
 
-        await using var transaction = await db.BeginTransactionAsync(ct);
+        await lastAdministratorGuard.EnsureRolePermissionChangeAllowedAsync(
+            roleId, newCodes.Order(StringComparer.Ordinal).ToList(), ct);
 
         db.RolePermission.RemoveRange(current.Where(v => !newCodes.Contains(codeById[v.PermissionId])));
         foreach (var code in newCodes.Where(code => current.All(v => codeById[v.PermissionId] != code)))

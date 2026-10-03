@@ -154,6 +154,40 @@ internal sealed class EditDialogLayout
             Body.SetColumnSpan(cell, 2);
     }
 
+    /// <summary>
+    /// A multi-line list in one cell: the label above and the control itself, without an input frame around it.
+    /// </summary>
+    public void AddListField(Label label, string caption, Control list, int column, int row, bool isWide = false)
+    {
+        var width = isWide ? FullWidth : _columnWidth;
+
+        label.AutoSize = true;
+        label.Font = AppTheme.LabelFont;
+        label.ForeColor = AppTheme.Label;
+        label.Margin = new Padding(0, 0, 0, AppTheme.LabelGap);
+        label.TabIndex = 0;
+        label.Text = caption;
+
+        list.Margin = Padding.Empty;
+        list.Width = width;
+        list.TabIndex = 1;
+
+        var cell = new FlowLayoutPanel
+        {
+            AutoSize = true,
+            FlowDirection = FlowDirection.TopDown,
+            WrapContents = false,
+            Margin = new Padding(0, 0, column == 0 && !isWide ? AppTheme.Gap : 0, RowGap),
+            Name = "cell" + list.Name,
+            TabIndex = row * 2 + column,
+        };
+        cell.Controls.Add(label);
+        cell.Controls.Add(list);
+        Body.Controls.Add(cell, column, row);
+        if (isWide)
+            Body.SetColumnSpan(cell, 2);
+    }
+
     /// <summary>A control in a cell without a label above it, such as a check box, aligned with the inputs.</summary>
     public void AddPlain(Control control, int column, int row)
     {

@@ -13,6 +13,7 @@ internal sealed class Navigator(IServiceScopeFactory scopes, IContentHost host) 
 {
     public const string OfficersTitle = "Danh mục cán bộ";
     public const string DepositReceiptTitle = "Lập biên nhận thu";
+    public const string AccountsTitle = "Tài khoản";
     public const string RolesTitle = "Vai trò và phân quyền";
 
     public void ShowPage(string key, string title, Func<Control> create) => host.ShowPage(key, title, create);
@@ -45,6 +46,18 @@ internal sealed class Navigator(IServiceScopeFactory scopes, IContentHost host) 
         _ = new ChangePasswordPresenter(form, scopes, isForced: false);
         form.ShowModal();
     }
+
+    public void OpenAccounts() => host.ShowPage(ShellNavigation.AccountsKey, AccountsTitle, () =>
+    {
+        var page = new AccountForm();
+        _ = new AccountPresenter(
+            page,
+            scopes,
+            () => new CreateAccountForm(),
+            () => new AccountRolesForm(),
+            temporaryPassword => new TemporaryPasswordForm(temporaryPassword).ShowDialog(host));
+        return page;
+    });
 
     public void OpenRoles() => host.ShowPage(ShellNavigation.RolesKey, RolesTitle, () =>
     {

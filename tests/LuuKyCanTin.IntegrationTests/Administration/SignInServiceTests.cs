@@ -1,6 +1,7 @@
 using LuuKyCanTin.Application.Abstractions;
 using LuuKyCanTin.Application.Administration;
 using LuuKyCanTin.Domain.Administration;
+using LuuKyCanTin.Domain.MasterData;
 using LuuKyCanTin.Infrastructure.Administration;
 using LuuKyCanTin.Infrastructure.Persistence;
 using LuuKyCanTin.IntegrationTests.Common;
@@ -55,9 +56,19 @@ public sealed class SignInServiceTests : IClassFixture<AppDatabaseFixture>, IAsy
     private async Task<User> CreateAccountAsync(bool mustChangePassword = false)
     {
         await using var db = NewContext();
+        // Outside the built-in admin, every account must belong to a staff member (CK_User_OfficerId).
+        var officer = new Officer(
+            "T" + Guid.NewGuid().ToString("N")[..12].ToUpperInvariant(),
+            "Cán bộ " + Guid.NewGuid().ToString("N")[..6],
+            "Cán bộ",
+            isSupervisingOfficer: false);
+        db.Officer.Add(officer);
+        await db.SaveChangesAsync();
+
         var user = new User
         {
             UserName = "u" + Guid.NewGuid().ToString("N")[..12],
+            OfficerId = officer.Id,
             PasswordHash = _hasher.Hash(InitialPassword),
             IsActive = true,
             MustChangePassword = mustChangePassword,
@@ -95,6 +106,27 @@ public sealed class SignInServiceTests : IClassFixture<AppDatabaseFixture>, IAsy
         await using var check = _fixture.Database.CreateDbContext();
         (await check.User.SingleAsync(u => u.Id == account.Id)).FailedAttemptCount.ShouldBe((byte)0);
         _fixture.User.SignOut();
+    }
+
+    [SqlServerFact]
+    public async Task SignIn_StaffAccount_LoadsTheOfficerNameIntoTheSession()
+    {
+        var account = await CreateAccountAsync();
+        var officerName = await GetOfficerNameAsync(account.OfficerId!.Value);
+        await using var db = NewContext();
+
+        var result = await CreateSignInService(db).SignInAsync(account.UserName, InitialPassword);
+
+        result.Succeeded.ShouldBeTrue();
+        _fixture.User.OfficerId.ShouldBe(account.OfficerId);
+        _fixture.User.FullName.ShouldBe(officerName);
+        _fixture.User.SignOut();
+    }
+
+    private async Task<string> GetOfficerNameAsync(int officerId)
+    {
+        await using var db = _fixture.Database.CreateDbContext();
+        return await db.Officer.Where(o => o.Id == officerId).Select(o => o.FullName).SingleAsync();
     }
 
     [SqlServerFact]

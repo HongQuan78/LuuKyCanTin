@@ -13,7 +13,7 @@ public sealed class AuditLogWriterTests(AuditDatabaseFixture fixture) : IClassFi
     [SqlServerFact]
     public async Task GhiAsync_SignedInUser_WritesUserMachineAndClockTime()
     {
-        fixture.User.SignIn(42, "admin");
+        fixture.User.SignIn(42, "admin", null, "admin");
         fixture.Clock.Now = new DateTime(2026, 10, 2, 7, 15, 30);
 
         await using (var db = fixture.CreateAuditedDbContext())

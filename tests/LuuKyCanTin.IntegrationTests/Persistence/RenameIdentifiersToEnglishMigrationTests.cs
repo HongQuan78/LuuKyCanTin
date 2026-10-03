@@ -43,6 +43,10 @@ public sealed class RenameIdentifiersToEnglishMigrationTests
         var countsBefore = await CountRowsAsync(database, LegacyTables);
 
         await MigrateToAsync(database, RenameMigration);
+        // The build's model can be newer than the rename migration; finish the chain before reading entities,
+        // so the rename's kept rows are also what later additive migrations carry forward.
+        await using (var migrateDb = database.CreateDbContext())
+            await migrateDb.Database.MigrateAsync();
 
         (await CountRowsAsync(database, Tables)).ShouldBe(countsBefore);
         await using var db = database.CreateDbContext();

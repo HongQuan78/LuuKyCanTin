@@ -31,4 +31,7 @@ public interface IAppDbContext
     Task<int> SaveChangesAsync(CancellationToken ct = default);
 
     Task<IAppTransaction> BeginTransactionAsync(CancellationToken ct = default);
+
+    /// <summary>Opens a transaction at the requested isolation, for a guarded read-check-write.</summary>
+    Task<IAppTransaction> BeginTransactionAsync(TransactionIsolation isolation, CancellationToken ct = default);
 }

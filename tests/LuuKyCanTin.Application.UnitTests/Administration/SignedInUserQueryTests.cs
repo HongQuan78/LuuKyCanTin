@@ -34,16 +34,26 @@ public class SignedInUserQueryTests
     }
 
     [Fact]
-    public async Task Get_ASignedInUser_ReturnsTheUserNameAsDisplayNameAndTheRoleName()
+    public async Task Get_ASignedInUser_ReturnsTheOfficerNameAsDisplayNameAndTheRoleName()
     {
         await SeedAsync(1);
+        _currentUser.FullName.Returns("Nguyễn Thị Lan");
 
         var user = await CreateQuery().GetAsync();
 
         user.ShouldNotBeNull();
         user.UserName.ShouldBe("lan.nt");
-        user.DisplayName.ShouldBe("lan.nt");
+        user.DisplayName.ShouldBe("Nguyễn Thị Lan");
         user.RoleNames.ShouldBe("Quản trị hệ thống");
+    }
+
+    [Fact]
+    public async Task Get_WithoutAnOfficerName_FallsBackToTheUserName()
+    {
+        await SeedAsync(1);
+        _currentUser.FullName.Returns((string?)null);
+
+        (await CreateQuery().GetAsync())!.DisplayName.ShouldBe("lan.nt");
     }
 
     [Fact]

@@ -1,3 +1,4 @@
+using System.Data;
 using LuuKyCanTin.Application.Abstractions;
 using LuuKyCanTin.Application.Common;
 using LuuKyCanTin.Domain.Administration;
@@ -62,6 +63,15 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
     async Task<IAppTransaction> IAppDbContext.BeginTransactionAsync(CancellationToken ct)
         => new AppTransaction(await Database.BeginTransactionAsync(ct));
+
+    async Task<IAppTransaction> IAppDbContext.BeginTransactionAsync(TransactionIsolation isolation, CancellationToken ct)
+        => new AppTransaction(await Database.BeginTransactionAsync(ToIsolationLevel(isolation), ct));
+
+    private static IsolationLevel ToIsolationLevel(TransactionIsolation isolation) => isolation switch
+    {
+        TransactionIsolation.Serializable => IsolationLevel.Serializable,
+        _ => IsolationLevel.ReadCommitted,
+    };
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

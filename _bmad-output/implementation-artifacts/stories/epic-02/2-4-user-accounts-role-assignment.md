@@ -2,18 +2,18 @@
 story: "2.4"
 epic: 2
 title: User accounts linked to staff and role assignment
-status: review
+status: in-progress
 size: M
 backlogItems: [HT-02, NEN-09]
 frsCovered: [FR2]
 nfrsTouched: [NFR4, NFR5, NFR6, NFR11]
 dependsOn: ["2.1", "2.3"]
-baseline_commit: 441d36c607abaacaddb686579fb7cedff1a11a6e
+baseline_commit: f286d3112a7b2ce40182e77ee0f236d3d3bfbec8
 ---
 
 # Story 2.4: User accounts linked to staff and role assignment
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -112,54 +112,90 @@ So that every person works under their own account with exactly the access their
 
 opencode (deepseek-v4.1-flash). Implemented directly from this story file.
 
+### Translation table (story identifiers → English code)
+
+The story and its tasks were written before R.1; `docs/conventions/naming-conventions.md` wins, so the port
+follows this mapping. Data values (`HT.Sua`, `DatLaiMatKhau`, `QUAN_TRI`, audit action codes) keep their stored
+values.
+
+| Story / pre-R.1 identifier | English code at HEAD |
+|---|---|
+| `TaiKhoanService` / `ITaiKhoanService` | `AccountService` / `IAccountService` |
+| `TaiKhoanDto` (`TenDangNhap`, `HoTenCanBo`, `TenVaiTro`, `VaiTroIds`, `DangHoatDong`, `DangBiKhoa`, `PhaiDoiMatKhau`) | `AccountDto` (`UserName`, `OfficerFullName`, `RoleNames`, `RoleIds`, `IsActive`, `IsLocked`, `MustChangePassword`) |
+| `TaoTaiKhoanRequest` (`CanBoId`, `VaiTroIds`) | `CreateAccountRequest` (`OfficerId`, `RoleIds`) |
+| `TaoTaiKhoanRequestValidator` (`DoDaiTenDangNhapToiThieu/ToiDa`) | `CreateAccountRequestValidator` (`MinUserNameLength`/`MaxUserNameLength`) |
+| `KetQuaTaoTaiKhoan` (`NguoiDungId`, `MatKhauTam`) | `CreateAccountResult` (`UserId`, `TemporaryPassword`) |
+| `SuKienTaiKhoan.DatLaiMatKhau` | `AccountEvent.ResetPassword` (value stays `"DatLaiMatKhau"`) |
+| `KiemTraConQuanTri` (`HienTrangTaiKhoan`, `ConQuanTri`, `YeuCauKhiNgungHoatDong/DoiVaiTro/DoiQuyenVaiTroAsync`, `LoiPhaiConQuanTri`) | `LastAdministratorGuard` (`AccountState`, `AnyAdministratorRemains`, `EnsureDeactivationAllowed/RoleChangeAllowed/RolePermissionChangeAllowedAsync`, `LastAdministratorRequiredMessage`) |
+| `MatKhauTam` (`DoDai`, `Tao`) | `Domain/Administration/TemporaryPassword` (`Length`, `Generate`) |
+| `MucDoCoLapGiaoDich.TuanTu` | `Abstractions/TransactionIsolation.Serializable` |
+| `LayDanhSachAsync` / `LayCanBoDeTaoTaiKhoanAsync` | `GetAllAsync` / `GetOfficersForAccountCreationAsync` |
+| `TaoAsync` / `CapNhatVaiTroAsync` | `CreateAsync` / `UpdateRolesAsync` |
+| `NgungHoatDongAsync` / `KichHoatLaiAsync` / `MoKhoaAsync` / `DatLaiMatKhauAsync` | `DeactivateAsync` / `ReactivateAsync` / `UnlockAsync` / `ResetPasswordAsync` |
+| `INguoiDungStore.LayHoTenCanBoAsync` | `IUserStore.GetOfficerFullNameAsync` |
+| `ICurrentUser.CanBoId` / `HoTen`; `ICurrentUserSession.DangNhap` | `OfficerId` / `FullName`; `SignIn(..., officerId, fullName)` |
+| `TaiKhoanForm` / `TaiKhoanPresenter` / `ITaiKhoanView` (Thêm, Phân vai trò, Ngừng/Kích hoạt, Mở khoá, Đặt lại mật khẩu) | `AccountForm` / `AccountPresenter` / `IAccountView` (AddClicked, RolesClicked, ToggleActiveClicked, UnlockClicked, ResetPasswordClicked) |
+| `TaoTaiKhoanForm` / `TaoTaiKhoanPresenter` / `ITaoTaiKhoanView` | `CreateAccountForm` / `CreateAccountPresenter` / `ICreateAccountView` |
+| `TaiKhoanVaiTroForm` / `TaiKhoanVaiTroPresenter` / `ITaiKhoanVaiTroView` | `AccountRolesForm` / `AccountRolesPresenter` / `IAccountRolesView` |
+| `MatKhauTamForm` | `TemporaryPasswordForm` |
+| `LoiTrungTenDangNhap`, `LoiCanBoDaCoTaiKhoan`, `LoiTrungTaiKhoan`, `LoiCanBoKhongHopLe`, `LoiVaiTroKhongHopLe`, `LoiKhongTimThayTaiKhoan`, `LoiKhongTheTuNgung` | `DuplicateUserNameMessage`, `OfficerAlreadyHasActiveAccountMessage`, `AccountConflictMessage`, `InvalidOfficerMessage`, `InvalidRoleMessage`, `AccountNotFoundMessage`, `CannotDeactivateSelfMessage` |
+| `IDieuHuong.OpenTaiKhoan` | `INavigator.OpenAccounts` |
+
 ### Debug Log References
 
-1. **`Serializable` and the audit interceptor.** The guard must run inside the transaction the service opens before its first read, so the interceptor joins it (Story 1.3). `IAppDbContext` gained `BeginTransactionAsync(MucDoCoLapGiaoDich, ct)`; `MucDoCoLapGiaoDich.TuanTu` maps to `IsolationLevel.Serializable` in `AppDbContext`.
-2. **CHECK constraint vs. test fixtures.** The new `CK_NguoiDung_CanBoId` rejected the accounts that `VaiTroServiceTests.TaoNguoiDungAsync` and the integration `DangNhapServiceTests.TaoTaiKhoanAsync` created without a `CanBo`. Both helpers now create a staff row and link it — the rule working as intended.
-3. **"Deactivate the only admin" is unreachable through `TaiKhoanService`.** The actor must itself hold `HT.Sua`, so after deactivating the target at least the actor remains; if the actor is the target, the self-deactivation rule fires first. The guard is therefore exercised directly (`KiemTraConQuanTri_NgungHoatDongQuanTriDuyNhat_BiTuChoi`) and through the role editor (`VaiTroService_BoQuyenQuanTriKhoiVaiTroDuyNhat_BiTuChoi`), each on a throw-away database where the seeded admin is deterministically the only administrator.
-4. **`VaiTroService.CapNhatQuyenAsync` reordered.** The transaction now starts before the first read, as the story's gotcha requires; the catalogue pre-check stays outside it (in-memory only).
-5. **Demo accounts now link to staff.** `DemoDataSeeder` sets `CanBoId`, otherwise `--seed-demo` would violate the new CHECK.
+1. **`Serializable` and the audit interceptor.** The guard must run inside the transaction the service opens before its first read, so the interceptor joins it (Story 1.3). `IAppDbContext` gained `BeginTransactionAsync(TransactionIsolation, ct)`; `TransactionIsolation.Serializable` maps to `IsolationLevel.Serializable` in `AppDbContext`. The merge had removed an incompatible overload; interface and implementation now agree.
+2. **CHECK constraint vs. test fixtures.** The new `CK_User_OfficerId` rejected the accounts that `RoleServiceTests.CreateUserAsync` and the integration `SignInServiceTests.CreateAccountAsync` created without an officer. Both helpers now create an officer and link it — the rule working as intended.
+3. **"Deactivate the only admin" is unreachable through `AccountService`.** The actor must itself hold `HT.Sua`, so after deactivating the target at least the actor remains; if the actor is the target, the self-deactivation rule fires first. The guard is therefore exercised directly (`Guard_DeactivatingTheOnlyAdministrator_IsRejected`) and through the role editor (`RoleService_RemovingAdminPermissionFromTheOnlyAdministratorRole_IsRejected`), each on a throw-away database where the seeded admin is deterministically the only administrator.
+4. **`RoleService.UpdatePermissionsAsync` reordered.** The transaction now starts before the first read, as the story's gotcha requires; the catalogue pre-check stays outside it (in-memory only); the Story 2.3 TODO is gone.
+5. **Demo accounts now link to staff.** `DemoDataSeeder` sets `OfficerId`, otherwise `--seed-demo` would violate the new CHECK.
+6. **Rename migration test.** `RenameIdentifiersToEnglishMigrationTests` stops at the rename migration and then reads entities with the build's model; with `AddUserOfficer` in the chain the model has an `OfficerId` column the stopped schema lacks. The test now finishes the migration chain before the entity reads (raw row counts still prove the rename kept every row).
 
 ### Completion Notes List
 
-- **Status: implemented, all tests green.** 471 tests (76 Domain, 101 Application, 70 WinForms, 224 Integration), 0 failed, 0 skipped with LocalDB. `dotnet build LuuKyCanTin.slnx` warning-free; `dotnet ef migrations has-pending-model-changes` reports none.
-- **Persistence.** Migration `AddNguoiDungCanBo` adds `CanBoId int NULL` FK → `CanBo` (`Restrict`), the filtered unique index `UX_NguoiDung_CanBoId_DangHoatDong`, and `CK_NguoiDung_CanBoId`. The model declares all three, so `EnsureCreated` (audit fixture) and the snapshot agree.
-- **`TaiKhoanService`.** Create validates the sign-in name, an active staff member without an active account, and the roles; it hashes a `MatKhauTam` (12 chars, crypto RNG, no `0/O/l/1`) and returns it once. Role changes write one explicit `Sua` row with sorted before/after role codes. Unlock and reset clear `SoLanSai`/`KhoaDen`; reset also forces a change and adds the explicit `{ "SuKien": "DatLaiMatKhau" }` row. Deactivation refuses self and the last administrator. Every write checks `HT.Sua` before any transaction.
-- **Guard.** `KiemTraConQuanTri` loads accounts × roles and the role → permission map, applies the pending change in memory, and decides with a pure static method. `TaiKhoanService` and `VaiTroService` both open a `Serializable` transaction around the check plus the write; the role editor's Story 2.3 TODO is resolved.
-- **Current user.** `ICurrentUser`/`ICurrentUserSession` carry `CanBoId` and `HoTen`; sign-in loads the staff name and falls back to the sign-in name for the built-in `admin`.
-- **UI.** "Hệ thống › Tài khoản": grid + Thêm / Phân vai trò / Ngừng-Kích hoạt / Mở khoá / Đặt lại mật khẩu. Create and role dialogs use checked role lists; the temporary password appears once in `MatKhauTamForm` with a copy button. Deactivate and reset confirm first; the shell opens one account window at a time.
-- **Not automated:** the real account forms (grid selection, checked lists, clipboard copy) are covered only by presenter tests with substituted views; recorded in `deferred-work.md`. No `--migrate` was run against a real dev database here (no `.env`); migrations were exercised by the integration fixtures.
+- **Status: ported to the English codebase (R.1/R.2/R.3 merge); all tests green.** 698 tests (85 Domain, 137 Application, 235 WinForms, 241 Integration), 0 failed, 0 skipped with LocalDB. `dotnet build LuuKyCanTin.slnx` has only the pre-existing WebView2 spike MSB3277 warning; `dotnet ef migrations has-pending-model-changes` reports none.
+- **Persistence.** Migration `20261003144240_AddUserOfficer` (after `RenameIdentifiersToEnglish`) adds `User.OfficerId int NULL` FK → `Officer` (`Restrict`), the filtered unique index `UX_User_OfficerId_IsActive` (`WHERE IsActive = 1 AND OfficerId IS NOT NULL`), and `CK_User_OfficerId` (`OfficerId IS NOT NULL OR UserName = 'admin'`). `IUserStore` gained `AddAsync`, `GetAllWithRolesAsync`, `HasActiveAccountAsync` and `GetOfficerFullNameAsync`. `DemoDataSeeder` links each demo account to its demo officer.
+- **`AccountService`.** Create validates the sign-in name, an active officer without an active account, and the roles; it hashes a `TemporaryPassword` (12 chars, crypto RNG, no `0/O/l/1`) and returns it once. Role changes write one explicit `Update` row with sorted before/after role codes. Unlock and reset clear `FailedAttemptCount`/`LockedUntil`; reset also forces a change and adds the explicit `{ "Event": "DatLaiMatKhau" }` row. Deactivation refuses self and the last administrator. Every write checks `HT.Sua` before any transaction.
+- **Guard.** `LastAdministratorGuard` loads accounts × roles and the role → permission map, applies the pending change in memory, and decides with a pure static method. `AccountService` and `RoleService` both open a `Serializable` transaction around the check plus the write.
+- **Current user.** `ICurrentUser`/`ICurrentUserSession` carry `OfficerId` and `FullName`; sign-in loads the officer name and falls back to the sign-in name for the built-in `admin`; `SignedInUserQuery` greets the officer's name.
+- **UI (new R.2/R.3 patterns).** `Administration/AccountForm` + `AccountPresenter` + `IAccountView`: key-02 A list screen with toolbar (Thêm tài khoản / Phân vai trò / account-aware Ngừng-Kích hoạt / Mở khoá / Đặt lại mật khẩu) and a status-painted grid. `CreateAccountForm`, `AccountRolesForm` and `TemporaryPasswordForm` follow the key-02 B edit-dialog layout via `EditDialogLayout` (one shared `AddListField` added for checked lists). The temporary password appears once with a copy button and the forced-change note. Deactivate and reset confirm first; the shell hosts one account page at a time. Menu entry "Hệ thống › Tài khoản".
+- **Not automated:** the real account forms (grid selection, checked lists, clipboard copy) are covered only by presenter tests with substituted views; recorded in `deferred-work.md`. `--migrate` was not run against a real dev database here (no `.env`); migrations were exercised by the integration fixtures on LocalDB.
 
 ### File List
 
 **Domain**
-- `src/Libraries/LuuKyCanTin.Domain/HeThong/{NguoiDung,MatKhauTam}.cs` (modified/new)
+- `src/Libraries/LuuKyCanTin.Domain/Administration/User.cs` (modified: `OfficerId`)
+- `src/Libraries/LuuKyCanTin.Domain/Administration/TemporaryPassword.cs` (new)
 
 **Application**
-- `src/Libraries/LuuKyCanTin.Application/Abstractions/{IAppDbContext,ICurrentUser,ICurrentUserSession,MucDoCoLapGiaoDich}.cs` (modified/new)
-- `src/Libraries/LuuKyCanTin.Application/HeThong/{INguoiDungStore,DangNhapService,VaiTroService}.cs` (modified)
-- `src/Libraries/LuuKyCanTin.Application/HeThong/{ITaiKhoanService,TaiKhoanService,TaiKhoanDto,TaoTaiKhoanRequest,TaoTaiKhoanRequestValidator,KetQuaTaoTaiKhoan,SuKienTaiKhoan,KiemTraConQuanTri}.cs` (new)
-- `src/Libraries/LuuKyCanTin.Application/DependencyInjection.cs` (modified)
+- `src/Libraries/LuuKyCanTin.Application/Abstractions/{TransactionIsolation.cs}` (new)
+- `src/Libraries/LuuKyCanTin.Application/Abstractions/{IAppDbContext,ICurrentUser,ICurrentUserSession}.cs` (modified)
+- `src/Libraries/LuuKyCanTin.Application/Administration/{IAccountService,AccountService,AccountDto,AccountRow,CreateAccountRequest,CreateAccountRequestValidator,CreateAccountResult,AccountEvent,LastAdministratorGuard}.cs` (new)
+- `src/Libraries/LuuKyCanTin.Application/Administration/{IUserStore,RoleService,SignInService,SignedInUserQuery}.cs` (modified)
+- `src/Libraries/LuuKyCanTin.Application/ApplicationServiceCollectionExtensions.cs` (modified)
 
 **Infrastructure**
-- `src/Libraries/LuuKyCanTin.Infrastructure/HeThong/{CurrentUserSession,NguoiDungStore}.cs` (modified)
-- `src/Libraries/LuuKyCanTin.Infrastructure/Persistence/{AppDbContext.cs,Configurations/HeThong/NguoiDungConfiguration.cs,Seed/Demo/DemoDataSeeder.cs}` (modified)
-- `src/Libraries/LuuKyCanTin.Infrastructure/Persistence/Migrations/20261002143443_AddNguoiDungCanBo{,.Designer}.cs`, `AppDbContextModelSnapshot.cs` (new/modified)
+- `src/Libraries/LuuKyCanTin.Infrastructure/Administration/{UserStore,CurrentUserSession}.cs` (modified)
+- `src/Libraries/LuuKyCanTin.Infrastructure/Persistence/Configurations/Administration/UserConfiguration.cs` (modified)
+- `src/Libraries/LuuKyCanTin.Infrastructure/Persistence/{AppDbContext.cs,Seed/Demo/DemoDataSeeder.cs}` (modified)
+- `src/Libraries/LuuKyCanTin.Infrastructure/Persistence/Migrations/20261003144240_AddUserOfficer{,.Designer}.cs`, `AppDbContextModelSnapshot.cs` (new/modified)
 
 **WinForms**
-- `src/Presentation/LuuKyCanTin.WinForms/HeThong/{ITaiKhoanView,TaiKhoanPresenter,TaiKhoanForm,TaiKhoanForm.Designer}.cs` (new)
-- `src/Presentation/LuuKyCanTin.WinForms/HeThong/{ITaoTaiKhoanView,TaoTaiKhoanPresenter,TaoTaiKhoanForm,TaoTaiKhoanForm.Designer}.cs` (new)
-- `src/Presentation/LuuKyCanTin.WinForms/HeThong/{ITaiKhoanVaiTroView,TaiKhoanVaiTroPresenter,TaiKhoanVaiTroForm,TaiKhoanVaiTroForm.Designer}.cs` (new)
-- `src/Presentation/LuuKyCanTin.WinForms/HeThong/{MatKhauTamForm,MatKhauTamForm.Designer}.cs` (new)
-- `src/Presentation/LuuKyCanTin.WinForms/Shell/{IDieuHuong,DieuHuong,IMainView,MainForm,MainForm.Designer,MainPresenter}.cs` (modified)
+- `src/Presentation/LuuKyCanTin.WinForms/Administration/{IAccountView,AccountPresenter,AccountForm,AccountForm.Designer}.cs` (new)
+- `src/Presentation/LuuKyCanTin.WinForms/Administration/{ICreateAccountView,CreateAccountPresenter,CreateAccountForm,CreateAccountForm.Designer}.cs` (new)
+- `src/Presentation/LuuKyCanTin.WinForms/Administration/{IAccountRolesView,AccountRolesPresenter,AccountRolesForm,AccountRolesForm.Designer}.cs` (new)
+- `src/Presentation/LuuKyCanTin.WinForms/Administration/{TemporaryPasswordForm,TemporaryPasswordForm.Designer}.cs` (new)
+- `src/Presentation/LuuKyCanTin.WinForms/Common/EditDialogLayout.cs` (modified: `AddListField`)
+- `src/Presentation/LuuKyCanTin.WinForms/Shell/{INavigator,Navigator,ShellNavigation}.cs` (modified)
 
 **Tests / docs**
-- `tests/LuuKyCanTin.Domain.UnitTests/HeThong/MatKhauTamTests.cs` (new)
-- `tests/LuuKyCanTin.Application.UnitTests/HeThong/{KiemTraConQuanTriTests,TaoTaiKhoanRequestValidatorTests}.cs`, `HeThong/DangNhapServiceTests.cs`, `TestUtilities/InMemoryAppDbContext.cs` (new/modified)
-- `tests/LuuKyCanTin.IntegrationTests/HeThong/TaiKhoanServiceTests.cs` (new)
-- `tests/LuuKyCanTin.IntegrationTests/Persistence/NguoiDungModelTests.cs` (new)
-- `tests/LuuKyCanTin.IntegrationTests/HeThong/{DangNhapServiceTests,VaiTroServiceTests,CurrentUserSessionTests,GhiNhatKyTests}.cs`, `DanhMuc/CanBoServiceTests.cs`, `Persistence/Audit/AuditInterceptorTests.cs` (modified)
-- `tests/LuuKyCanTin.WinForms.UnitTests/HeThong/{TaiKhoanPresenterTests,TaoTaiKhoanPresenterTests}.cs`, `Shell/MainPresenterTests.cs` (new/modified)
+- `tests/LuuKyCanTin.Domain.UnitTests/Administration/TemporaryPasswordTests.cs` (new)
+- `tests/LuuKyCanTin.Application.UnitTests/Administration/{LastAdministratorGuardTests,CreateAccountRequestValidatorTests}.cs` (new)
+- `tests/LuuKyCanTin.Application.UnitTests/Administration/{SignInServiceTests,SignedInUserQueryTests}.cs`, `TestUtilities/InMemoryAppDbContext.cs` (modified)
+- `tests/LuuKyCanTin.IntegrationTests/Administration/AccountServiceTests.cs` (new)
+- `tests/LuuKyCanTin.IntegrationTests/Persistence/UserModelTests.cs` (new)
+- `tests/LuuKyCanTin.IntegrationTests/Administration/{CurrentUserSessionTests,SignInServiceTests,RoleServiceTests,AuditLogWriterTests}.cs`, `MasterData/OfficerServiceTests.cs`, `Persistence/Audit/AuditInterceptorTests.cs`, `Persistence/RenameIdentifiersToEnglishMigrationTests.cs` (modified)
+- `tests/LuuKyCanTin.WinForms.UnitTests/Administration/{AccountPresenterTests,CreateAccountPresenterTests,AccountRolesPresenterTests}.cs` (new)
+- `tests/LuuKyCanTin.WinForms.UnitTests/Shell/{ShellNavigationTests,MainPresenterTests}.cs` (modified)
 - `docs/install.md`, `_bmad-output/implementation-artifacts/deferred-work.md` (modified)
 
 ## Change Log
@@ -168,3 +204,4 @@ opencode (deepseek-v4.1-flash). Implemented directly from this story file.
 |---|---|
 | 2026-10-02 | Story file created from Epic 2 |
 | 2026-10-02 | Implemented T1–T6 (deepseek-v4.1-flash); status → review |
+| 2026-10-03 | Ported T1–T6 onto the English codebase after the R.1/R.2/R.3 merge (`f286d31`): identifiers translated, migration `AddUserOfficer`, account screen rebuilt on the new theme/shell; status → in-progress |

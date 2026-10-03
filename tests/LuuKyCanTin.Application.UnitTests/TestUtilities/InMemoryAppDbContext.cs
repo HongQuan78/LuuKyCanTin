@@ -43,4 +43,7 @@ public sealed class InMemoryAppDbContext() : DbContext(
 
     Task<IAppTransaction> IAppDbContext.BeginTransactionAsync(CancellationToken ct) =>
         throw new NotSupportedException("The in-memory test context has no transactions.");
+
+    Task<IAppTransaction> IAppDbContext.BeginTransactionAsync(TransactionIsolation isolation, CancellationToken ct) =>
+        throw new NotSupportedException("The in-memory test context has no transactions.");
 }

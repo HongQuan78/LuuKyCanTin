@@ -12,6 +12,7 @@ public static class ShellNavigation
     public const string DepositReceiptKey = "custody.deposit-receipt";
     public const string OfficersKey = "master-data.officers";
     public const string AddInmateKey = "master-data.add-inmate";
+    public const string AccountsKey = "administration.accounts";
     public const string RolesKey = "administration.roles";
     public const string ChangePasswordKey = "administration.change-password";
     public const string SignOutKey = "administration.sign-out";
@@ -37,6 +38,7 @@ public static class ShellNavigation
             ]),
             new NavGroup("administration", ManagementSection, "&Hệ thống", Glyphs.Administration,
             [
+                new NavItem(AccountsKey, "Tài &khoản", navigator.OpenAccounts),
                 new NavItem(RolesKey, "&Vai trò", navigator.OpenRoles),
                 new NavItem(ChangePasswordKey, "Đổi &mật khẩu", navigator.OpenChangePassword),
                 new NavItem(SignOutKey, "Đăng &xuất", signOut),

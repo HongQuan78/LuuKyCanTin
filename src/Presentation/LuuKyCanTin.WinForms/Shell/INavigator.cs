@@ -18,6 +18,9 @@ public interface INavigator
     /// <summary>Shows the deposit-receipt screen in the content area.</summary>
     void OpenDepositReceipt();
 
+    /// <summary>Shows the user-account screen in the content area.</summary>
+    void OpenAccounts();
+
     /// <summary>Shows the role and permission screen in the content area.</summary>
     void OpenRoles();
 

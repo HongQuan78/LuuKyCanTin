@@ -13,6 +13,8 @@ public sealed class CurrentUserSessionTests
         session.IsSignedIn.ShouldBeFalse();
         session.UserId.ShouldBeNull();
         session.UserName.ShouldBeNull();
+        session.OfficerId.ShouldBeNull();
+        session.FullName.ShouldBeNull();
     }
 
     [Fact]
@@ -20,13 +22,17 @@ public sealed class CurrentUserSessionTests
     {
         var session = new CurrentUserSession();
 
-        session.SignIn(3, "thuquy");
+        session.SignIn(3, "thuquy", officerId: 7, fullName: "Nguyễn Thị Thủ Quỹ");
         session.IsSignedIn.ShouldBeTrue();
         session.UserId.ShouldBe(3);
         session.UserName.ShouldBe("thuquy");
+        session.OfficerId.ShouldBe(7);
+        session.FullName.ShouldBe("Nguyễn Thị Thủ Quỹ");
 
         session.SignOut();
         session.IsSignedIn.ShouldBeFalse();
         session.UserId.ShouldBeNull();
+        session.OfficerId.ShouldBeNull();
+        session.FullName.ShouldBeNull();
     }
 }

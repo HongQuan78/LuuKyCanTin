@@ -6,7 +6,7 @@ namespace LuuKyCanTin.Application.Abstractions;
 /// </summary>
 public interface ICurrentUserSession : ICurrentUser
 {
-    void SignIn(int userId, string userName);
+    void SignIn(int userId, string userName, int? officerId, string? fullName);
 
     void SignOut();
 }

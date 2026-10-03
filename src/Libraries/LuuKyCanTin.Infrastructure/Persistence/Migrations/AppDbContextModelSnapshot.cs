@@ -949,6 +949,9 @@ namespace LuuKyCanTin.Infrastructure.Persistence.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
 
+                    b.Property<int?>("OfficerId")
+                        .HasColumnType("int");
+
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -969,10 +972,18 @@ namespace LuuKyCanTin.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("OfficerId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_User_OfficerId_IsActive")
+                        .HasFilter("[IsActive] = 1 AND [OfficerId] IS NOT NULL");
+
                     b.HasIndex("UserName")
                         .IsUnique();
 
-                    b.ToTable("User", (string)null);
+                    b.ToTable("User", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_User_OfficerId", "[OfficerId] IS NOT NULL OR [UserName] = 'admin'");
+                        });
                 });
 
             modelBuilder.Entity("LuuKyCanTin.Domain.Administration.UserRole", b =>
@@ -1350,6 +1361,14 @@ namespace LuuKyCanTin.Infrastructure.Persistence.Migrations
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("LuuKyCanTin.Domain.Administration.User", b =>
+                {
+                    b.HasOne("LuuKyCanTin.Domain.MasterData.Officer", null)
+                        .WithMany()
+                        .HasForeignKey("OfficerId")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("LuuKyCanTin.Domain.Administration.UserRole", b =>

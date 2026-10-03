@@ -16,7 +16,7 @@ public sealed class AuditInterceptorTests : IClassFixture<AuditDatabaseFixture>
     public AuditInterceptorTests(AuditDatabaseFixture fixture)
     {
         _fixture = fixture;
-        _fixture.User.SignIn(UserId, "thuquy");
+        _fixture.User.SignIn(UserId, "thuquy", null, "thuquy");
     }
 
     private static SampleVoucher CreateVoucher(string description = "Nộp tiền lưu ký") => new()
@@ -134,7 +134,7 @@ public sealed class AuditInterceptorTests : IClassFixture<AuditDatabaseFixture>
         var voucher = await AddAsync(CreateVoucher());
         var createdAt = _fixture.Clock.Now;
         _fixture.Clock.Advance(TimeSpan.FromMinutes(5));
-        _fixture.User.SignIn(UserId + 1, "ketoan");
+        _fixture.User.SignIn(UserId + 1, "ketoan", null, "ketoan");
         try
         {
             await UpdateAsync(voucher.Id, v =>
@@ -145,7 +145,7 @@ public sealed class AuditInterceptorTests : IClassFixture<AuditDatabaseFixture>
         }
         finally
         {
-            _fixture.User.SignIn(UserId, "thuquy");
+            _fixture.User.SignIn(UserId, "thuquy", null, "thuquy");
         }
 
         await using var db = _fixture.CreateDbContext();

@@ -61,15 +61,18 @@ internal sealed class DemoDataSeeder(AppDbContext db, IPasswordHasher passwordHa
             if (await db.User.AnyAsync(u => u.UserName == account.UserName, cancellationToken))
                 continue;
 
-            if (!await db.Officer.AnyAsync(c => c.OfficerCode == account.OfficerCode, cancellationToken))
+            var officer = await db.Officer.SingleOrDefaultAsync(c => c.OfficerCode == account.OfficerCode, cancellationToken);
+            if (officer is null)
             {
-                db.Officer.Add(new Officer(account.OfficerCode, account.FullName, account.Position, account.IsSupervisingOfficer));
+                officer = new Officer(account.OfficerCode, account.FullName, account.Position, account.IsSupervisingOfficer);
+                db.Officer.Add(officer);
                 await db.SaveChangesAsync(cancellationToken);
             }
 
             var user = new User
             {
                 UserName = account.UserName,
+                OfficerId = officer.Id,
                 PasswordHash = passwordHasher.Hash(DemoPassword),
                 IsActive = true,
                 MustChangePassword = false,

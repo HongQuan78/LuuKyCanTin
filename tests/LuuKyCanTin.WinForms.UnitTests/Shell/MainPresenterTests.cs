@@ -101,6 +101,7 @@ public class MainPresenterTests
     [InlineData(ShellNavigation.OfficersKey, nameof(INavigator.OpenOfficers))]
     [InlineData(ShellNavigation.AddInmateKey, nameof(INavigator.OpenAddInmate))]
     [InlineData(ShellNavigation.DepositReceiptKey, nameof(INavigator.OpenDepositReceipt))]
+    [InlineData(ShellNavigation.AccountsKey, nameof(INavigator.OpenAccounts))]
     [InlineData(ShellNavigation.RolesKey, nameof(INavigator.OpenRoles))]
     [InlineData(ShellNavigation.ChangePasswordKey, nameof(INavigator.OpenChangePassword))]
     public async Task NavigationRequested_AScreenItem_OpensTheSameScreenAsTheOldMenu(string key, string navigatorMethod)

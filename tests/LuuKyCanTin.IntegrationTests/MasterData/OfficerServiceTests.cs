@@ -19,7 +19,7 @@ public sealed class OfficerServiceTests : IClassFixture<AppDatabaseFixture>, IAs
     public OfficerServiceTests(AppDatabaseFixture fixture)
     {
         _fixture = fixture;
-        _fixture.User.SignIn(UserId, "admin");
+        _fixture.User.SignIn(UserId, "admin", null, "admin");
     }
 
     public Task InitializeAsync() => Task.CompletedTask;

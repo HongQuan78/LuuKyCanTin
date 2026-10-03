@@ -12,6 +12,9 @@
 - source_spec: `_bmad-output/implementation-artifacts/stories/epic-02/2-3-roles-permission-catalogue.md`
   summary: The "Vai trò" form (module × action checkbox grid) is not covered by any UI test.
   evidence: `VaiTroPresenterTests` substitute `IVaiTroView`; building the actual `DataGridView` rows/columns and reading ticked cells is only exercised by hand.
+- source_spec: `_bmad-output/implementation-artifacts/stories/epic-02/2-4-user-accounts-role-assignment.md`
+  summary: The real account forms (grid selection, checked role lists, clipboard copy) are covered only by presenter tests with substituted views.
+  evidence: `AccountPresenterTests`, `CreateAccountPresenterTests` and `AccountRolesPresenterTests` substitute `IAccountView`, `ICreateAccountView` and `IAccountRolesView`; `AccountForm`, `CreateAccountForm`, `AccountRolesForm` and `TemporaryPasswordForm` are only exercised by hand.
 
 
 ## Deferred from: code review of 1-1-solution-skeleton-host-ci (2026-10-02)

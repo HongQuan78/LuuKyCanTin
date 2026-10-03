@@ -18,7 +18,8 @@ public sealed class SignedInUserQuery(IAppDbContext db, ICurrentUser currentUser
                                select role.Name).ToListAsync(ct);
         var facility = await facilityInfo.GetAsync(ct);
         var userName = currentUser.UserName ?? "";
+        var displayName = string.IsNullOrWhiteSpace(currentUser.FullName) ? userName : currentUser.FullName;
 
-        return new SignedInUserDto(userName, userName, string.Join(", ", roleNames), facility?.FacilityName ?? "");
+        return new SignedInUserDto(userName, displayName, string.Join(", ", roleNames), facility?.FacilityName ?? "");
     }
 }

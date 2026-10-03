@@ -15,6 +15,12 @@ public sealed class User : AuditableEntity, IAuditable
 
     public string UserName { get; set; } = "";
 
+    /// <summary>
+    /// The staff member this account belongs to. Null only for the built-in <c>admin</c>, which has no staff
+    /// record; one person may have several accounts over time but only one active one (NEN-09).
+    /// </summary>
+    public int? OfficerId { get; set; }
+
     /// <summary>Self-describing PBKDF2 string; never appears in the audit log JSON.</summary>
     [NotAudited]
     public string PasswordHash { get; set; } = "";
