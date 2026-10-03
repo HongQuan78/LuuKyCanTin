@@ -1,11 +1,21 @@
 using LuuKyCanTin.Application.Administration;
 using LuuKyCanTin.Application.Common;
+using LuuKyCanTin.Domain.Administration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace LuuKyCanTin.WinForms.Shell;
 
 public sealed class ChangePasswordPresenter
 {
+    private static readonly string[] NewPasswordMessages =
+    [
+        PasswordPolicy.TooShortMessage,
+        PasswordPolicy.MissingUpperCaseMessage,
+        PasswordPolicy.MissingLowerCaseMessage,
+        PasswordPolicy.MissingDigitMessage,
+        PasswordPolicy.SameAsCurrentMessage,
+    ];
+
     private readonly IChangePasswordView _view;
     private readonly IServiceScopeFactory _scopes;
     private readonly bool _isForced;
@@ -21,6 +31,16 @@ public sealed class ChangePasswordPresenter
         _view.IsForced = isForced;
         _view.SaveClicked += OnSaveClicked;
         _view.CancelClicked += OnCancelClicked;
+        _view.InputChanged += (_, _) => EvaluateInput();
+        EvaluateInput();
+    }
+
+    private void EvaluateInput()
+    {
+        var results = PasswordPolicy.Evaluate(_view.NewPassword, _view.CurrentPassword);
+        _view.ShowRuleResults(results);
+        _view.CanSave = results.All(r => r.IsSatisfied)
+            && string.Equals(_view.NewPassword, _view.Confirmation, StringComparison.Ordinal);
     }
 
     private async void OnSaveClicked(object? sender, EventArgs e)
@@ -38,7 +58,7 @@ public sealed class ChangePasswordPresenter
         }
         catch (BusinessRuleException ex)
         {
-            _view.ShowError(ex.Message);
+            ShowServiceError(ex.Message);
         }
         catch (Exception ex)
         {
@@ -48,6 +68,19 @@ public sealed class ChangePasswordPresenter
         {
             _isSaving = false;
         }
+    }
+
+    // The service answers with its message constants; each one belongs to the field the user has to fix.
+    private void ShowServiceError(string message)
+    {
+        if (message == SignInService.InvalidCredentialsMessage)
+            _view.ShowFieldError(PasswordField.Current, message);
+        else if (message == PasswordPolicy.ConfirmationMismatchMessage)
+            _view.ShowFieldError(PasswordField.Confirmation, message);
+        else if (message.Split('\n').All(NewPasswordMessages.Contains))
+            _view.ShowFieldError(PasswordField.New, message);
+        else
+            _view.ShowError(message);
     }
 
     private async void OnCancelClicked(object? sender, EventArgs e)

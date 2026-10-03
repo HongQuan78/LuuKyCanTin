@@ -1,3 +1,5 @@
+using LuuKyCanTin.WinForms.Common;
+
 namespace LuuKyCanTin.WinForms.Custody;
 
 partial class DepositReceiptForm
@@ -126,8 +128,8 @@ partial class DepositReceiptForm
         txtAmount.TextChanged += OnAmountChanged;
 
         lblAmountInWords.AutoSize = true;
-        lblAmountInWords.Font = new Font("Segoe UI", 9F, FontStyle.Italic);
-        lblAmountInWords.ForeColor = Color.DimGray;
+        lblAmountInWords.Font = AppTheme.AmountInWordsFont;
+        lblAmountInWords.ForeColor = AppTheme.Text2;
         lblAmountInWords.Location = new Point(20, 302);
         lblAmountInWords.Size = new Size(520, 20);
         lblAmountInWords.Text = "";
@@ -142,7 +144,7 @@ partial class DepositReceiptForm
 
         lblStatus.Location = new Point(20, 400);
         lblStatus.Size = new Size(520, 24);
-        lblStatus.ForeColor = Color.ForestGreen;
+        lblStatus.ForeColor = AppTheme.Success;
         lblStatus.Text = "";
 
         btnPost.Location = new Point(160, 432);

@@ -59,7 +59,7 @@ Source of the stories: `_bmad-output/planning-artifacts/epics/epic-NN-*.md`. Eac
 | Story | File | Size | Depends on | Status |
 |---|---|---|---|---|
 | R.1 Rename existing identifiers to English | [r-1-rename-identifiers-to-english.md](refactor/r-1-rename-identifiers-to-english.md) | L | 1.4, 2.1, 2.2, 2.3 | review |
-| R.2 UI theme, shared controls, shell and sign-in aligned with the prototypes | [r-2-ui-theme-shell-sign-in.md](refactor/r-2-ui-theme-shell-sign-in.md) | L | R.1, 2.2 | ready-for-dev |
+| R.2 UI theme, shared controls, shell and sign-in aligned with the prototypes | [r-2-ui-theme-shell-sign-in.md](refactor/r-2-ui-theme-shell-sign-in.md) | L | R.1, 2.2 | review |
 | R.3 Bring the existing screens into line with the UI prototypes | [r-3-align-existing-screens-with-prototypes.md](refactor/r-3-align-existing-screens-with-prototypes.md) | L | R.2, 1.8, 2.1, 2.3 | ready-for-dev |
 
 **Why:** on 2026-10-03 the naming convention changed to English identifiers with Vietnamese user-visible text (`docs/conventions/naming-conventions.md`). R.1 renames the code written before that. **Suggested timing:** before 2.4, so the rest of Epic 2 is built on English names.

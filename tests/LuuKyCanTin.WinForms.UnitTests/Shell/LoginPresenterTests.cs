@@ -82,6 +82,35 @@ public class LoginPresenterTests
     }
 
     [Fact]
+    public async Task Failure_IsBusyWhileSigningInAndIdleAfterwards()
+    {
+        _store.FindByUserNameAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns((User?)null);
+        _view.UserName.Returns("admin");
+        _view.Password.Returns("sai");
+
+        await CreatePresenter().SignInAsync();
+
+        Received.InOrder(() =>
+        {
+            _view.IsBusy = true;
+            _view.ShowError(SignInService.InvalidCredentialsMessage);
+            _view.IsBusy = false;
+        });
+    }
+
+    [Fact]
+    public async Task Success_StaysBusyWhileTheFormCloses()
+    {
+        SeedAccount();
+        _hasher.Verify("LuuKy@2026", "hash").Returns(true);
+
+        await CreatePresenter().SignInAsync();
+
+        _view.Received(1).IsBusy = true;
+        _view.DidNotReceive().IsBusy = false;
+    }
+
+    [Fact]
     public async Task ALockedAccount_ShowsTheLockedMessageAndClearsThePasswordBox()
     {
         SeedAccount();

@@ -32,19 +32,31 @@ public sealed class LoginPresenter
 
     public async Task SignInAsync()
     {
-        await using var scope = _scopeFactory.CreateAsyncScope();
-        var signIn = scope.ServiceProvider.GetRequiredService<SignInService>();
-
-        var result = await signIn.SignInAsync(_view.UserName, _view.Password);
-        if (result.Succeeded)
+        _view.IsBusy = true;
+        var isClosing = false;
+        try
         {
-            MustChangePassword = result.MustChangePassword;
-            _view.CloseWithResult(true);
-            return;
-        }
+            await using var scope = _scopeFactory.CreateAsyncScope();
+            var signIn = scope.ServiceProvider.GetRequiredService<SignInService>();
 
-        _view.ShowError(result.Message ?? SignInService.InvalidCredentialsMessage);
-        if (result.Status == SignInStatus.AccountLocked)
-            _view.ClearPassword();
+            var result = await signIn.SignInAsync(_view.UserName, _view.Password);
+            if (result.Succeeded)
+            {
+                MustChangePassword = result.MustChangePassword;
+                isClosing = true;
+                _view.CloseWithResult(true);
+                return;
+            }
+
+            _view.ShowError(result.Message ?? SignInService.InvalidCredentialsMessage);
+            if (result.Status == SignInStatus.AccountLocked)
+                _view.ClearPassword();
+        }
+        finally
+        {
+            // The form is disposed as soon as it closes, so only a form that stays open goes back to idle.
+            if (!isClosing)
+                _view.IsBusy = false;
+        }
     }
 }

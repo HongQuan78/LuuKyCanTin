@@ -52,15 +52,66 @@ public class ChangePasswordPresenterTests
 
         _view.Received(1).CloseWithResult(true);
         _view.DidNotReceive().ShowError(Arg.Any<string>());
+        _view.DidNotReceive().ShowFieldError(Arg.Any<PasswordField>(), Arg.Any<string>());
     }
 
     [Fact]
-    public async Task Save_WithAPolicyViolation_ShowsTheMessagesAndStaysOpen()
+    public async Task Save_WithAPolicyViolation_ShowsTheMessagesUnderTheNewPasswordAndStaysOpen()
     {
         SeedUser();
         _hasher.Verify("LuuKy@2026", "hash").Returns(true);
         _view.NewPassword.Returns("abc");
         _view.Confirmation.Returns("abc");
+        var errorShown = new TaskCompletionSource();
+        _view.When(v => v.ShowFieldError(Arg.Any<PasswordField>(), Arg.Any<string>())).Do(_ => errorShown.TrySetResult());
+
+        CreatePresenter(isForced: false);
+        _view.SaveClicked += Raise.Event();
+        await errorShown.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        _view.Received(1).ShowFieldError(PasswordField.New, Arg.Is<string>(s => s.Contains(PasswordPolicy.TooShortMessage)));
+        _view.DidNotReceive().ShowError(Arg.Any<string>());
+        _view.DidNotReceive().CloseWithResult(Arg.Any<bool>());
+        await _store.DidNotReceive().SaveAsync(Arg.Any<User>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Save_WithAWrongCurrentPassword_ShowsTheErrorUnderTheCurrentPassword()
+    {
+        SeedUser();
+        _hasher.Verify("LuuKy@2026", "hash").Returns(false);
+        var errorShown = new TaskCompletionSource();
+        _view.When(v => v.ShowFieldError(Arg.Any<PasswordField>(), Arg.Any<string>())).Do(_ => errorShown.TrySetResult());
+
+        CreatePresenter(isForced: false);
+        _view.SaveClicked += Raise.Event();
+        await errorShown.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        _view.Received(1).ShowFieldError(PasswordField.Current, SignInService.InvalidCredentialsMessage);
+    }
+
+    [Fact]
+    public async Task Save_WithAMismatchedConfirmation_ShowsTheErrorUnderTheConfirmation()
+    {
+        SeedUser();
+        _hasher.Verify("LuuKy@2026", "hash").Returns(true);
+        _view.Confirmation.Returns("Khac@2026a");
+        var errorShown = new TaskCompletionSource();
+        _view.When(v => v.ShowFieldError(Arg.Any<PasswordField>(), Arg.Any<string>())).Do(_ => errorShown.TrySetResult());
+
+        CreatePresenter(isForced: false);
+        _view.SaveClicked += Raise.Event();
+        await errorShown.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        _view.Received(1).ShowFieldError(PasswordField.Confirmation, PasswordPolicy.ConfirmationMismatchMessage);
+    }
+
+    [Fact]
+    public async Task Save_WhenTheAccountGetsLocked_ShowsTheBanner()
+    {
+        SeedUser();
+        _user.FailedAttemptCount = User.MaxFailedAttempts - 1;
+        _hasher.Verify("LuuKy@2026", "hash").Returns(false);
         var errorShown = new TaskCompletionSource();
         _view.When(v => v.ShowError(Arg.Any<string>())).Do(_ => errorShown.TrySetResult());
 
@@ -68,9 +119,63 @@ public class ChangePasswordPresenterTests
         _view.SaveClicked += Raise.Event();
         await errorShown.Task.WaitAsync(TimeSpan.FromSeconds(5));
 
-        _view.Received(1).ShowError(Arg.Is<string>(s => s.Contains(PasswordPolicy.TooShortMessage)));
-        _view.DidNotReceive().CloseWithResult(Arg.Any<bool>());
-        await _store.DidNotReceive().SaveAsync(Arg.Any<User>(), Arg.Any<CancellationToken>());
+        _view.Received(1).ShowError(SignInService.AccountLockedMessage);
+        _view.DidNotReceive().ShowFieldError(Arg.Any<PasswordField>(), Arg.Any<string>());
+    }
+
+    [Fact]
+    public void Constructor_EmptyDialog_ShowsEveryRuleUnmetAndDisablesSave()
+    {
+        _view.CurrentPassword.Returns("");
+        _view.NewPassword.Returns("");
+        _view.Confirmation.Returns("");
+
+        CreatePresenter(isForced: true);
+
+        _view.Received(1).ShowRuleResults(Arg.Is<IReadOnlyList<PasswordRuleResult>>(r => r.Count == 5 && r.All(v => !v.IsSatisfied)));
+        _view.Received(1).CanSave = false;
+    }
+
+    [Fact]
+    public void InputChanged_EveryRuleMetAndConfirmed_EnablesSave()
+    {
+        SeedUser();
+        CreatePresenter(isForced: false);
+        _view.ClearReceivedCalls();
+
+        _view.InputChanged += Raise.Event();
+
+        _view.Received(1).ShowRuleResults(Arg.Is<IReadOnlyList<PasswordRuleResult>>(r => r.All(v => v.IsSatisfied)));
+        _view.Received(1).CanSave = true;
+    }
+
+    [Fact]
+    public void InputChanged_RulesMetButConfirmationDiffers_KeepsSaveDisabled()
+    {
+        SeedUser();
+        _view.Confirmation.Returns("Moi@2026");
+        CreatePresenter(isForced: false);
+        _view.ClearReceivedCalls();
+
+        _view.InputChanged += Raise.Event();
+
+        _view.Received(1).CanSave = false;
+    }
+
+    [Fact]
+    public void InputChanged_NewPasswordSameAsCurrent_FailsThatRule()
+    {
+        SeedUser();
+        _view.NewPassword.Returns("LuuKy@2026");
+        _view.Confirmation.Returns("LuuKy@2026");
+        CreatePresenter(isForced: false);
+        _view.ClearReceivedCalls();
+
+        _view.InputChanged += Raise.Event();
+
+        _view.Received(1).ShowRuleResults(Arg.Is<IReadOnlyList<PasswordRuleResult>>(
+            r => r.Single(v => !v.IsSatisfied).Rule == PasswordRule.DifferentFromCurrent));
+        _view.Received(1).CanSave = false;
     }
 
     [Fact]

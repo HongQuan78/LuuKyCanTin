@@ -37,7 +37,7 @@ internal sealed class ShellApplicationContext(IServiceProvider services) : Appli
     {
         using var form = new ChangePasswordForm();
         _ = new ChangePasswordPresenter(form, services.GetRequiredService<IServiceScopeFactory>(), isForced: true);
-        if (form.ShowDialog() == DialogResult.OK)
+        if (form.ShowModal())
             ShowShell();
         else
             ShowLogin();
@@ -46,7 +46,9 @@ internal sealed class ShellApplicationContext(IServiceProvider services) : Appli
     private void ShowShell()
     {
         var main = services.GetRequiredService<MainForm>();
-        var presenter = ActivatorUtilities.CreateInstance<MainPresenter>(services, main);
+        // One navigator per session: it hosts screens in this shell's content area and forgets them at sign-out.
+        var navigator = new Navigator(services.GetRequiredService<IServiceScopeFactory>(), main);
+        var presenter = ActivatorUtilities.CreateInstance<MainPresenter>(services, main, navigator);
         main.FormClosed += (_, _) =>
         {
             var isSignedOut = presenter.IsSignedOut;

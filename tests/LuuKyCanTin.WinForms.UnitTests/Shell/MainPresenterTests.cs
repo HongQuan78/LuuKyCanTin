@@ -4,7 +4,6 @@ using LuuKyCanTin.Domain.Administration;
 using LuuKyCanTin.WinForms.Common;
 using LuuKyCanTin.WinForms.Shell;
 using LuuKyCanTin.WinForms.UnitTests.TestUtilities;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using NSubstitute;
 using Shouldly;
@@ -14,30 +13,79 @@ namespace LuuKyCanTin.WinForms.UnitTests.Shell;
 // Presenters are tested against a fake View: no Form is ever created.
 public class MainPresenterTests
 {
+    private static readonly WorkstationInfo Workstation = new("SRV / LuuKyCanTin", true, "QUAY-01", "v1.0.0");
+
     private readonly IMainView _view = Substitute.For<IMainView>();
     private readonly INavigator _navigator = Substitute.For<INavigator>();
     private readonly IUserStore _store = Substitute.For<IUserStore>();
     private readonly IPasswordHasher _hasher = Substitute.For<IPasswordHasher>();
     private readonly ICurrentUserSession _session = Substitute.For<ICurrentUserSession>();
     private readonly IAuditLogWriter _auditLog = Substitute.For<IAuditLogWriter>();
+    private readonly ISignedInUserQuery _signedInUser = Substitute.For<ISignedInUserQuery>();
+    private readonly FakeClock _clock = new(new DateTime(2026, 10, 2, 9, 0, 0));
+    private NavigationModel? _navigation;
+
+    public MainPresenterTests()
+    {
+        _view.When(v => v.ShowNavigation(Arg.Any<NavigationModel>())).Do(c => _navigation = c.Arg<NavigationModel>());
+        _signedInUser.GetAsync(Arg.Any<CancellationToken>())
+            .Returns(new SignedInUserDto("lan.nt", "Nguyễn Thị Lan", "Kế toán", "TRẠI TẠM GIAM SỐ 1"));
+    }
 
     private MainPresenter NewPresenter(string title = "X")
     {
-        var clock = new FakeClock(new DateTime(2026, 10, 2, 9, 0, 0));
-        var failedSignIns = new FailedSignInService(_store, clock, new SignInOptions(), _auditLog);
-        var signIn = new SignInService(_store, _hasher, _session, _auditLog, clock, failedSignIns);
+        var failedSignIns = new FailedSignInService(_store, _clock, new SignInOptions(), _auditLog);
+        var signIn = new SignInService(_store, _hasher, _session, _auditLog, _clock, failedSignIns);
         return new MainPresenter(
-            _view, Options.Create(new AppOptions { Title = title }), _navigator, FakeScopeFactory.Create(signIn));
+            _view, Options.Create(new AppOptions { Title = title }), _navigator,
+            FakeScopeFactory.Create(signIn, _signedInUser), _clock, Workstation);
     }
 
+    private async Task LoadAsync()
+    {
+        var homeShown = new TaskCompletionSource();
+        _view.When(v => v.ShowHome(Arg.Any<string>(), Arg.Any<string>())).Do(_ => homeShown.TrySetResult());
+        _view.Loaded += Raise.Event();
+        await homeShown.Task.WaitAsync(TimeSpan.FromSeconds(5));
+    }
+
+    private void Navigate(string key) =>
+        _view.NavigationRequested += Raise.Event<EventHandler<NavItem>>(_view, _navigation!.AllItems.Single(i => i.Key == key));
+
     [Fact]
-    public void OnLoaded_ViewLoaded_SetsTitleFromOptions()
+    public async Task OnLoaded_ViewLoaded_SetsTitleFromOptions()
     {
         NewPresenter("Tiêu đề từ cấu hình");
 
-        _view.Loaded += Raise.Event();
+        await LoadAsync();
 
         _view.Received(1).Title = "Tiêu đề từ cấu hình";
+    }
+
+    [Fact]
+    public async Task OnLoaded_ViewLoaded_ShowsNavigationStatusUserAndHome()
+    {
+        NewPresenter();
+
+        await LoadAsync();
+
+        _navigation.ShouldNotBeNull();
+        _view.Received(1).ShowWorkstation(Workstation);
+        _view.Received(1).ShowUser("NL", "Nguyễn Thị Lan", "Kế toán");
+        _view.Received(1).FacilityName = "TRẠI TẠM GIAM SỐ 1";
+        _view.Received(1).ShowHome("Chào buổi sáng, Nguyễn Thị Lan", "Thứ Sáu, 02/10/2026");
+        _view.DidNotReceive().ShowError(Arg.Any<string>());
+    }
+
+    [Fact]
+    public async Task OnLoaded_UserQueryFails_ShowsTheErrorAndStillShowsHome()
+    {
+        _signedInUser.GetAsync(Arg.Any<CancellationToken>()).Returns<SignedInUserDto?>(_ => throw new InvalidOperationException("db down"));
+        NewPresenter();
+
+        await LoadAsync();
+
+        _view.Received(1).ShowError(Arg.Is<string>(s => s.Contains("db down")));
     }
 
     [Fact]
@@ -46,48 +94,60 @@ public class MainPresenterTests
         NewPresenter();
 
         _view.DidNotReceive().Title = Arg.Any<string>();
+        _view.DidNotReceive().ShowNavigation(Arg.Any<NavigationModel>());
     }
 
-    [Fact]
-    public void StaffMenu_OpensTheStaffRegister()
+    [Theory]
+    [InlineData(ShellNavigation.OfficersKey, nameof(INavigator.OpenOfficers))]
+    [InlineData(ShellNavigation.AddInmateKey, nameof(INavigator.OpenAddInmate))]
+    [InlineData(ShellNavigation.DepositReceiptKey, nameof(INavigator.OpenDepositReceipt))]
+    [InlineData(ShellNavigation.RolesKey, nameof(INavigator.OpenRoles))]
+    [InlineData(ShellNavigation.ChangePasswordKey, nameof(INavigator.OpenChangePassword))]
+    public async Task NavigationRequested_AScreenItem_OpensTheSameScreenAsTheOldMenu(string key, string navigatorMethod)
     {
         NewPresenter();
+        await LoadAsync();
 
-        _view.OfficersClicked += Raise.Event();
+        Navigate(key);
 
-        _navigator.Received(1).OpenOfficers();
+        _navigator.ReceivedCalls().Select(c => c.GetMethodInfo().Name).ShouldBe([navigatorMethod]);
     }
 
     [Fact]
-    public void RoleMenu_OpensTheRoleScreen()
+    public async Task NavigationRequested_Home_ShowsHomeAgainWithTheCurrentTime()
     {
         NewPresenter();
+        await LoadAsync();
+        _clock.Now = new DateTime(2026, 10, 2, 14, 0, 0);
 
-        _view.RolesClicked += Raise.Event();
+        Navigate(ShellNavigation.HomeKey);
 
-        _navigator.Received(1).OpenRoles();
+        _view.Received(1).ShowHome("Chào buổi chiều, Nguyễn Thị Lan", "Thứ Sáu, 02/10/2026");
     }
 
     [Fact]
-    public void ChangePasswordMenu_OpensTheDialog()
+    public async Task NavigationRequested_AScreenThatFails_ShowsTheError()
     {
+        _navigator.When(n => n.OpenRoles()).Do(_ => throw new InvalidOperationException("boom"));
         NewPresenter();
+        await LoadAsync();
 
-        _view.ChangePasswordClicked += Raise.Event();
+        Navigate(ShellNavigation.RolesKey);
 
-        _navigator.Received(1).OpenChangePassword();
+        _view.Received(1).ShowError(Arg.Is<string>(s => s.Contains("boom")));
     }
 
     [Fact]
-    public async Task SignOutMenu_ClearsTheSessionAndClosesTheShell()
+    public async Task SignOut_ClearsTheSessionAndClosesTheShell()
     {
         _session.UserId.Returns(3);
         _session.UserName.Returns("admin");
         var closed = new TaskCompletionSource();
         _view.When(v => v.CloseShell()).Do(_ => closed.TrySetResult());
-
         var presenter = NewPresenter();
-        _view.SignOutClicked += Raise.Event();
+        await LoadAsync();
+
+        Navigate(ShellNavigation.SignOutKey);
 
         await closed.Task.WaitAsync(TimeSpan.FromSeconds(5));
         presenter.IsSignedOut.ShouldBeTrue();

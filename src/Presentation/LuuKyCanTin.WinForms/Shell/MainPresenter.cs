@@ -1,3 +1,4 @@
+using LuuKyCanTin.Application.Abstractions;
 using LuuKyCanTin.Application.Administration;
 using LuuKyCanTin.WinForms.Common;
 using Microsoft.Extensions.DependencyInjection;
@@ -10,29 +11,74 @@ public sealed class MainPresenter
     private readonly IMainView _view;
     private readonly AppOptions _options;
     private readonly IServiceScopeFactory _scopes;
+    private readonly IClock _clock;
+    private readonly WorkstationInfo _workstation;
+    private readonly NavigationModel _navigation;
+    private string _displayName = "";
     private bool _isSignedOut;
 
-    public MainPresenter(IMainView view, IOptions<AppOptions> options, INavigator navigator, IServiceScopeFactory scopes)
+    public MainPresenter(
+        IMainView view,
+        IOptions<AppOptions> options,
+        INavigator navigator,
+        IServiceScopeFactory scopes,
+        IClock clock,
+        WorkstationInfo workstation)
     {
         _view = view;
         _options = options.Value;
         _scopes = scopes;
+        _clock = clock;
+        _workstation = workstation;
+        _navigation = ShellNavigation.Create(navigator, ShowHome, OnSignOut);
         _view.Loaded += OnLoaded;
-        _view.OfficersClicked += (_, _) => navigator.OpenOfficers();
-        _view.RolesClicked += (_, _) => navigator.OpenRoles();
-        _view.ChangePasswordClicked += (_, _) => navigator.OpenChangePassword();
-        _view.SignOutClicked += OnSignOutClicked;
+        _view.NavigationRequested += OnNavigationRequested;
     }
 
     /// <summary>True after a successful sign-out, so the application context returns to the login form.</summary>
     public bool IsSignedOut => _isSignedOut;
 
-    private void OnLoaded(object? sender, EventArgs e)
+    private async void OnLoaded(object? sender, EventArgs e)
     {
         _view.Title = _options.Title;
+        _view.ShowNavigation(_navigation);
+        _view.ShowWorkstation(_workstation);
+
+        try
+        {
+            using var scope = _scopes.CreateScope();
+            var user = await scope.ServiceProvider.GetRequiredService<ISignedInUserQuery>().GetAsync();
+            if (user is not null)
+            {
+                _displayName = user.DisplayName;
+                _view.ShowUser(UserInitials.Create(user.DisplayName), user.DisplayName, user.RoleNames);
+                _view.FacilityName = user.FacilityName;
+            }
+        }
+        catch (Exception ex)
+        {
+            _view.ShowError($"Không tải được thông tin người dùng: {ex.Message}");
+        }
+
+        ShowHome();
     }
 
-    private async void OnSignOutClicked(object? sender, EventArgs e)
+    private void OnNavigationRequested(object? sender, NavItem item)
+    {
+        try
+        {
+            item.Open();
+        }
+        catch (Exception ex)
+        {
+            _view.ShowError($"Không mở được màn hình: {ex.Message}");
+        }
+    }
+
+    private void ShowHome() =>
+        _view.ShowHome(HomeGreeting.CreateGreeting(_clock.Now, _displayName), HomeGreeting.CreateDateLine(_clock.Today));
+
+    private async void OnSignOut()
     {
         if (_isSignedOut)
             return;

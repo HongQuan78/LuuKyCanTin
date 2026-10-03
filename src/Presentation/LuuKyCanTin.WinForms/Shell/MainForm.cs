@@ -1,44 +1,71 @@
 using System.ComponentModel;
-using LuuKyCanTin.WinForms.Custody;
-using LuuKyCanTin.WinForms.MasterData;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace LuuKyCanTin.WinForms.Shell;
 
-public partial class MainForm : Form, IMainView
+public partial class MainForm : Form, IMainView, IContentHost
 {
-    // The designer needs a parameterless constructor; the app resolves the scope factory one.
-    private readonly IServiceScopeFactory? _scopeFactory;
+    private const string HomeTitle = "Trang chủ";
+
+    // Screens shown in the content area, created on first use and kept for the session.
+    private readonly Dictionary<string, Control> _pages = [];
+    private NavigationModel? _navigation;
+    private HomePage? _home;
 
     public MainForm()
-        : this(null)
     {
-    }
-
-    public MainForm(IServiceScopeFactory? scopeFactory)
-    {
-        _scopeFactory = scopeFactory;
         InitializeComponent();
-        mnuOfficers.Click += (_, _) => OfficersClicked?.Invoke(this, EventArgs.Empty);
-        mnuRoles.Click += (_, _) => RolesClicked?.Invoke(this, EventArgs.Empty);
-        mnuChangePassword.Click += (_, _) => ChangePasswordClicked?.Invoke(this, EventArgs.Empty);
-        mnuSignOut.Click += (_, _) => SignOutClicked?.Invoke(this, EventArgs.Empty);
+        sidebar.ItemClicked += (_, item) => NavigationRequested?.Invoke(this, item);
     }
 
     public event EventHandler? Loaded;
 
-    public event EventHandler? OfficersClicked;
-
-    public event EventHandler? RolesClicked;
-
-    public event EventHandler? ChangePasswordClicked;
-
-    public event EventHandler? SignOutClicked;
+    public event EventHandler<NavItem>? NavigationRequested;
 
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public string Title
     {
         set => Text = value;
+    }
+
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public string FacilityName
+    {
+        set => sidebar.FacilityName = value;
+    }
+
+    public void ShowNavigation(NavigationModel navigation)
+    {
+        _navigation = navigation;
+        sidebar.ShowNavigation(navigation);
+        _home?.ShowTiles(navigation.Tiles);
+    }
+
+    public void ShowWorkstation(WorkstationInfo workstation) => statusBar.ShowWorkstation(workstation);
+
+    public void ShowUser(string initials, string displayName, string roleText) =>
+        sidebar.ShowUser(initials, displayName, roleText);
+
+    public void ShowHome(string greeting, string dateLine)
+    {
+        ShowPage(ShellNavigation.HomeKey, HomeTitle, CreateHomePage);
+        _home!.ShowGreeting(greeting, dateLine);
+    }
+
+    public void ShowPage(string key, string title, Func<Control> create)
+    {
+        if (!_pages.TryGetValue(key, out var page))
+        {
+            page = create();
+            page.Dock = DockStyle.Fill;
+            _pages[key] = page;
+            pnlContent.Controls.Add(page);
+        }
+
+        foreach (var other in _pages.Values.Where(p => p != page))
+            other.Visible = false;
+        page.Visible = true;
+        headerBar.ShowTitle(title);
+        sidebar.SetActive(key);
     }
 
     public void CloseShell() => Close();
@@ -52,19 +79,24 @@ public partial class MainForm : Form, IMainView
         Loaded?.Invoke(this, EventArgs.Empty);
     }
 
-    private void OnAddInmate(object? sender, EventArgs e)
+    // Global shortcuts (F2 …) work from anywhere in the shell, whatever has the focus.
+    protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
     {
-        using var scope = _scopeFactory!.CreateScope();
-        var form = scope.ServiceProvider.GetRequiredService<AddInmateForm>();
-        ActivatorUtilities.CreateInstance<AddInmatePresenter>(scope.ServiceProvider, form);
-        form.ShowDialog(this);
+        if (_navigation?.FindByShortcut(keyData) is { } item)
+        {
+            NavigationRequested?.Invoke(this, item);
+            return true;
+        }
+
+        return base.ProcessCmdKey(ref msg, keyData);
     }
 
-    private void OnCreateDepositReceipt(object? sender, EventArgs e)
+    private HomePage CreateHomePage()
     {
-        using var scope = _scopeFactory!.CreateScope();
-        var form = scope.ServiceProvider.GetRequiredService<DepositReceiptForm>();
-        ActivatorUtilities.CreateInstance<DepositReceiptPresenter>(scope.ServiceProvider, form);
-        form.ShowDialog(this);
+        _home = new HomePage();
+        _home.TileClicked += (_, item) => NavigationRequested?.Invoke(this, item);
+        if (_navigation is not null)
+            _home.ShowTiles(_navigation.Tiles);
+        return _home;
     }
 }

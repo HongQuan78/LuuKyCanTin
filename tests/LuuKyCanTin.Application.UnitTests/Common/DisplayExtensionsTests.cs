@@ -1,5 +1,7 @@
+using LuuKyCanTin.Application.Administration;
 using LuuKyCanTin.Application.Custody;
 using LuuKyCanTin.Application.MasterData;
+using LuuKyCanTin.Domain.Administration;
 using LuuKyCanTin.Domain.Custody;
 using LuuKyCanTin.Domain.MasterData;
 using Shouldly;
@@ -40,12 +42,24 @@ public sealed class DisplayExtensionsTests
         value.ToDisplayText().ShouldBe(expected);
     }
 
+    [Theory]
+    [InlineData(PasswordRule.MinLength, "Ít nhất 8 ký tự")]
+    [InlineData(PasswordRule.UpperCase, "Có chữ hoa")]
+    [InlineData(PasswordRule.LowerCase, "Có chữ thường")]
+    [InlineData(PasswordRule.Digit, "Có chữ số")]
+    [InlineData(PasswordRule.DifferentFromCurrent, "Khác mật khẩu hiện tại")]
+    public void PasswordRuleToDisplayText_EveryValue_IsTheChecklistLabel(PasswordRule value, string expected)
+    {
+        value.ToDisplayText().ShouldBe(expected);
+    }
+
     [Fact]
     public void ToDisplayText_EveryDefinedValue_HasText()
     {
         Enum.GetValues<InmateType>().ShouldAllBe(v => v.ToDisplayText().Length > 0);
         Enum.GetValues<PaymentMethod>().ShouldAllBe(v => v.ToDisplayText().Length > 0);
         Enum.GetValues<TransactionType>().ShouldAllBe(v => v.ToDisplayText().Length > 0);
+        Enum.GetValues<PasswordRule>().ShouldAllBe(v => v.ToDisplayText().Length > 0);
     }
 
     [Fact]
@@ -54,5 +68,6 @@ public sealed class DisplayExtensionsTests
         Should.Throw<ArgumentOutOfRangeException>(() => ((InmateType)99).ToDisplayText());
         Should.Throw<ArgumentOutOfRangeException>(() => ((PaymentMethod)99).ToDisplayText());
         Should.Throw<ArgumentOutOfRangeException>(() => ((TransactionType)99).ToDisplayText());
+        Should.Throw<ArgumentOutOfRangeException>(() => ((PasswordRule)99).ToDisplayText());
     }
 }

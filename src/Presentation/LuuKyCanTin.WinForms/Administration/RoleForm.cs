@@ -1,4 +1,5 @@
 using LuuKyCanTin.Application.Administration;
+using LuuKyCanTin.WinForms.Common;
 
 namespace LuuKyCanTin.WinForms.Administration;
 
@@ -80,13 +81,13 @@ public partial class RoleForm : Form, IRoleView
 
     public void ShowMessage(string message)
     {
-        lblMessage.ForeColor = Color.ForestGreen;
+        lblMessage.ForeColor = AppTheme.Success;
         lblMessage.Text = message;
     }
 
     public void ShowError(string message)
     {
-        lblMessage.ForeColor = Color.Firebrick;
+        lblMessage.ForeColor = AppTheme.Danger;
         lblMessage.Text = message;
     }
 

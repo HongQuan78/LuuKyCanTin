@@ -8,6 +8,10 @@ public interface ILoginView
 
     string Password { get; }
 
+    /// <summary>While true the sign-in button reads "Đang đăng nhập…", is disabled, and the cursor waits.</summary>
+    bool IsBusy { set; }
+
+    /// <summary>Shows the error banner above the fields, then clears and focuses the password box.</summary>
     void ShowError(string message);
 
     /// <summary>Clears the password box, for a locked account: retyping the same password can't help.</summary>

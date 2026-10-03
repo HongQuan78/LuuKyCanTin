@@ -76,11 +76,14 @@ internal static class Program
         builder.Services.Configure<AppOptions>(builder.Configuration.GetSection(AppOptions.SectionName));
         builder.Services.AddApplication();
         builder.Services.AddInfrastructure(builder.Configuration);
-        builder.Services.AddTransient<LoginForm>();
-        builder.Services.AddTransient(sp => new MainForm(sp.GetRequiredService<IServiceScopeFactory>()));
+        builder.Services.AddSingleton(WorkstationInfo.Create(
+            builder.Configuration.GetConnectionString(InfrastructureServiceCollectionExtensions.ConnectionStringName),
+            Environment.MachineName,
+            typeof(Program).Assembly.GetName().Version));
+        builder.Services.AddTransient(sp => new LoginForm(sp.GetRequiredService<WorkstationInfo>()));
+        builder.Services.AddTransient<MainForm>();
         builder.Services.AddTransient<AddInmateForm>();
         builder.Services.AddTransient<DepositReceiptForm>();
-        builder.Services.AddSingleton<INavigator, Navigator>();
 
         return builder.Build();
     }
