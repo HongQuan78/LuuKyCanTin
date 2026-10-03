@@ -1,5 +1,6 @@
 using LuuKyCanTin.Application.MasterData;
 using LuuKyCanTin.Domain.MasterData;
+using LuuKyCanTin.WinForms.Common;
 
 namespace LuuKyCanTin.WinForms.MasterData;
 
@@ -10,6 +11,8 @@ public partial class AddInmateForm : Form, IAddInmateView
         public override string ToString() => Value.ToDisplayText();
     }
 
+    private readonly FieldErrorDisplay<InmateField> _fieldErrors = new();
+
     public AddInmateForm()
     {
         InitializeComponent();
@@ -19,6 +22,12 @@ public partial class AddInmateForm : Form, IAddInmateView
             new InmateTypeItem(InmateType.Prisoner),
         ]);
         cmbInmateType.SelectedIndex = 0;
+        _fieldErrors.Add(InmateField.InmateCode, frmInmateCode, errInmateCode);
+        _fieldErrors.Add(InmateField.BirthYear, frmBirthYear, errBirthYear);
+        _fieldErrors.Add(InmateField.FullName, frmFullName, errFullName);
+        _fieldErrors.Add(InmateField.InmateType, frmInmateType, errInmateType);
+        _fieldErrors.Add(InmateField.AdmissionDate, frmAdmissionDate, errAdmissionDate);
+        _fieldErrors.Add(InmateField.Cell, frmCell, errCell);
     }
 
     public event EventHandler? SaveClicked;
@@ -35,11 +44,17 @@ public partial class AddInmateForm : Form, IAddInmateView
 
     public string? Cell => txtCell.Text;
 
-    public void ShowError(string message)
+    public void ShowFieldErrors(IReadOnlyList<FieldMessage<InmateField>> errors)
     {
         // The save is over; the user may correct the form and try again.
         btnSave.Enabled = true;
-        MessageBox.Show(this, message, "Không lưu được", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        _fieldErrors.Show(errors);
+    }
+
+    public void ShowError(string message)
+    {
+        btnSave.Enabled = true;
+        bnrError.Message = message;
     }
 
     public void CloseWithResult(bool succeeded)
@@ -52,6 +67,8 @@ public partial class AddInmateForm : Form, IAddInmateView
     {
         // Closing the window is instant; without this a double-click starts a second save.
         btnSave.Enabled = false;
+        _fieldErrors.ClearAll();
+        bnrError.Message = "";
         SaveClicked?.Invoke(this, EventArgs.Empty);
     }
 }

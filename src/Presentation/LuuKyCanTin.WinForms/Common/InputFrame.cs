@@ -23,6 +23,15 @@ internal sealed class InputFrame : Panel
         Visible = false,
     };
 
+    private readonly Label _inlineLabel = new()
+    {
+        AutoSize = true,
+        Font = AppTheme.BodyFont,
+        ForeColor = AppTheme.Muted,
+        UseMnemonic = false,
+        Visible = false,
+    };
+
     private Control? _inner;
     private bool _hasError;
     private bool _isReadOnly;
@@ -33,10 +42,12 @@ internal sealed class InputFrame : Panel
         Height = AppTheme.InputHeight;
         BackColor = AppTheme.Card;
         Controls.Add(_glyph);
+        Controls.Add(_inlineLabel);
         _glyph.Click += (_, _) => _inner?.Focus();
+        _inlineLabel.Click += (_, _) => _inner?.Focus();
     }
 
-    /// <summary>The hosted TextBox or ComboBox. Setting it adds it to the frame and strips its own border.</summary>
+    /// <summary>The hosted TextBox, ComboBox or NumericUpDown. Setting it adds it to the frame and strips its own border.</summary>
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public Control Inner
     {
@@ -48,6 +59,8 @@ internal sealed class InputFrame : Panel
                 textBox.BorderStyle = BorderStyle.None;
             else if (value is ComboBox comboBox)
                 comboBox.FlatStyle = FlatStyle.Flat;
+            else if (value is UpDownBase upDown)
+                upDown.BorderStyle = BorderStyle.None;
 
             value.Font = AppTheme.BodyFont;
             value.GotFocus += (_, _) => Invalidate();
@@ -67,6 +80,19 @@ internal sealed class InputFrame : Panel
         {
             _glyph.Text = value;
             _glyph.Visible = value.Length > 0;
+            LayoutInner();
+        }
+    }
+
+    /// <summary>A muted caption inside the frame before the value, as list filters show it ("Trạng thái:"); empty for none.</summary>
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public string InlineLabel
+    {
+        get => _inlineLabel.Text;
+        set
+        {
+            _inlineLabel.Text = value;
+            _inlineLabel.Visible = value.Length > 0;
             LayoutInner();
         }
     }
@@ -125,6 +151,7 @@ internal sealed class InputFrame : Panel
     {
         BackColor = _isReadOnly ? AppTheme.Subtle : AppTheme.Card;
         _glyph.BackColor = BackColor;
+        _inlineLabel.BackColor = BackColor;
         if (_inner is null)
             return;
 
@@ -142,10 +169,35 @@ internal sealed class InputFrame : Panel
             left += GlyphWidth + GlyphGap;
         }
 
+        if (_inlineLabel.Visible)
+        {
+            _inlineLabel.Location = new Point(left, (Height - _inlineLabel.Height) / 2);
+            left += _inlineLabel.Width + 2;
+        }
+
         if (_inner is null)
             return;
 
+        if (_inner is DateTimePicker)
+        {
+            LayoutDatePicker(left);
+            return;
+        }
+
         _inner.Width = Math.Max(0, Width - left - InnerPadding);
         _inner.Location = new Point(left, (Height - _inner.Height) / 2);
+    }
+
+    // A date picker cannot drop its own border, so it is laid out 2px larger on every side and clipped to its inside;
+    // only the frame's border shows.
+    private void LayoutDatePicker(int left)
+    {
+        const int border = 2;
+        var width = Math.Max(2 * border, Width - left - InnerPadding + 2 * border);
+        _inner!.Bounds = new Rectangle(left - border, (Height - _inner.Height) / 2, width, _inner.Height);
+
+        var previous = _inner.Region;
+        _inner.Region = new Region(new Rectangle(border, border, width - 2 * border, _inner.Height - 2 * border));
+        previous?.Dispose();
     }
 }

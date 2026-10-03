@@ -16,4 +16,12 @@ internal static class Glyphs
     public const string Cancel = "";
     public const string ChevronRight = "";
     public const string ChevronDown = "";
+    public const string Search = "";
+    public const string Edit = "";
+    public const string Save = "";
+    public const string SaveAs = "";
+    public const string Print = "";
+    public const string Refresh = "";
+    public const string Post = "";
+    public const string Calendar = "";
 }

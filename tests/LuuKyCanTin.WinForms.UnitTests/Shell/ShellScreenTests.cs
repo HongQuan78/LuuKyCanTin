@@ -1,4 +1,7 @@
 using LuuKyCanTin.Domain.Administration;
+using LuuKyCanTin.WinForms.Administration;
+using LuuKyCanTin.WinForms.Custody;
+using LuuKyCanTin.WinForms.MasterData;
 using LuuKyCanTin.WinForms.Shell;
 using LuuKyCanTin.WinForms.UnitTests.TestUtilities;
 using NSubstitute;
@@ -158,6 +161,33 @@ public class ShellScreenTests
             .ShowPage("k", "Tiêu đề", create);
 
         host.Received(1).ShowPage("k", "Tiêu đề", create);
+    }
+
+    [Theory]
+    [InlineData(ShellNavigation.OfficersKey, "Danh mục cán bộ", typeof(OfficerForm))]
+    [InlineData(ShellNavigation.DepositReceiptKey, "Lập biên nhận thu", typeof(DepositReceiptForm))]
+    [InlineData(ShellNavigation.RolesKey, "Vai trò và phân quyền", typeof(RoleForm))]
+    public void Navigator_ModuleScreens_AreHostedInTheContentArea(string key, string title, Type screenType)
+    {
+        StaThread.Run(() =>
+        {
+            var host = Substitute.For<IContentHost>();
+            Func<Control>? create = null;
+            host.ShowPage(key, title, Arg.Do<Func<Control>>(f => create = f));
+            var navigator = new Navigator(Substitute.For<Microsoft.Extensions.DependencyInjection.IServiceScopeFactory>(), host);
+
+            Action open = key switch
+            {
+                ShellNavigation.OfficersKey => navigator.OpenOfficers,
+                ShellNavigation.DepositReceiptKey => navigator.OpenDepositReceipt,
+                _ => navigator.OpenRoles,
+            };
+            open();
+
+            using var screen = create.ShouldNotBeNull()();
+            screen.ShouldBeOfType(screenType);
+            screen.ShouldBeAssignableTo<UserControl>();
+        });
     }
 
     private sealed class TestableMainForm : MainForm

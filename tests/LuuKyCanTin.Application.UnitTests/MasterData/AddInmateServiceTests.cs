@@ -74,6 +74,26 @@ public class AddInmateServiceTests
     }
 
     [Fact]
+    public async Task AnInvalidRequest_ReturnsEveryMessageWithItsProperty()
+    {
+        var request = Request(inmateCode: "") with { FullName = "", AdmissionDate = _clock.Today.AddDays(1) };
+
+        var result = await _service.AddAsync(request);
+
+        result.Message.ShouldBe("Mã số không được để trống.");
+        result.Errors.Select(e => e.PropertyName).ShouldBe(
+            [nameof(AddInmateRequest.InmateCode), nameof(AddInmateRequest.FullName), nameof(AddInmateRequest.AdmissionDate)]);
+    }
+
+    [Fact]
+    public async Task ADuplicateCode_NamesNoProperty()
+    {
+        _store.CodeExistsAsync("DT-0001", Arg.Any<CancellationToken>()).Returns(true);
+
+        (await _service.AddAsync(Request())).Errors.ShouldBeEmpty();
+    }
+
+    [Fact]
     public async Task AFutureEntryDate_FailsValidation()
     {
         var request = Request() with { AdmissionDate = _clock.Today.AddDays(1) };

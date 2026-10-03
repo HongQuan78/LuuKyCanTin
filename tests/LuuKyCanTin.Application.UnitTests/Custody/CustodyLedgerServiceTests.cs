@@ -113,6 +113,26 @@ public class CustodyLedgerServiceTests
         await _transaction.DidNotReceive().RollbackAsync(Arg.Any<CancellationToken>());
     }
 
+    [Fact]
+    public async Task ValidationFailure_ReturnsEveryMessageWithItsProperty()
+    {
+        var result = await _service.PostDepositReceiptAsync(Request(amount: 0) with { SenderFullName = "" });
+
+        result.Message.ShouldBe("Số tiền phải lớn hơn 0.");
+        result.Errors.Select(e => e.PropertyName).ShouldBe(
+            [nameof(PostDepositReceiptRequest.Amount), nameof(PostDepositReceiptRequest.SenderFullName)]);
+    }
+
+    [Fact]
+    public async Task ABusinessFailure_NamesNoProperty()
+    {
+        // No detainee 8 exists, so the post is refused after validation passed.
+        var result = await _service.PostDepositReceiptAsync(Request() with { InmateId = 8 });
+
+        result.Succeeded.ShouldBeFalse();
+        result.Errors.ShouldBeEmpty();
+    }
+
     [Theory]
     [InlineData("")]
     [InlineData("   ")]

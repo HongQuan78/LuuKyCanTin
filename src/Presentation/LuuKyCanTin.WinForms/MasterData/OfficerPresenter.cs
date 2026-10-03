@@ -42,7 +42,7 @@ public sealed class OfficerPresenter
         using (var dialog = _createDialog())
         {
             _ = new OfficerEditPresenter(dialog, _scopes, officer);
-            saved = dialog.DisplayText();
+            saved = dialog.ShowModal();
         }
 
         if (saved)

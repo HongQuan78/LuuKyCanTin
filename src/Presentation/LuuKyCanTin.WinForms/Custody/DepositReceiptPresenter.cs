@@ -3,6 +3,7 @@ using LuuKyCanTin.Application.Custody;
 using LuuKyCanTin.Application.MasterData;
 using LuuKyCanTin.Application.Reporting;
 using LuuKyCanTin.Domain.Common;
+using LuuKyCanTin.WinForms.Common;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace LuuKyCanTin.WinForms.Custody;
@@ -13,6 +14,8 @@ namespace LuuKyCanTin.WinForms.Custody;
 /// </summary>
 public sealed class DepositReceiptPresenter
 {
+    private const string LoadFailureMessage = "Không tải được danh sách đối tượng";
+
     private readonly IDepositReceiptView _view;
     private readonly IServiceScopeFactory _scopeFactory;
 
@@ -22,11 +25,26 @@ public sealed class DepositReceiptPresenter
     {
         _view = view;
         _scopeFactory = scopeFactory;
-        _view.LoadRequested += async (_, _) => await ReportFailureAsync("Không tải được danh sách đối tượng", LoadAsync);
+        _view.LoadRequested += async (_, _) => await ReportFailureAsync(LoadFailureMessage, LoadAsync);
         _view.AmountChanged += (_, _) => UpdateAmountInWords();
         _view.PostClicked += async (_, _) => await ReportFailureAsync("Không ghi sổ được", PostAsync);
         _view.PrintClicked += async (_, _) => await ReportFailureAsync("Không in được", PrintAsync);
+        _view.ResetClicked += async (_, _) => await ReportFailureAsync(LoadFailureMessage, ResetAsync);
     }
+
+    private static DepositReceiptField? ToField(string propertyName) => propertyName switch
+    {
+        nameof(PostDepositReceiptRequest.InmateId) => DepositReceiptField.Inmate,
+        nameof(PostDepositReceiptRequest.TransactionType) => DepositReceiptField.TransactionType,
+        nameof(PostDepositReceiptRequest.SenderFullName) => DepositReceiptField.SenderFullName,
+        nameof(PostDepositReceiptRequest.Relationship) => DepositReceiptField.Relationship,
+        nameof(PostDepositReceiptRequest.PaymentMethod) => DepositReceiptField.PaymentMethod,
+        nameof(PostDepositReceiptRequest.SenderAccountNumber) => DepositReceiptField.AccountNumber,
+        nameof(PostDepositReceiptRequest.VoucherDate) => DepositReceiptField.VoucherDate,
+        nameof(PostDepositReceiptRequest.Description) => DepositReceiptField.Description,
+        nameof(PostDepositReceiptRequest.Amount) => DepositReceiptField.Amount,
+        _ => null,
+    };
 
     // An unexpected failure (database down, render error) must still reach the user, not the global handler.
     private async Task ReportFailureAsync(string failureMessage, Func<Task> operation)
@@ -46,6 +64,14 @@ public sealed class DepositReceiptPresenter
         await using var scope = _scopeFactory.CreateAsyncScope();
         var query = scope.ServiceProvider.GetRequiredService<InmatesInCustodyQuery>();
         _view.Inmates = await query.GetAsync();
+    }
+
+    /// <summary>Starts the next receipt; the detainee list is reloaded, since the previous one may be stale.</summary>
+    public async Task ResetAsync()
+    {
+        _voucherId = null;
+        _view.Reset();
+        await LoadAsync();
     }
 
     public void UpdateAmountInWords()
@@ -75,12 +101,24 @@ public sealed class DepositReceiptPresenter
         var result = await ledger.PostDepositReceiptAsync(request);
         if (!result.Succeeded)
         {
-            _view.ShowError(result.Message ?? "Không ghi sổ được biên nhận.");
+            ShowFailure(result);
             return;
         }
 
         _voucherId = result.Id;
         _view.ShowPosted(result.VoucherNumber, result.BalanceAfter);
+    }
+
+    // Validation goes under the fields; the server's re-check (detainee no longer managed, balance) stays a MessageBox.
+    private void ShowFailure(PostingResult result)
+    {
+        var (fieldErrors, otherMessages) = FieldMessages.Split(result.Errors, ToField);
+        if (fieldErrors.Count > 0)
+            _view.ShowFieldErrors(fieldErrors);
+        if (otherMessages.Count > 0)
+            _view.ShowError(string.Join('\n', otherMessages));
+        else if (fieldErrors.Count == 0)
+            _view.ShowError(result.Message ?? "Không ghi sổ được biên nhận.");
     }
 
     public async Task PrintAsync()

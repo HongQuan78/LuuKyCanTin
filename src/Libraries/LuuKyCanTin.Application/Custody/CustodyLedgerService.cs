@@ -30,7 +30,7 @@ public sealed class CustodyLedgerService(
     {
         var validation = await _validator.ValidateAsync(request, ct);
         if (!validation.IsValid)
-            return PostingResult.Fail(validation.Errors[0].ErrorMessage);
+            return PostingResult.Fail(validation.Errors);
 
         await using var transaction = await db.BeginTransactionAsync(ct);
 

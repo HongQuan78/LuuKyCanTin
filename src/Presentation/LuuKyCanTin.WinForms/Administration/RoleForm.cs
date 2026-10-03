@@ -3,19 +3,23 @@ using LuuKyCanTin.WinForms.Common;
 
 namespace LuuKyCanTin.WinForms.Administration;
 
-public partial class RoleForm : Form, IRoleView
+/// <summary>The role screen, hosted in the shell's content area: the role list card on the left, the permission matrix on the right.</summary>
+public partial class RoleForm : UserControl, IRoleView
 {
     private readonly List<string> _actions = [.. PermissionCodes.Actions];
     private readonly List<PermissionCodes.PermissionDefinition> _specialPermissions = [.. PermissionCodes.All.Where(PermissionCodes.IsSpecial)];
+    private bool _isBindingRoles;
+    private int? _shownRoleId;
 
     public RoleForm()
     {
         InitializeComponent();
-        lstRoles.DisplayMember = nameof(RoleDto.Name);
-        lstRoles.SelectedIndexChanged += (_, _) => RoleChanged?.Invoke(this, EventArgs.Empty);
+        colRoleName.DataPropertyName = nameof(RoleDto.Name);
+        grdRoles.SelectionChanged += (_, _) => OnRoleSelectionChanged();
         btnSave.Click += (_, _) => SaveClicked?.Invoke(this, EventArgs.Empty);
         btnCancel.Click += (_, _) => DiscardClicked?.Invoke(this, EventArgs.Empty);
         BuildGrid();
+        ActiveControl = grdRoles;
     }
 
     public event EventHandler? Loaded;
@@ -26,7 +30,7 @@ public partial class RoleForm : Form, IRoleView
 
     public event EventHandler? DiscardClicked;
 
-    public int? SelectedRoleId => (lstRoles.SelectedItem as RoleDto)?.Id;
+    public int? SelectedRoleId => SelectedRole?.Id;
 
     public IReadOnlyList<string> SelectedPermissions
     {
@@ -53,16 +57,27 @@ public partial class RoleForm : Form, IRoleView
         }
     }
 
+    private RoleDto? SelectedRole => grdRoles.CurrentRow?.DataBoundItem as RoleDto;
+
     public void ShowRoles(IReadOnlyList<RoleDto> items)
     {
         var selectedId = SelectedRoleId;
-        lstRoles.DataSource = null;
-        lstRoles.DataSource = items.ToList();
+        _isBindingRoles = true;
+        try
+        {
+            grdRoles.DataSource = items.ToList();
+            var index = selectedId is { } id ? items.ToList().FindIndex(v => v.Id == id) : -1;
+            if (index < 0 && items.Count > 0)
+                index = 0;
+            if (index >= 0 && index < grdRoles.Rows.Count)
+                grdRoles.CurrentCell = grdRoles.Rows[index].Cells[0];
+        }
+        finally
+        {
+            _isBindingRoles = false;
+        }
 
-        if (selectedId is { } id && items.Any(v => v.Id == id))
-            lstRoles.SelectedItem = items.First(v => v.Id == id);
-        else if (items.Count > 0)
-            lstRoles.SelectedIndex = 0;
+        OnRoleSelectionChanged();
     }
 
     public void ShowPermissions(IReadOnlyList<string> permissionCode)
@@ -81,20 +96,36 @@ public partial class RoleForm : Form, IRoleView
 
     public void ShowMessage(string message)
     {
-        lblMessage.ForeColor = AppTheme.Success;
-        lblMessage.Text = message;
+        bnrMessage.Kind = BannerKind.Warning;
+        bnrMessage.Message = message;
     }
 
     public void ShowError(string message)
     {
-        lblMessage.ForeColor = AppTheme.Danger;
-        lblMessage.Text = message;
+        bnrMessage.Kind = BannerKind.Error;
+        bnrMessage.Message = message;
     }
 
+    // A cached screen loads once, the first time the shell shows it.
     protected override void OnLoad(EventArgs e)
     {
         base.OnLoad(e);
         Loaded?.Invoke(this, EventArgs.Empty);
+    }
+
+    // Rebinding the list moves the selection several times; the presenter only hears about a different role.
+    private void OnRoleSelectionChanged()
+    {
+        if (_isBindingRoles)
+            return;
+
+        var role = SelectedRole;
+        crdPermissions.HeaderText = role?.Name ?? " ";
+        if (role?.Id == _shownRoleId)
+            return;
+
+        _shownRoleId = role?.Id;
+        RoleChanged?.Invoke(this, EventArgs.Empty);
     }
 
     private void BuildGrid()
@@ -102,7 +133,7 @@ public partial class RoleForm : Form, IRoleView
         grdPermissions.Columns.Clear();
         grdPermissions.Columns.Add(new DataGridViewTextBoxColumn
         {
-            Name = "colNhomQuyen",
+            Name = "colPermissionGroup",
             HeaderText = "Nhóm quyền",
             ReadOnly = true,
             FillWeight = 30F,
@@ -128,7 +159,6 @@ public partial class RoleForm : Form, IRoleView
         // Special permissions arrive with later stories; the list fills itself from the catalogue.
         foreach (var permission in _specialPermissions)
             lstSpecialPermissions.Items.Add(permission.Name);
-        lblSpecialPermissions.Visible = _specialPermissions.Count > 0;
-        lstSpecialPermissions.Visible = _specialPermissions.Count > 0;
+        pnlSpecialPermissions.Visible = _specialPermissions.Count > 0;
     }
 }

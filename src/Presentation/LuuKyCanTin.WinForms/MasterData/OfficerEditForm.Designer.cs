@@ -1,16 +1,33 @@
+using LuuKyCanTin.WinForms.Common;
+
 namespace LuuKyCanTin.WinForms.MasterData;
 
 partial class OfficerEditForm
 {
-    /// <summary>
-    ///  Required designer variable.
-    /// </summary>
-    private System.ComponentModel.IContainer components = null!;
+    private const int DialogWidth = 480;
 
-    /// <summary>
-    ///  Clean up any resources being used.
-    /// </summary>
-    /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
+    private System.ComponentModel.IContainer components = null!;
+    private EditDialogLayout layout = null!;
+    private Label lblHeading = null!;
+    private Label lblSubtitle = null!;
+    private Banner bnrError = null!;
+    private Label lblOfficerCode = null!;
+    private InputFrame frmOfficerCode = null!;
+    private TextBox txtOfficerCode = null!;
+    private FieldError errOfficerCode = null!;
+    private Label lblPosition = null!;
+    private InputFrame frmPosition = null!;
+    private TextBox txtPosition = null!;
+    private FieldError errPosition = null!;
+    private Label lblFullName = null!;
+    private InputFrame frmFullName = null!;
+    private TextBox txtFullName = null!;
+    private FieldError errFullName = null!;
+    private CheckBox chkIsSupervisingOfficer = null!;
+    private CheckBox chkIsActive = null!;
+    private Button btnSave = null!;
+    private Button btnCancel = null!;
+
     protected override void Dispose(bool disposing)
     {
         if (disposing && (components != null))
@@ -20,142 +37,75 @@ partial class OfficerEditForm
         base.Dispose(disposing);
     }
 
-    #region Windows Form Designer generated code
-
-    /// <summary>
-    ///  Required method for Designer support - do not modify
-    ///  the contents of this method with the code editor.
-    /// </summary>
     private void InitializeComponent()
     {
         components = new System.ComponentModel.Container();
+        layout = new EditDialogLayout(this, DialogWidth);
+        lblHeading = new Label();
+        lblSubtitle = new Label();
+        bnrError = new Banner();
         lblOfficerCode = new Label();
+        frmOfficerCode = new InputFrame();
         txtOfficerCode = new TextBox();
-        lblFullName = new Label();
-        txtFullName = new TextBox();
+        errOfficerCode = new FieldError();
         lblPosition = new Label();
+        frmPosition = new InputFrame();
         txtPosition = new TextBox();
+        errPosition = new FieldError();
+        lblFullName = new Label();
+        frmFullName = new InputFrame();
+        txtFullName = new TextBox();
+        errFullName = new FieldError();
         chkIsSupervisingOfficer = new CheckBox();
         chkIsActive = new CheckBox();
         btnSave = new Button();
         btnCancel = new Button();
         SuspendLayout();
-        //
-        // lblOfficerCode
-        //
-        lblOfficerCode.AutoSize = true;
-        lblOfficerCode.Location = new Point(12, 15);
-        lblOfficerCode.Name = "lblOfficerCode";
-        lblOfficerCode.Text = "Mã cán bộ:";
-        //
-        // txtOfficerCode
-        //
+
+        layout.SetHeading(lblHeading, lblSubtitle);
+
+        bnrError.Name = "bnrError";
+        layout.AddBanner(bnrError, row: 0);
+
         txtOfficerCode.CharacterCasing = CharacterCasing.Upper;
-        txtOfficerCode.Location = new Point(100, 12);
         txtOfficerCode.MaxLength = 20;
         txtOfficerCode.Name = "txtOfficerCode";
-        txtOfficerCode.Size = new Size(160, 23);
-        txtOfficerCode.TabIndex = 0;
-        //
-        // lblFullName
-        //
-        lblFullName.AutoSize = true;
-        lblFullName.Location = new Point(12, 44);
-        lblFullName.Name = "lblFullName";
-        lblFullName.Text = "Họ tên:";
-        //
-        // txtFullName
-        //
-        txtFullName.Location = new Point(100, 41);
-        txtFullName.MaxLength = 100;
-        txtFullName.Name = "txtFullName";
-        txtFullName.Size = new Size(300, 23);
-        txtFullName.TabIndex = 1;
-        //
-        // lblPosition
-        //
-        lblPosition.AutoSize = true;
-        lblPosition.Location = new Point(12, 73);
-        lblPosition.Name = "lblPosition";
-        lblPosition.Text = "Chức vụ:";
-        //
-        // txtPosition
-        //
-        txtPosition.Location = new Point(100, 70);
+        frmOfficerCode.Name = "frmOfficerCode";
+        layout.AddField(lblOfficerCode, "&Mã cán bộ *", frmOfficerCode, txtOfficerCode, errOfficerCode, column: 0, row: 1);
+
         txtPosition.MaxLength = 100;
         txtPosition.Name = "txtPosition";
-        txtPosition.Size = new Size(300, 23);
-        txtPosition.TabIndex = 2;
-        //
-        // chkIsSupervisingOfficer
-        //
+        frmPosition.Name = "frmPosition";
+        layout.AddField(lblPosition, "&Chức vụ", frmPosition, txtPosition, errPosition, column: 1, row: 1);
+
+        txtFullName.MaxLength = 100;
+        txtFullName.Name = "txtFullName";
+        frmFullName.Name = "frmFullName";
+        layout.AddField(lblFullName, "Họ &tên *", frmFullName, txtFullName, errFullName, column: 0, row: 2, isWide: true);
+
         chkIsSupervisingOfficer.AutoSize = true;
-        chkIsSupervisingOfficer.Location = new Point(100, 101);
         chkIsSupervisingOfficer.Name = "chkIsSupervisingOfficer";
-        chkIsSupervisingOfficer.TabIndex = 3;
-        chkIsSupervisingOfficer.Text = "Là cán bộ quản giáo";
-        //
-        // chkIsActive
-        //
+        chkIsSupervisingOfficer.Text = "Là cán bộ &quản giáo";
+        layout.AddPlain(chkIsSupervisingOfficer, column: 0, row: 3);
+
         chkIsActive.AutoSize = true;
-        chkIsActive.Location = new Point(100, 126);
         chkIsActive.Name = "chkIsActive";
-        chkIsActive.TabIndex = 4;
-        chkIsActive.Text = "Đang công tác";
-        //
-        // btnSave
-        //
-        btnSave.Location = new Point(244, 160);
+        chkIsActive.Text = "Đ&ang công tác";
+        layout.AddPlain(chkIsActive, column: 1, row: 3);
+
         btnSave.Name = "btnSave";
-        btnSave.Size = new Size(75, 25);
-        btnSave.TabIndex = 5;
         btnSave.Text = "&Lưu";
-        //
-        // btnCancel
-        //
         btnCancel.DialogResult = DialogResult.Cancel;
-        btnCancel.Location = new Point(325, 160);
         btnCancel.Name = "btnCancel";
-        btnCancel.Size = new Size(75, 25);
-        btnCancel.TabIndex = 6;
         btnCancel.Text = "&Hủy";
-        //
-        // OfficerEditForm
-        //
+        layout.AddButtons(btnSave, btnCancel);
+        AppTheme.SetGlyph(btnSave, Glyphs.Save);
+
         AcceptButton = btnSave;
-        AutoScaleMode = AutoScaleMode.Font;
         CancelButton = btnCancel;
-        ClientSize = new Size(414, 197);
-        Controls.Add(btnCancel);
-        Controls.Add(btnSave);
-        Controls.Add(chkIsActive);
-        Controls.Add(chkIsSupervisingOfficer);
-        Controls.Add(txtPosition);
-        Controls.Add(lblPosition);
-        Controls.Add(txtFullName);
-        Controls.Add(lblFullName);
-        Controls.Add(txtOfficerCode);
-        Controls.Add(lblOfficerCode);
-        FormBorderStyle = FormBorderStyle.FixedDialog;
-        MaximizeBox = false;
-        MinimizeBox = false;
         Name = "OfficerEditForm";
-        ShowInTaskbar = false;
-        StartPosition = FormStartPosition.CenterParent;
+        layout.ApplyTo("");
         ResumeLayout(false);
         PerformLayout();
     }
-
-    #endregion
-
-    private Label lblOfficerCode;
-    private TextBox txtOfficerCode;
-    private Label lblFullName;
-    private TextBox txtFullName;
-    private Label lblPosition;
-    private TextBox txtPosition;
-    private CheckBox chkIsSupervisingOfficer;
-    private CheckBox chkIsActive;
-    private Button btnSave;
-    private Button btnCancel;
 }

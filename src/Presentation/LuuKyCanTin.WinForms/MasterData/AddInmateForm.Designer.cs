@@ -1,22 +1,42 @@
+using LuuKyCanTin.WinForms.Common;
+
 namespace LuuKyCanTin.WinForms.MasterData;
 
 partial class AddInmateForm
 {
+    private const int DialogWidth = 560;
+
     private System.ComponentModel.IContainer components = null!;
+    private EditDialogLayout layout = null!;
+    private Label lblHeading = null!;
+    private Label lblSubtitle = null!;
+    private Banner bnrError = null!;
+    private Label lblInmateCode = null!;
+    private InputFrame frmInmateCode = null!;
     private TextBox txtInmateCode = null!;
-    private TextBox txtFullName = null!;
+    private FieldError errInmateCode = null!;
+    private Label lblBirthYear = null!;
+    private InputFrame frmBirthYear = null!;
     private NumericUpDown numBirthYear = null!;
+    private FieldError errBirthYear = null!;
+    private Label lblFullName = null!;
+    private InputFrame frmFullName = null!;
+    private TextBox txtFullName = null!;
+    private FieldError errFullName = null!;
+    private Label lblInmateType = null!;
+    private InputFrame frmInmateType = null!;
     private ComboBox cmbInmateType = null!;
+    private FieldError errInmateType = null!;
+    private Label lblAdmissionDate = null!;
+    private InputFrame frmAdmissionDate = null!;
     private DateTimePicker dtpAdmissionDate = null!;
+    private FieldError errAdmissionDate = null!;
+    private Label lblCell = null!;
+    private InputFrame frmCell = null!;
     private TextBox txtCell = null!;
+    private FieldError errCell = null!;
     private Button btnSave = null!;
     private Button btnCancel = null!;
-    private Label lblInmateCode = null!;
-    private Label lblFullName = null!;
-    private Label lblBirthYear = null!;
-    private Label lblInmateType = null!;
-    private Label lblAdmissionDate = null!;
-    private Label lblCell = null!;
 
     protected override void Dispose(bool disposing)
     {
@@ -29,101 +49,87 @@ partial class AddInmateForm
     private void InitializeComponent()
     {
         components = new System.ComponentModel.Container();
+        layout = new EditDialogLayout(this, DialogWidth);
+        lblHeading = new Label();
+        lblSubtitle = new Label();
+        bnrError = new Banner();
+        lblInmateCode = new Label();
+        frmInmateCode = new InputFrame();
         txtInmateCode = new TextBox();
-        txtFullName = new TextBox();
+        errInmateCode = new FieldError();
+        lblBirthYear = new Label();
+        frmBirthYear = new InputFrame();
         numBirthYear = new NumericUpDown();
+        errBirthYear = new FieldError();
+        lblFullName = new Label();
+        frmFullName = new InputFrame();
+        txtFullName = new TextBox();
+        errFullName = new FieldError();
+        lblInmateType = new Label();
+        frmInmateType = new InputFrame();
         cmbInmateType = new ComboBox();
+        errInmateType = new FieldError();
+        lblAdmissionDate = new Label();
+        frmAdmissionDate = new InputFrame();
         dtpAdmissionDate = new DateTimePicker();
+        errAdmissionDate = new FieldError();
+        lblCell = new Label();
+        frmCell = new InputFrame();
         txtCell = new TextBox();
+        errCell = new FieldError();
         btnSave = new Button();
         btnCancel = new Button();
-        lblInmateCode = new Label();
-        lblFullName = new Label();
-        lblBirthYear = new Label();
-        lblInmateType = new Label();
-        lblAdmissionDate = new Label();
-        lblCell = new Label();
         ((System.ComponentModel.ISupportInitialize)numBirthYear).BeginInit();
         SuspendLayout();
 
-        lblInmateCode.AutoSize = true;
-        lblInmateCode.Location = new Point(20, 20);
-        lblInmateCode.Text = "Mã số (*)";
-        txtInmateCode.Location = new Point(140, 17);
-        txtInmateCode.Size = new Size(240, 27);
+        lblHeading.Text = "Thêm đối tượng";
+        lblSubtitle.Text = "Nhập thông tin đối tượng mới tiếp nhận.";
+        layout.SetHeading(lblHeading, lblSubtitle);
+
+        bnrError.Name = "bnrError";
+        layout.AddBanner(bnrError, row: 0);
+
         txtInmateCode.Name = "txtInmateCode";
+        frmInmateCode.Name = "frmInmateCode";
+        layout.AddField(lblInmateCode, "&Mã số *", frmInmateCode, txtInmateCode, errInmateCode, column: 0, row: 1);
 
-        lblFullName.AutoSize = true;
-        lblFullName.Location = new Point(20, 56);
-        lblFullName.Text = "Họ tên (*)";
-        txtFullName.Location = new Point(140, 53);
-        txtFullName.Size = new Size(240, 27);
-        txtFullName.Name = "txtFullName";
-
-        lblBirthYear.AutoSize = true;
-        lblBirthYear.Location = new Point(20, 92);
-        lblBirthYear.Text = "Năm sinh";
-        numBirthYear.Location = new Point(140, 89);
         numBirthYear.Maximum = 2100;
-        numBirthYear.Size = new Size(100, 27);
         numBirthYear.Name = "numBirthYear";
+        frmBirthYear.Name = "frmBirthYear";
+        layout.AddField(lblBirthYear, "Năm &sinh", frmBirthYear, numBirthYear, errBirthYear, column: 1, row: 1);
 
-        lblInmateType.AutoSize = true;
-        lblInmateType.Location = new Point(20, 128);
-        lblInmateType.Text = "Loại đối tượng (*)";
+        txtFullName.Name = "txtFullName";
+        frmFullName.Name = "frmFullName";
+        layout.AddField(lblFullName, "Họ &tên *", frmFullName, txtFullName, errFullName, column: 0, row: 2, isWide: true);
+
         cmbInmateType.DropDownStyle = ComboBoxStyle.DropDownList;
-        cmbInmateType.Location = new Point(140, 125);
-        cmbInmateType.Size = new Size(240, 27);
         cmbInmateType.Name = "cmbInmateType";
+        frmInmateType.Name = "frmInmateType";
+        layout.AddField(lblInmateType, "L&oại đối tượng *", frmInmateType, cmbInmateType, errInmateType, column: 0, row: 3);
 
-        lblAdmissionDate.AutoSize = true;
-        lblAdmissionDate.Location = new Point(20, 164);
-        lblAdmissionDate.Text = "Ngày vào (*)";
-        dtpAdmissionDate.Format = DateTimePickerFormat.Short;
-        dtpAdmissionDate.Location = new Point(140, 161);
-        dtpAdmissionDate.Size = new Size(140, 27);
+        dtpAdmissionDate.CustomFormat = "dd/MM/yyyy";
+        dtpAdmissionDate.Format = DateTimePickerFormat.Custom;
         dtpAdmissionDate.Name = "dtpAdmissionDate";
+        frmAdmissionDate.Name = "frmAdmissionDate";
+        layout.AddField(lblAdmissionDate, "Ngày &vào *", frmAdmissionDate, dtpAdmissionDate, errAdmissionDate, column: 1, row: 3);
 
-        lblCell.AutoSize = true;
-        lblCell.Location = new Point(20, 200);
-        lblCell.Text = "Buồng giam";
-        txtCell.Location = new Point(140, 197);
-        txtCell.Size = new Size(240, 27);
         txtCell.Name = "txtCell";
+        frmCell.Name = "frmCell";
+        layout.AddField(lblCell, "&Buồng giam", frmCell, txtCell, errCell, column: 0, row: 4);
 
-        btnSave.Location = new Point(140, 245);
-        btnSave.Size = new Size(115, 32);
-        btnSave.Text = "Lưu";
+        btnSave.Name = "btnSave";
+        btnSave.Text = "&Lưu";
         btnSave.Click += OnSaveClicked;
-
         btnCancel.DialogResult = DialogResult.Cancel;
-        btnCancel.Location = new Point(265, 245);
-        btnCancel.Size = new Size(115, 32);
-        btnCancel.Text = "Hủy";
+        btnCancel.Name = "btnCancel";
+        btnCancel.Text = "&Hủy";
+        layout.AddButtons(btnSave, btnCancel);
+        AppTheme.SetGlyph(btnSave, Glyphs.Save);
 
         AcceptButton = btnSave;
         CancelButton = btnCancel;
-        AutoScaleMode = AutoScaleMode.Font;
-        ClientSize = new Size(410, 300);
-        Controls.Add(lblInmateCode);
-        Controls.Add(txtInmateCode);
-        Controls.Add(lblFullName);
-        Controls.Add(txtFullName);
-        Controls.Add(lblBirthYear);
-        Controls.Add(numBirthYear);
-        Controls.Add(lblInmateType);
-        Controls.Add(cmbInmateType);
-        Controls.Add(lblAdmissionDate);
-        Controls.Add(dtpAdmissionDate);
-        Controls.Add(lblCell);
-        Controls.Add(txtCell);
-        Controls.Add(btnSave);
-        Controls.Add(btnCancel);
-        FormBorderStyle = FormBorderStyle.FixedDialog;
-        MaximizeBox = false;
-        MinimizeBox = false;
-        StartPosition = FormStartPosition.CenterParent;
-        Text = "Thêm đối tượng";
+        Name = "AddInmateForm";
+        layout.ApplyTo("Thêm đối tượng");
         ((System.ComponentModel.ISupportInitialize)numBirthYear).EndInit();
         ResumeLayout(false);
         PerformLayout();

@@ -1,4 +1,5 @@
 using LuuKyCanTin.Application.MasterData;
+using LuuKyCanTin.WinForms.Common;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace LuuKyCanTin.WinForms.MasterData;
@@ -27,6 +28,17 @@ public sealed class AddInmatePresenter
         };
     }
 
+    private static InmateField? ToField(string propertyName) => propertyName switch
+    {
+        nameof(AddInmateRequest.InmateCode) => InmateField.InmateCode,
+        nameof(AddInmateRequest.BirthYear) => InmateField.BirthYear,
+        nameof(AddInmateRequest.FullName) => InmateField.FullName,
+        nameof(AddInmateRequest.InmateType) => InmateField.InmateType,
+        nameof(AddInmateRequest.AdmissionDate) => InmateField.AdmissionDate,
+        nameof(AddInmateRequest.Cell) => InmateField.Cell,
+        _ => null,
+    };
+
     public async Task SaveAsync()
     {
         // Every operation gets a fresh scope; the form never holds a DbContext.
@@ -38,8 +50,23 @@ public sealed class AddInmatePresenter
 
         var result = await addInmate.AddAsync(request);
         if (result.Succeeded)
+        {
             _view.CloseWithResult(true);
-        else
+            return;
+        }
+
+        if (result.Message == AddInmateService.DuplicateCodeMessage)
+        {
+            _view.ShowFieldErrors([new(InmateField.InmateCode, result.Message)]);
+            return;
+        }
+
+        var (fieldErrors, otherMessages) = FieldMessages.Split(result.Errors, ToField);
+        if (fieldErrors.Count > 0)
+            _view.ShowFieldErrors(fieldErrors);
+        if (otherMessages.Count > 0)
+            _view.ShowError(string.Join('\n', otherMessages));
+        else if (fieldErrors.Count == 0)
             _view.ShowError(result.Message ?? "Không lưu được đối tượng.");
     }
 }

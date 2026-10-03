@@ -1,13 +1,25 @@
 using System.ComponentModel;
+using LuuKyCanTin.WinForms.Common;
 
 namespace LuuKyCanTin.WinForms.MasterData;
 
 public partial class OfficerEditForm : Form, IOfficerEditView
 {
+    private readonly FieldErrorDisplay<OfficerField> _fieldErrors = new();
+
     public OfficerEditForm()
     {
         InitializeComponent();
-        btnSave.Click += (_, _) => SaveClicked?.Invoke(this, EventArgs.Empty);
+        _fieldErrors.Add(OfficerField.OfficerCode, frmOfficerCode, errOfficerCode);
+        _fieldErrors.Add(OfficerField.Position, frmPosition, errPosition);
+        _fieldErrors.Add(OfficerField.FullName, frmFullName, errFullName);
+        btnSave.Click += (_, _) =>
+        {
+            // The new attempt replaces the old messages; the presenter shows whatever is still wrong.
+            _fieldErrors.ClearAll();
+            bnrError.Message = "";
+            SaveClicked?.Invoke(this, EventArgs.Empty);
+        };
     }
 
     public event EventHandler? SaveClicked;
@@ -53,12 +65,17 @@ public partial class OfficerEditForm : Form, IOfficerEditView
         set => chkIsActive.Checked = value;
     }
 
-    public bool DisplayText() => ShowDialog() == DialogResult.OK;
-
-    public void ShowError(string message)
+    public void ShowHeading(string heading, string subtitle)
     {
-        MessageBox.Show(this, message, "Không lưu được", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        lblHeading.Text = heading;
+        lblSubtitle.Text = subtitle;
     }
+
+    public bool ShowModal() => ShowDialog() == DialogResult.OK;
+
+    public void ShowFieldErrors(IReadOnlyList<FieldMessage<OfficerField>> errors) => _fieldErrors.Show(errors);
+
+    public void ShowError(string message) => bnrError.Message = message;
 
     public void CloseAsSaved()
     {

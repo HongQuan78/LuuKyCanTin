@@ -56,7 +56,7 @@ public class OfficerPresenterTests
     [Fact]
     public void Add_OpensAnEmptyDialog_AndReloadsAfterASave()
     {
-        _dialog.DisplayText().Returns(true);
+        _dialog.ShowModal().Returns(true);
         NewPresenter();
 
         _view.AddClicked += Raise.Event();
@@ -70,7 +70,7 @@ public class OfficerPresenterTests
     [Fact]
     public void CancelledDialog_DoesNotReload()
     {
-        _dialog.DisplayText().Returns(false);
+        _dialog.ShowModal().Returns(false);
         NewPresenter();
 
         _view.AddClicked += Raise.Event();

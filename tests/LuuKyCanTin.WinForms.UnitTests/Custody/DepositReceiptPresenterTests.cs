@@ -6,6 +6,7 @@ using LuuKyCanTin.Application.Reporting;
 using LuuKyCanTin.Domain.Administration;
 using LuuKyCanTin.Domain.Custody;
 using LuuKyCanTin.Domain.MasterData;
+using LuuKyCanTin.WinForms.Common;
 using LuuKyCanTin.WinForms.Custody;
 using LuuKyCanTin.WinForms.UnitTests.TestUtilities;
 using NSubstitute;
@@ -102,6 +103,71 @@ public class DepositReceiptPresenterTests
 
         _view.Received(1).ShowError(Arg.Any<string>());
         _view.DidNotReceive().ShowPosted(Arg.Any<string>(), Arg.Any<decimal>());
+    }
+
+    [Fact]
+    public async Task Posting_InvalidFields_ShowsEachUnderItsFieldAndNoMessageBox()
+    {
+        _view.Amount.Returns((decimal?)null);
+        _view.SenderFullName.Returns("");
+        _view.PaymentMethod.Returns(PaymentMethod.BankTransfer);
+
+        await CreatePresenter().PostAsync();
+
+        _view.Received(1).ShowFieldErrors(Arg.Is<IReadOnlyList<FieldMessage<DepositReceiptField>>>(e => e.SequenceEqual(new FieldMessage<DepositReceiptField>[]
+        {
+            new(DepositReceiptField.Amount, "Số tiền phải lớn hơn 0."),
+            new(DepositReceiptField.SenderFullName, "Người gửi không được để trống."),
+            new(DepositReceiptField.AccountNumber, "Chuyển khoản phải có số tài khoản người gửi."),
+        })));
+        _view.DidNotReceive().ShowError(Arg.Any<string>());
+        _view.DidNotReceive().ShowPosted(Arg.Any<string>(), Arg.Any<decimal>());
+    }
+
+    [Fact]
+    public async Task Posting_WithoutADetainee_ShowsTheErrorUnderTheDetainee()
+    {
+        _view.InmateId.Returns((int?)null);
+
+        await CreatePresenter().PostAsync();
+
+        _view.Received(1).ShowFieldErrors(Arg.Is<IReadOnlyList<FieldMessage<DepositReceiptField>>>(e =>
+            e.Single() == new FieldMessage<DepositReceiptField>(DepositReceiptField.Inmate, "Phải chọn đối tượng.")));
+    }
+
+    [Fact]
+    public async Task Reset_ClearsTheViewAndReloadsTheDetainees()
+    {
+        await CreatePresenter().ResetAsync();
+
+        Received.InOrder(() =>
+        {
+            _view.Reset();
+            _view.Inmates = Arg.Any<IReadOnlyList<InmateOption>>();
+        });
+    }
+
+    [Fact]
+    public async Task Reset_AfterPosting_ForgetsTheVoucherSoPrintHasNothingToPrint()
+    {
+        var presenter = CreatePresenter();
+        await presenter.PostAsync();
+
+        await presenter.ResetAsync();
+        await presenter.PrintAsync();
+
+        _view.Received(1).ShowError("Chưa có chứng từ để in.");
+        _renderer.DidNotReceive().Render(Arg.Any<DepositReceiptModel>());
+    }
+
+    [Fact]
+    public void ResetClicked_ResetsTheView()
+    {
+        CreatePresenter();
+
+        _view.ResetClicked += Raise.Event();
+
+        _view.Received(1).Reset();
     }
 
     [Fact]

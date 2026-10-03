@@ -9,15 +9,16 @@ public interface INavigator
     /// </summary>
     void ShowPage(string key, string title, Func<Control> create);
 
+    /// <summary>Shows the staff register in the content area.</summary>
     void OpenOfficers();
 
     /// <summary>Opens the add-detainee dialog.</summary>
     void OpenAddInmate();
 
-    /// <summary>Opens the deposit-receipt screen.</summary>
+    /// <summary>Shows the deposit-receipt screen in the content area.</summary>
     void OpenDepositReceipt();
 
-    /// <summary>Opens the role and permission screen.</summary>
+    /// <summary>Shows the role and permission screen in the content area.</summary>
     void OpenRoles();
 
     /// <summary>Opens the voluntary change-password dialog for the signed-in user.</summary>

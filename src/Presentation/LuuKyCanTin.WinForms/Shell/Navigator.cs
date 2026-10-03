@@ -6,29 +6,23 @@ using Microsoft.Extensions.DependencyInjection;
 namespace LuuKyCanTin.WinForms.Shell;
 
 /// <summary>
-/// Composes each screen with its presenter, for one shell session. Presenters get scopes, never a DbContext.
-/// Screens that are not UserControls yet still open in their own window.
+/// Composes each screen with its presenter, for one shell session. Module screens are hosted in the content area and
+/// cached by the host; dialogs open modally over the shell. Presenters get the scope factory, never a scope or a DbContext.
 /// </summary>
 internal sealed class Navigator(IServiceScopeFactory scopes, IContentHost host) : INavigator
 {
-    private OfficerForm? _officer;
-    private RoleForm? _roleForm;
+    public const string OfficersTitle = "Danh mục cán bộ";
+    public const string DepositReceiptTitle = "Lập biên nhận thu";
+    public const string RolesTitle = "Vai trò và phân quyền";
 
     public void ShowPage(string key, string title, Func<Control> create) => host.ShowPage(key, title, create);
 
-    // One staff window at a time: a second click brings the open one forward.
-    public void OpenOfficers()
+    public void OpenOfficers() => host.ShowPage(ShellNavigation.OfficersKey, OfficersTitle, () =>
     {
-        if (_officer is { IsDisposed: false })
-        {
-            _officer.Activate();
-            return;
-        }
-
-        _officer = new OfficerForm();
-        _ = new OfficerPresenter(_officer, scopes, () => new OfficerEditForm());
-        _officer.Show();
-    }
+        var page = new OfficerForm();
+        _ = new OfficerPresenter(page, scopes, () => new OfficerEditForm());
+        return page;
+    });
 
     public void OpenAddInmate()
     {
@@ -38,13 +32,12 @@ internal sealed class Navigator(IServiceScopeFactory scopes, IContentHost host) 
         form.ShowDialog(host);
     }
 
-    public void OpenDepositReceipt()
+    public void OpenDepositReceipt() => host.ShowPage(ShellNavigation.DepositReceiptKey, DepositReceiptTitle, () =>
     {
-        using var scope = scopes.CreateScope();
-        var form = scope.ServiceProvider.GetRequiredService<DepositReceiptForm>();
-        ActivatorUtilities.CreateInstance<DepositReceiptPresenter>(scope.ServiceProvider, form);
-        form.ShowDialog(host);
-    }
+        var page = new DepositReceiptForm();
+        _ = new DepositReceiptPresenter(page, scopes);
+        return page;
+    });
 
     public void OpenChangePassword()
     {
@@ -53,17 +46,10 @@ internal sealed class Navigator(IServiceScopeFactory scopes, IContentHost host) 
         form.ShowModal();
     }
 
-    // One role window at a time, like the staff register.
-    public void OpenRoles()
+    public void OpenRoles() => host.ShowPage(ShellNavigation.RolesKey, RolesTitle, () =>
     {
-        if (_roleForm is { IsDisposed: false })
-        {
-            _roleForm.Activate();
-            return;
-        }
-
-        _roleForm = new RoleForm();
-        _ = new RolePresenter(_roleForm, scopes);
-        _roleForm.Show();
-    }
+        var page = new RoleForm();
+        _ = new RolePresenter(page, scopes);
+        return page;
+    });
 }

@@ -1,5 +1,7 @@
+using FluentValidation.Results;
 using LuuKyCanTin.Application.Common;
 using LuuKyCanTin.Application.MasterData;
+using LuuKyCanTin.WinForms.Common;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace LuuKyCanTin.WinForms.MasterData;
@@ -22,17 +24,29 @@ public sealed class OfficerEditPresenter
         if (officer is null)
         {
             _view.Title = "Thêm cán bộ";
+            _view.ShowHeading("Thêm cán bộ", "Nhập thông tin cán bộ mới.");
             _view.IsActive = true;
             return;
         }
 
         _view.Title = "Sửa cán bộ";
+        _view.ShowHeading(officer.FullName, string.IsNullOrEmpty(officer.Position)
+            ? officer.OfficerCode
+            : $"{officer.OfficerCode} · {officer.Position}");
         _view.OfficerCode = officer.OfficerCode;
         _view.FullName = officer.FullName;
         _view.Position = officer.Position ?? "";
         _view.IsSupervisingOfficer = officer.IsSupervisingOfficer;
         _view.IsActive = officer.IsActive;
     }
+
+    private static OfficerField? ToField(string propertyName) => propertyName switch
+    {
+        nameof(SaveOfficerRequest.OfficerCode) => OfficerField.OfficerCode,
+        nameof(SaveOfficerRequest.FullName) => OfficerField.FullName,
+        nameof(SaveOfficerRequest.Position) => OfficerField.Position,
+        _ => null,
+    };
 
     private async void OnSaveClicked(object? sender, EventArgs e)
     {
@@ -51,6 +65,14 @@ public sealed class OfficerEditPresenter
                 await service.UpdateAsync(_officer.Id, request with { RowVer = _officer.RowVer });
             _view.CloseAsSaved();
         }
+        catch (RequestValidationException ex)
+        {
+            ShowErrors(ex.Errors);
+        }
+        catch (BusinessRuleException ex) when (ex.Message == OfficerService.DuplicateCodeMessage)
+        {
+            _view.ShowFieldErrors([new(OfficerField.OfficerCode, ex.Message)]);
+        }
         catch (BusinessRuleException ex)
         {
             _view.ShowError(ex.Message);
@@ -59,5 +81,14 @@ public sealed class OfficerEditPresenter
         {
             _isSaving = false;
         }
+    }
+
+    private void ShowErrors(IReadOnlyList<ValidationFailure> errors)
+    {
+        var (fieldErrors, otherMessages) = FieldMessages.Split(errors, ToField);
+        if (fieldErrors.Count > 0)
+            _view.ShowFieldErrors(fieldErrors);
+        if (otherMessages.Count > 0)
+            _view.ShowError(string.Join('\n', otherMessages));
     }
 }

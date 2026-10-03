@@ -83,7 +83,7 @@ public sealed class OfficerService(IAppDbContext db, IValidator<SaveOfficerReque
     {
         var result = await validator.ValidateAsync(request, ct);
         if (!result.IsValid)
-            throw new BusinessRuleException(string.Join('\n', result.Errors.Select(e => e.ErrorMessage)));
+            throw new RequestValidationException(result.Errors);
     }
 
     // The unique index is the backstop when two workstations save the same code at once.

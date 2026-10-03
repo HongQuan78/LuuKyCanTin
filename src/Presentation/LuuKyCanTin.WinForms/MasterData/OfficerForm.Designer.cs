@@ -1,16 +1,33 @@
+using LuuKyCanTin.WinForms.Common;
+
 namespace LuuKyCanTin.WinForms.MasterData;
 
 partial class OfficerForm
 {
-    /// <summary>
-    ///  Required designer variable.
-    /// </summary>
-    private System.ComponentModel.IContainer components = null!;
+    private const int StatusFilterWidth = 230;
 
-    /// <summary>
-    ///  Clean up any resources being used.
-    /// </summary>
-    /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
+    private System.ComponentModel.IContainer components = null!;
+    private Panel pnlToolbar = null!;
+    private FlowLayoutPanel pnlFilters = null!;
+    private InputFrame frmKeyword = null!;
+    private TextBox txtKeyword = null!;
+    private InputFrame frmStatusFilter = null!;
+    private ComboBox cboStatusFilter = null!;
+    private FlowLayoutPanel pnlActions = null!;
+    private Button btnAdd = null!;
+    private Button btnEdit = null!;
+    private CardPanel crdList = null!;
+    private DataGridView grdOfficers = null!;
+    private DataGridViewTextBoxColumn colOfficerCode = null!;
+    private DataGridViewTextBoxColumn colFullName = null!;
+    private DataGridViewTextBoxColumn colPosition = null!;
+    private DataGridViewCheckBoxColumn colIsSupervisingOfficer = null!;
+    private DataGridViewTextBoxColumn colStatus = null!;
+    private Panel pnlFooter = null!;
+    private Label lblCount = null!;
+    private Label lblHints = null!;
+    private System.Windows.Forms.Timer tmrSearch = null!;
+
     protected override void Dispose(bool disposing)
     {
         if (disposing && (components != null))
@@ -20,152 +37,184 @@ partial class OfficerForm
         base.Dispose(disposing);
     }
 
-    #region Windows Form Designer generated code
-
-    /// <summary>
-    ///  Required method for Designer support - do not modify
-    ///  the contents of this method with the code editor.
-    /// </summary>
     private void InitializeComponent()
     {
         components = new System.ComponentModel.Container();
-        lblKeyword = new Label();
+        pnlToolbar = new Panel();
+        pnlFilters = new FlowLayoutPanel();
+        frmKeyword = new InputFrame();
         txtKeyword = new TextBox();
-        chkShowInactive = new CheckBox();
+        frmStatusFilter = new InputFrame();
+        cboStatusFilter = new ComboBox();
+        pnlActions = new FlowLayoutPanel();
         btnAdd = new Button();
         btnEdit = new Button();
+        crdList = new CardPanel();
         grdOfficers = new DataGridView();
         colOfficerCode = new DataGridViewTextBoxColumn();
         colFullName = new DataGridViewTextBoxColumn();
         colPosition = new DataGridViewTextBoxColumn();
         colIsSupervisingOfficer = new DataGridViewCheckBoxColumn();
-        colIsActive = new DataGridViewCheckBoxColumn();
+        colStatus = new DataGridViewTextBoxColumn();
+        pnlFooter = new Panel();
+        lblCount = new Label();
+        lblHints = new Label();
         tmrSearch = new System.Windows.Forms.Timer(components);
         ((System.ComponentModel.ISupportInitialize)grdOfficers).BeginInit();
+        pnlToolbar.SuspendLayout();
+        crdList.SuspendLayout();
         SuspendLayout();
-        //
-        // lblKeyword
-        //
-        lblKeyword.AutoSize = true;
-        lblKeyword.Location = new Point(12, 15);
-        lblKeyword.Name = "lblKeyword";
-        lblKeyword.Text = "Tìm (mã hoặc tên):";
-        //
-        // txtKeyword
-        //
-        txtKeyword.Location = new Point(130, 12);
+
+        // Toolbar row: search, inline-label filter, spacer, secondary button, then the one primary button last.
+        pnlToolbar.Dock = DockStyle.Top;
+        pnlToolbar.Height = AppTheme.ButtonHeight + AppTheme.Gap;
+        pnlToolbar.Name = "pnlToolbar";
+        pnlToolbar.TabIndex = 0;
+        pnlToolbar.Controls.Add(pnlFilters);
+        pnlToolbar.Controls.Add(pnlActions);
+
+        pnlFilters.Dock = DockStyle.Fill;
+        pnlFilters.Margin = Padding.Empty;
+        pnlFilters.Name = "pnlFilters";
+        pnlFilters.TabIndex = 0;
+        pnlFilters.WrapContents = false;
+        pnlFilters.Controls.Add(frmKeyword);
+        pnlFilters.Controls.Add(frmStatusFilter);
+
         txtKeyword.Name = "txtKeyword";
-        txtKeyword.Size = new Size(260, 23);
-        txtKeyword.TabIndex = 0;
-        //
-        // chkShowInactive
-        //
-        chkShowInactive.AutoSize = true;
-        chkShowInactive.Location = new Point(405, 14);
-        chkShowInactive.Name = "chkShowInactive";
-        chkShowInactive.TabIndex = 1;
-        chkShowInactive.Text = "Hiện cả người đã nghỉ";
-        //
-        // btnAdd
-        //
-        btnAdd.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-        btnAdd.Location = new Point(616, 11);
+        frmKeyword.Glyph = Glyphs.Search;
+        frmKeyword.Margin = new Padding(0, 0, AppTheme.GapSmall, 0);
+        frmKeyword.Name = "frmKeyword";
+        frmKeyword.TabIndex = 0;
+        frmKeyword.Width = AppTheme.SearchWidth;
+        frmKeyword.Inner = txtKeyword;
+
+        cboStatusFilter.DropDownStyle = ComboBoxStyle.DropDownList;
+        cboStatusFilter.Items.AddRange(["Đang công tác", "Tất cả"]);
+        cboStatusFilter.Name = "cboStatusFilter";
+        cboStatusFilter.SelectedIndex = 0;
+        frmStatusFilter.InlineLabel = "Trạng thái:";
+        frmStatusFilter.Margin = Padding.Empty;
+        frmStatusFilter.Name = "frmStatusFilter";
+        frmStatusFilter.TabIndex = 1;
+        frmStatusFilter.Width = StatusFilterWidth;
+        frmStatusFilter.Inner = cboStatusFilter;
+
+        // RightToLeft flow: the primary button is added first so it ends up last on the right.
+        pnlActions.AutoSize = true;
+        pnlActions.Dock = DockStyle.Right;
+        pnlActions.FlowDirection = FlowDirection.RightToLeft;
+        pnlActions.Margin = Padding.Empty;
+        pnlActions.Name = "pnlActions";
+        pnlActions.TabIndex = 1;
+        pnlActions.WrapContents = false;
+        pnlActions.Controls.Add(btnAdd);
+        pnlActions.Controls.Add(btnEdit);
+
+        btnAdd.AutoSize = true;
+        btnAdd.Margin = Padding.Empty;
         btnAdd.Name = "btnAdd";
-        btnAdd.Size = new Size(75, 25);
-        btnAdd.TabIndex = 2;
-        btnAdd.Text = "&Thêm";
-        //
-        // btnEdit
-        //
-        btnEdit.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-        btnEdit.Location = new Point(697, 11);
+        btnAdd.TabIndex = 1;
+        btnAdd.Text = "&Thêm cán bộ";
+        AppTheme.StylePrimary(btnAdd);
+        AppTheme.SetGlyph(btnAdd, Glyphs.Add);
+
+        btnEdit.AutoSize = true;
+        btnEdit.Margin = new Padding(0, 0, AppTheme.GapSmall, 0);
         btnEdit.Name = "btnEdit";
-        btnEdit.Size = new Size(75, 25);
-        btnEdit.TabIndex = 3;
+        btnEdit.TabIndex = 0;
         btnEdit.Text = "&Sửa";
-        //
-        // grdOfficers
-        //
+        AppTheme.StyleSecondary(btnEdit);
+        AppTheme.SetGlyph(btnEdit, Glyphs.Edit);
+
+        // The card holds the grid edge to edge (inside its 1px border) and the 44px footer.
+        crdList.Dock = DockStyle.Fill;
+        crdList.Name = "crdList";
+        crdList.Padding = new Padding(1);
+        crdList.TabIndex = 1;
+        crdList.Controls.Add(grdOfficers);
+        crdList.Controls.Add(pnlFooter);
+
         grdOfficers.AllowUserToAddRows = false;
         grdOfficers.AllowUserToDeleteRows = false;
-        grdOfficers.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+        grdOfficers.AllowUserToResizeRows = false;
         grdOfficers.AutoGenerateColumns = false;
-        grdOfficers.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-        grdOfficers.Columns.AddRange(new DataGridViewColumn[] { colOfficerCode, colFullName, colPosition, colIsSupervisingOfficer, colIsActive });
-        grdOfficers.Location = new Point(12, 45);
+        grdOfficers.Columns.AddRange(new DataGridViewColumn[] { colOfficerCode, colFullName, colPosition, colIsSupervisingOfficer, colStatus });
+        grdOfficers.Dock = DockStyle.Fill;
         grdOfficers.MultiSelect = false;
         grdOfficers.Name = "grdOfficers";
         grdOfficers.ReadOnly = true;
-        grdOfficers.RowHeadersVisible = false;
-        grdOfficers.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-        grdOfficers.Size = new Size(760, 404);
-        grdOfficers.TabIndex = 4;
-        //
-        // colOfficerCode
-        //
-        colOfficerCode.FillWeight = 15F;
+        grdOfficers.StandardTab = true;
+        grdOfficers.TabIndex = 0;
+        AppTheme.StyleGrid(grdOfficers);
+
+        colOfficerCode.DefaultCellStyle.ForeColor = AppTheme.Text2;
         colOfficerCode.HeaderText = "Mã";
         colOfficerCode.Name = "colOfficerCode";
-        //
-        // colFullName
-        //
-        colFullName.FillWeight = 35F;
+        colOfficerCode.Width = 110;
+
+        // The name is the only Fill column, semibold as DESIGN.md asks for names in grids.
+        colFullName.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+        colFullName.DefaultCellStyle.Font = AppTheme.BodySemiboldFont;
         colFullName.HeaderText = "Họ tên";
         colFullName.Name = "colFullName";
-        //
-        // colPosition
-        //
-        colPosition.FillWeight = 30F;
+
         colPosition.HeaderText = "Chức vụ";
         colPosition.Name = "colPosition";
-        //
-        // colIsSupervisingOfficer
-        //
-        colIsSupervisingOfficer.FillWeight = 10F;
+        colPosition.Width = 220;
+
         colIsSupervisingOfficer.HeaderText = "Quản giáo";
         colIsSupervisingOfficer.Name = "colIsSupervisingOfficer";
-        //
-        // colIsActive
-        //
-        colIsActive.FillWeight = 10F;
-        colIsActive.HeaderText = "Đang công tác";
-        colIsActive.Name = "colIsActive";
-        //
-        // tmrSearch
-        //
+        colIsSupervisingOfficer.Width = 100;
+
+        colStatus.HeaderText = "Trạng thái";
+        colStatus.Name = "colStatus";
+        colStatus.Width = 162;
+
+        pnlFooter.Dock = DockStyle.Bottom;
+        pnlFooter.Height = AppTheme.CardFooterHeight;
+        pnlFooter.Name = "pnlFooter";
+        // The top padding keeps the 1px border line clear of the labels. Dock order is reverse add order: the hints
+        // take the right first, the count fills what is left.
+        pnlFooter.Padding = new Padding(AppTheme.CardPadding, 1, AppTheme.CardPadding, 0);
+        pnlFooter.Controls.Add(lblCount);
+        pnlFooter.Controls.Add(lblHints);
+        pnlFooter.Paint += (_, e) =>
+        {
+            using var line = new SolidBrush(AppTheme.Border);
+            e.Graphics.FillRectangle(line, 0, 0, pnlFooter.Width, 1);
+        };
+
+        lblCount.AutoSize = false;
+        lblCount.Dock = DockStyle.Fill;
+        lblCount.ForeColor = AppTheme.Muted;
+        lblCount.Name = "lblCount";
+        lblCount.TextAlign = ContentAlignment.MiddleLeft;
+        lblCount.UseMnemonic = false;
+
+        lblHints.AutoSize = false;
+        lblHints.Dock = DockStyle.Right;
+        lblHints.Width = 280;
+        lblHints.ForeColor = AppTheme.Muted;
+        lblHints.Name = "lblHints";
+        lblHints.Text = "Insert thêm · Enter sửa";
+        lblHints.TextAlign = ContentAlignment.MiddleRight;
+        lblHints.UseMnemonic = false;
+
         tmrSearch.Interval = 300;
-        //
-        // OfficerForm
-        //
+
+        // Dock order is reverse add order: the toolbar takes the top, the card fills the rest.
         AutoScaleMode = AutoScaleMode.Font;
-        ClientSize = new Size(784, 461);
-        Controls.Add(grdOfficers);
-        Controls.Add(btnEdit);
-        Controls.Add(btnAdd);
-        Controls.Add(chkShowInactive);
-        Controls.Add(txtKeyword);
-        Controls.Add(lblKeyword);
-        MinimumSize = new Size(640, 360);
+        BackColor = AppTheme.Surface;
+        Controls.Add(crdList);
+        Controls.Add(pnlToolbar);
+        Font = AppTheme.BodyFont;
         Name = "OfficerForm";
-        StartPosition = FormStartPosition.CenterParent;
-        Text = "Danh mục cán bộ";
+        Size = new Size(1106, 615);
         ((System.ComponentModel.ISupportInitialize)grdOfficers).EndInit();
+        pnlToolbar.ResumeLayout(false);
+        pnlToolbar.PerformLayout();
+        crdList.ResumeLayout(false);
         ResumeLayout(false);
-        PerformLayout();
     }
-
-    #endregion
-
-    private Label lblKeyword;
-    private TextBox txtKeyword;
-    private CheckBox chkShowInactive;
-    private Button btnAdd;
-    private Button btnEdit;
-    private DataGridView grdOfficers;
-    private DataGridViewTextBoxColumn colOfficerCode;
-    private DataGridViewTextBoxColumn colFullName;
-    private DataGridViewTextBoxColumn colPosition;
-    private DataGridViewCheckBoxColumn colIsSupervisingOfficer;
-    private DataGridViewCheckBoxColumn colIsActive;
-    private System.Windows.Forms.Timer tmrSearch;
 }

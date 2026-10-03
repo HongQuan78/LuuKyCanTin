@@ -4,10 +4,15 @@ using System.Text.RegularExpressions;
 using LuuKyCanTin.Application.Custody;
 using LuuKyCanTin.Application.MasterData;
 using LuuKyCanTin.Domain.Custody;
+using LuuKyCanTin.WinForms.Common;
 
 namespace LuuKyCanTin.WinForms.Custody;
 
-public partial class DepositReceiptForm : Form, IDepositReceiptView
+/// <summary>
+/// The deposit receipt, hosted in the shell's content area: the voucher-entry screen of key-03 A. It is cached, so a
+/// half-filled receipt survives switching screens; it holds no scope, each operation of the presenter opens its own.
+/// </summary>
+public partial class DepositReceiptForm : UserControl, IDepositReceiptView
 {
     // The spec numbers transaction types, and the form shows that number in front of the name.
     private sealed record TransactionTypeItem(TransactionType Value)
@@ -20,11 +25,23 @@ public partial class DepositReceiptForm : Form, IDepositReceiptView
         public override string ToString() => Value.ToDisplayText();
     }
 
+    private static readonly CultureInfo Vietnamese = CultureInfo.GetCultureInfo("vi-VN");
+
+    private readonly FieldErrorDisplay<DepositReceiptField> _fieldErrors = new();
     private bool _isPosted;
 
     public DepositReceiptForm()
     {
         InitializeComponent();
+        _fieldErrors.Add(DepositReceiptField.Inmate, frmInmate, errInmate);
+        _fieldErrors.Add(DepositReceiptField.TransactionType, frmTransactionType, errTransactionType);
+        _fieldErrors.Add(DepositReceiptField.SenderFullName, frmSenderFullName, errSenderFullName);
+        _fieldErrors.Add(DepositReceiptField.Relationship, frmRelationship, errRelationship);
+        _fieldErrors.Add(DepositReceiptField.PaymentMethod, frmPaymentMethod, errPaymentMethod);
+        _fieldErrors.Add(DepositReceiptField.AccountNumber, frmAccountNumber, errAccountNumber);
+        _fieldErrors.Add(DepositReceiptField.VoucherDate, frmVoucherDate, errVoucherDate);
+        _fieldErrors.Add(DepositReceiptField.Description, frmDescription, errDescription);
+        _fieldErrors.Add(DepositReceiptField.Amount, frmAmount, errAmount);
 
         // Nghiệp vụ 13 (phiếu gửi qua) stays out until DEC-05 is decided (alignment A4).
         cmbTransactionType.Items.AddRange(
@@ -42,7 +59,8 @@ public partial class DepositReceiptForm : Form, IDepositReceiptView
         ]);
         cmbPaymentMethod.SelectedIndex = 0;
         UpdateAccountNumberState();
-        Load += OnFormLoad;
+        ShowTotal();
+        ActiveControl = cmbInmate;
     }
 
     public event EventHandler? LoadRequested;
@@ -52,6 +70,8 @@ public partial class DepositReceiptForm : Form, IDepositReceiptView
     public event EventHandler? PostClicked;
 
     public event EventHandler? PrintClicked;
+
+    public event EventHandler? ResetClicked;
 
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public IReadOnlyList<InmateOption> Inmates
@@ -92,7 +112,7 @@ public partial class DepositReceiptForm : Form, IDepositReceiptView
             if (!Regex.IsMatch(text, @"^\d{1,3}(\.\d{3})*$|^\d+$"))
                 return null;
 
-            return decimal.TryParse(text, NumberStyles.AllowThousands, CultureInfo.GetCultureInfo("vi-VN"), out var amount)
+            return decimal.TryParse(text, NumberStyles.AllowThousands, Vietnamese, out var amount)
                 ? amount
                 : null;
         }
@@ -106,46 +126,103 @@ public partial class DepositReceiptForm : Form, IDepositReceiptView
 
     public void ShowError(string message)
     {
-        // The post is over; allow another attempt, unless this form already posted a receipt.
+        // The post is over; allow another attempt, unless this screen already posted a receipt.
         if (!_isPosted)
             btnPost.Enabled = true;
 
-        MessageBox.Show(this, message, "Không ghi sổ được", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+        MessageBox.Show(FindForm(), message, "Không ghi sổ được", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+    }
+
+    public void ShowFieldErrors(IReadOnlyList<FieldMessage<DepositReceiptField>> errors)
+    {
+        if (!_isPosted)
+            btnPost.Enabled = true;
+
+        _fieldErrors.Show(errors);
     }
 
     public void ShowPosted(string voucherNumber, decimal balanceAfter)
     {
         _isPosted = true;
-        lblStatus.Text = $"Đã ghi sổ {voucherNumber} · Số dư mới: {balanceAfter.ToString("N0", CultureInfo.GetCultureInfo("vi-VN"))} đồng";
+        lblStatus.Text = $"Đã ghi sổ {voucherNumber} · Số dư mới: {balanceAfter.ToString("N0", Vietnamese)} đồng";
+        lblStatus.ForeColor = balanceAfter > 0 ? AppTheme.Success : AppTheme.Text;
         btnPost.Enabled = false;
         btnIn.Enabled = true;
+        btnIn.Focus();
     }
 
     public void ShowPrintPreview(byte[] pdf, string fileName)
     {
-        using var preview = new Common.PdfPreviewForm(pdf, fileName);
-        preview.ShowDialog(this);
+        using var preview = new PdfPreviewForm(pdf, fileName);
+        preview.ShowDialog(FindForm());
     }
 
-    private void OnFormLoad(object? sender, EventArgs e) => LoadRequested?.Invoke(this, EventArgs.Empty);
+    public void Reset()
+    {
+        _isPosted = false;
+        _fieldErrors.ClearAll();
+        cmbTransactionType.SelectedIndex = 0;
+        txtSenderFullName.Clear();
+        txtRelationship.Clear();
+        cmbPaymentMethod.SelectedIndex = 0;
+        txtAccountNumber.Clear();
+        txtDescription.Clear();
+        txtAmount.Clear();
+        lblStatus.Text = "";
+        btnPost.Enabled = true;
+        btnIn.Enabled = false;
+        cmbInmate.Focus();
+    }
 
-    private void OnAmountChanged(object? sender, EventArgs e) => AmountChanged?.Invoke(this, EventArgs.Empty);
+    // A cached screen loads once, the first time the shell shows it.
+    protected override void OnLoad(EventArgs e)
+    {
+        base.OnLoad(e);
+        LoadRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    // Voucher keys (EXPERIENCE.md): Esc starts the next receipt. Enter never posts: this screen has no AcceptButton.
+    protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+    {
+        // An open drop-down keeps Esc to close itself.
+        var isDroppedDown = cmbInmate.DroppedDown || cmbTransactionType.DroppedDown || cmbPaymentMethod.DroppedDown;
+        if (keyData == Keys.Escape && !isDroppedDown)
+        {
+            ResetClicked?.Invoke(this, EventArgs.Empty);
+            return true;
+        }
+
+        return base.ProcessCmdKey(ref msg, keyData);
+    }
+
+    private void OnAmountChanged(object? sender, EventArgs e)
+    {
+        ShowTotal();
+        AmountChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void ShowTotal() => lblTotal.Text = $"{(Amount ?? 0).ToString("#,##0", Vietnamese)} đ";
 
     private void OnPostClicked(object? sender, EventArgs e)
     {
         // A second click while the post runs would start a second transaction and could post twice.
         btnPost.Enabled = false;
+        _fieldErrors.ClearAll();
         PostClicked?.Invoke(this, EventArgs.Empty);
     }
 
     private void OnPrintClicked(object? sender, EventArgs e) => PrintClicked?.Invoke(this, EventArgs.Empty);
+
+    private void OnResetClicked(object? sender, EventArgs e) => ResetClicked?.Invoke(this, EventArgs.Empty);
 
     private void OnPaymentMethodChanged(object? sender, EventArgs e) => UpdateAccountNumberState();
 
     private void UpdateAccountNumberState()
     {
         var isBankTransfer = cmbPaymentMethod.SelectedItem is PaymentMethodItem { Value: PaymentMethod.BankTransfer };
-        txtAccountNumber.Enabled = isBankTransfer;
-        lblAccountNumber.Enabled = isBankTransfer;
+        frmAccountNumber.ReadOnly = !isBankTransfer;
+        txtAccountNumber.TabStop = isBankTransfer;
+        if (!isBankTransfer)
+            _fieldErrors.Clear(DepositReceiptField.AccountNumber);
     }
 }

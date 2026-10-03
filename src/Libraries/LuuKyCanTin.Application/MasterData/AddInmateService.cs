@@ -16,7 +16,7 @@ public sealed class AddInmateService(IInmateStore inmateStore, IClock clock)
     {
         var validation = await _validator.ValidateAsync(request, ct);
         if (!validation.IsValid)
-            return AddInmateResult.Fail(validation.Errors[0].ErrorMessage);
+            return AddInmateResult.Fail(validation.Errors);
 
         var inmateCode = request.InmateCode.Trim();
         if (await inmateStore.CodeExistsAsync(inmateCode, ct))

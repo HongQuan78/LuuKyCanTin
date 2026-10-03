@@ -1,5 +1,7 @@
+using FluentValidation.Results;
 using LuuKyCanTin.Application.Common;
 using LuuKyCanTin.Application.MasterData;
+using LuuKyCanTin.WinForms.Common;
 using LuuKyCanTin.WinForms.MasterData;
 using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
@@ -29,12 +31,19 @@ public class OfficerEditPresenterTests
         _view.IsActive.Returns(isActive);
     }
 
+    private void SaveFails(Exception error) =>
+        _service.AddAsync(Arg.Any<SaveOfficerRequest>(), Arg.Any<CancellationToken>()).ThrowsAsync(error);
+
+    private static bool IsOnly(IReadOnlyList<FieldMessage<OfficerField>> errors, OfficerField field, string message) =>
+        errors.Count == 1 && errors[0] == new FieldMessage<OfficerField>(field, message);
+
     [Fact]
     public void Adding_StartsWithAnEmptyActiveStaffMember()
     {
         _ = new OfficerEditPresenter(_view, _scopes, officer: null);
 
         _view.Received().Title = "Thêm cán bộ";
+        _view.Received().ShowHeading("Thêm cán bộ", "Nhập thông tin cán bộ mới.");
         _view.Received().IsActive = true;
         _view.DidNotReceive().OfficerCode = Arg.Any<string>();
     }
@@ -50,6 +59,22 @@ public class OfficerEditPresenterTests
         _view.Received().Position = "Kế toán";
         _view.Received().IsSupervisingOfficer = false;
         _view.Received().IsActive = true;
+    }
+
+    [Fact]
+    public void Editing_HeadsTheDialogWithTheNameAndCodeAndPosition()
+    {
+        _ = new OfficerEditPresenter(_view, _scopes, Existing);
+
+        _view.Received().ShowHeading("Lê Thị Bình", "CB05 · Kế toán");
+    }
+
+    [Fact]
+    public void Editing_SomeoneWithoutAPosition_ShowsTheCodeOnly()
+    {
+        _ = new OfficerEditPresenter(_view, _scopes, Existing with { Position = null });
+
+        _view.Received().ShowHeading("Lê Thị Bình", "CB05");
     }
 
     [Fact]
@@ -78,21 +103,59 @@ public class OfficerEditPresenterTests
     }
 
     [Fact]
-    public void SaveError_IsShown_AndTheDialogStaysOpen()
+    public void Save_DuplicateCode_IsShownUnderTheCodeAndTheDialogStaysOpen()
     {
         Fill();
-        _service.AddAsync(Arg.Any<SaveOfficerRequest>(), Arg.Any<CancellationToken>())
-            .ThrowsAsync(new BusinessRuleException("Mã cán bộ đã tồn tại"));
+        SaveFails(new BusinessRuleException(OfficerService.DuplicateCodeMessage));
         _ = new OfficerEditPresenter(_view, _scopes, officer: null);
 
         _view.SaveClicked += Raise.Event();
 
-        _view.Received(1).ShowError("Mã cán bộ đã tồn tại");
+        _view.Received(1).ShowFieldErrors(Arg.Is<IReadOnlyList<FieldMessage<OfficerField>>>(
+            e => IsOnly(e, OfficerField.OfficerCode, OfficerService.DuplicateCodeMessage)));
+        _view.DidNotReceive().ShowError(Arg.Any<string>());
         _view.DidNotReceive().CloseAsSaved();
     }
 
     [Fact]
-    public void ConcurrencyConflict_IsShownToo()
+    public void Save_InvalidFields_AreEachShownUnderTheirField()
+    {
+        Fill();
+        SaveFails(new RequestValidationException(
+        [
+            new ValidationFailure(nameof(SaveOfficerRequest.OfficerCode), "Mã cán bộ không được để trống."),
+            new ValidationFailure(nameof(SaveOfficerRequest.FullName), "Họ tên không được để trống."),
+            new ValidationFailure(nameof(SaveOfficerRequest.Position), "Chức vụ tối đa 100 ký tự."),
+        ]));
+        _ = new OfficerEditPresenter(_view, _scopes, officer: null);
+
+        _view.SaveClicked += Raise.Event();
+
+        _view.Received(1).ShowFieldErrors(Arg.Is<IReadOnlyList<FieldMessage<OfficerField>>>(e => e.SequenceEqual(new FieldMessage<OfficerField>[]
+        {
+            new(OfficerField.OfficerCode, "Mã cán bộ không được để trống."),
+            new(OfficerField.FullName, "Họ tên không được để trống."),
+            new(OfficerField.Position, "Chức vụ tối đa 100 ký tự."),
+        })));
+        _view.DidNotReceive().ShowError(Arg.Any<string>());
+        _view.DidNotReceive().CloseAsSaved();
+    }
+
+    [Fact]
+    public void Save_AFailureOfNoField_IsShownInTheBanner()
+    {
+        Fill();
+        SaveFails(new RequestValidationException([new ValidationFailure("RowVer", "Thiếu phiên bản dữ liệu.")]));
+        _ = new OfficerEditPresenter(_view, _scopes, officer: null);
+
+        _view.SaveClicked += Raise.Event();
+
+        _view.Received(1).ShowError("Thiếu phiên bản dữ liệu.");
+        _view.DidNotReceive().ShowFieldErrors(Arg.Any<IReadOnlyList<FieldMessage<OfficerField>>>());
+    }
+
+    [Fact]
+    public void ConcurrencyConflict_IsShownInTheBanner()
     {
         _service.UpdateAsync(Arg.Any<int>(), Arg.Any<SaveOfficerRequest>(), Arg.Any<CancellationToken>())
             .ThrowsAsync(new ConcurrencyConflictException(new InvalidOperationException()));
@@ -112,8 +175,7 @@ public class OfficerEditPresenterTests
         var scope = Substitute.For<IServiceScope>();
         scope.ServiceProvider.GetService(typeof(IOfficerService)).Returns(_service);
         scopes.CreateScope().Returns(scope);
-        _service.AddAsync(Arg.Any<SaveOfficerRequest>(), Arg.Any<CancellationToken>())
-            .ThrowsAsync(new BusinessRuleException("x"));
+        SaveFails(new BusinessRuleException("x"));
         Fill();
         _ = new OfficerEditPresenter(_view, scopes, officer: null);
 

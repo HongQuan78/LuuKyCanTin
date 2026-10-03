@@ -69,6 +69,15 @@ public sealed class OfficerServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task Add_InvalidRequest_NamesThePropertyOfEachMessage()
+    {
+        var error = await Should.ThrowAsync<RequestValidationException>(() => _service.AddAsync(Request("C B", " ")));
+
+        error.Errors.Select(e => e.PropertyName).ShouldBe(
+            [nameof(SaveOfficerRequest.OfficerCode), nameof(SaveOfficerRequest.FullName)]);
+    }
+
+    [Fact]
     public async Task Add_UniqueIndexViolation_IsReportedAsDuplicateCode()
     {
         // Another workstation saved the same code between the check and the save.

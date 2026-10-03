@@ -5,7 +5,6 @@ using LuuKyCanTin.Infrastructure;
 using LuuKyCanTin.Infrastructure.Common;
 using LuuKyCanTin.WinForms.Administration;
 using LuuKyCanTin.WinForms.Common;
-using LuuKyCanTin.WinForms.Custody;
 using LuuKyCanTin.WinForms.MasterData;
 using LuuKyCanTin.WinForms.Shell;
 using Microsoft.Extensions.Configuration;
@@ -83,7 +82,6 @@ internal static class Program
         builder.Services.AddTransient(sp => new LoginForm(sp.GetRequiredService<WorkstationInfo>()));
         builder.Services.AddTransient<MainForm>();
         builder.Services.AddTransient<AddInmateForm>();
-        builder.Services.AddTransient<DepositReceiptForm>();
 
         return builder.Build();
     }

@@ -133,6 +133,10 @@ internal static class AppTheme
     public const int NavSubIndent = 47;
     public const int LabelGap = 5;
     public const int TileHeight = 124;
+    public const int StatusDotSize = 8;
+    public const int CardFooterHeight = 44;
+    public const int SearchWidth = 300;
+    public const int VoucherSideWidth = 340;
 
     // ---- Shared styles -------------------------------------------------------------------------------------------
 
@@ -176,6 +180,42 @@ internal static class AppTheme
         grid.DefaultCellStyle.Font = BodyFont;
         grid.DefaultCellStyle.SelectionBackColor = AccentSoft;
         grid.DefaultCellStyle.SelectionForeColor = SystemInformation.HighContrast ? SystemColors.WindowText : Text;
+    }
+
+    /// <summary>
+    /// Puts an icon-font glyph before the button text, drawn in the button's text colour, so it follows the
+    /// enabled/disabled colours. Call it after <see cref="StylePrimary"/> or <see cref="StyleSecondary"/>.
+    /// </summary>
+    public static void SetGlyph(Button button, string glyph)
+    {
+        void Render()
+        {
+            var previous = button.Image;
+            button.Image = CreateGlyphImage(glyph, button.ForeColor);
+            previous?.Dispose();
+        }
+
+        button.TextImageRelation = TextImageRelation.ImageBeforeText;
+        Render();
+        button.ForeColorChanged += (_, _) => Render();
+    }
+
+    /// <summary>
+    /// The status cell of a list: an 8px square dot and the text, both in <paramref name="colour"/>
+    /// (success for an active record, danger for an inactive one). Call it from <c>CellPainting</c>.
+    /// </summary>
+    public static void PaintStatusCell(DataGridViewCellPaintingEventArgs e, Color colour)
+    {
+        e.PaintBackground(e.ClipBounds, (e.State & DataGridViewElementStates.Selected) != 0);
+        var bounds = e.CellBounds;
+        var dot = new Rectangle(bounds.Left + 12, bounds.Top + (bounds.Height - StatusDotSize) / 2, StatusDotSize, StatusDotSize);
+        using (var brush = new SolidBrush(colour))
+            e.Graphics!.FillRectangle(brush, dot);
+
+        var text = new Rectangle(dot.Right + 6, bounds.Top, Math.Max(0, bounds.Right - dot.Right - 12), bounds.Height);
+        TextRenderer.DrawText(e.Graphics, e.FormattedValue as string ?? "", e.CellStyle!.Font ?? BodyFont, text, colour,
+            TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix);
+        e.Handled = true;
     }
 
     /// <summary>One segment of a segmented control: a button-looking radio, accent when checked.</summary>
@@ -224,6 +264,20 @@ internal static class AppTheme
     {
         segment.BackColor = segment.Checked ? Accent : Card;
         segment.ForeColor = segment.Checked ? OnAccent : Text;
+    }
+
+    // A 10.5pt glyph in a 14px box, then an 8px gap to the text, as the prototype buttons draw it.
+    private static Bitmap CreateGlyphImage(string glyph, Color colour)
+    {
+        const int glyphBox = 14;
+        const int textGap = 8;
+        var bitmap = new Bitmap(glyphBox + textGap, glyphBox + 2);
+        using var graphics = Graphics.FromImage(bitmap);
+        using var brush = new SolidBrush(colour);
+        using var format = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
+        graphics.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
+        graphics.DrawString(glyph, IconFont(10.5F), brush, new RectangleF(0, 0, glyphBox, glyphBox + 2), format);
+        return bitmap;
     }
 
     private static Color Pick(int rgb, Color highContrast) =>
